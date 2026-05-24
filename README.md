@@ -1,6 +1,6 @@
 # Font Wizard
 
-Font Wizard is a Windows 11 app for changing the system UI font.
+Font Wizard is a Windows 11 app for changing the Windows 11 system font across the entire interface.
 
 ## Preview
 
