@@ -34,8 +34,6 @@ It writes the same registry values people usually edit by hand, copies the gener
 
 Download `Font Wizard App.zip` from the [latest release](../../releases/latest), extract it, and run `Font Wizard.exe`.
 
-Run the app as **Administrator**. The ZIP includes `LICENSE` and `THIRD-PARTY-NOTICES.txt`.
-
 ## Usage
 
 1. Open Font Wizard on Windows 11.
@@ -56,7 +54,7 @@ Only static TrueType fonts are supported. Variable fonts and `.otf` files are re
 
 Build output goes to `App\dist\`. For releases, upload `App\dist\Font Wizard App.zip`.
 
-## Third-Party Tools used
+## Built With
 
 - PySide6
 - fontTools
