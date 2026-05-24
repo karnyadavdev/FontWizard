@@ -56,12 +56,10 @@ Only static TrueType fonts are supported. Variable fonts and `.otf` files are re
 
 Build output goes to `App\dist\`. For releases, upload `App\dist\Font Wizard App.zip`.
 
-## Tech
+## Third-Party Tools
 
 - PySide6
 - fontTools
-
-Font Wizard does not include or redistribute Microsoft fonts.
 
 ## License
 
