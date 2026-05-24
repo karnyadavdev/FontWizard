@@ -56,7 +56,7 @@ Build output goes to `App\dist\`.
 
 - PySide6
 - fontTools
-- 
+  
 ## Project Status
 
 Font Wizard is fully complete and in maintenance mode. I originally built it to be a commercial product, but decided to open-source it. Future updates will focus strictly on bug fixes, if any.
