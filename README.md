@@ -1,8 +1,6 @@
 # Font Wizard
 
-Font Wizard is a small Windows 11 app for changing the system UI font.
-
-It writes the same registry values people usually edit by hand, copies the generated font files into place, and can restore the default Windows fonts later.
+Font Wizard is a Windows 11 app for changing the system UI font.
 
 ## Preview
 
@@ -52,12 +50,16 @@ Only static TrueType fonts are supported. Variable fonts and `.otf` files are re
 .\App\build.bat
 ```
 
-Build output goes to `App\dist\`. For releases, upload `App\dist\Font Wizard App.zip`.
+Build output goes to `App\dist\`.
 
 ## Built With
 
 - PySide6
 - fontTools
+- 
+## Project Status
+
+Font Wizard is fully complete and in maintenance mode. I originally built it to be a commercial product, but decided to open-source it. Future updates will focus strictly on bug fixes, if any.
 
 ## License
 
