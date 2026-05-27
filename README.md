@@ -36,7 +36,7 @@ Download `Font Wizard App.zip` from the [latest release](../../releases/latest),
 
 1. Open Font Wizard on Windows 11.
 2. Pick a static `.ttf` font.
-3. Check the detected style variants.
+3. Preview style variants.
 4. Click **Apply Changes**.
 5. Restart Windows when prompted.
 
