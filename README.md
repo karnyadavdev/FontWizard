@@ -38,7 +38,7 @@ Download `Font Wizard App.zip` from the [latest release](../../releases/latest),
 2. Pick a static `.ttf` font.
 3. Preview style variants.
 4. Click **Apply Changes**.
-5. Restart Windows when prompted.
+5. Restart Windows.
 
 Use **Restore Original Fonts** to go back to the Windows defaults.
 
