@@ -3,7 +3,7 @@
 [![Downloads](https://img.shields.io/github/downloads/karnyadavdev/Font-Wizard/total?style=flat-square)](https://github.com/karnyadavdev/Font-Wizard/releases)
 ![Clones](https://img.shields.io/badge/git_clones-80%2B_/_week-blue?style=flat-square)
 
-If you find this utility useful, please consider **starring** the repository. 
+If you find this app, please consider **starring** the repository. 
 Found a bug or have feedback? Feel free to open an **[issue](https://github.com/karnyadavdev/Font-Wizard/issues)**!
 
 # Font Wizard
