@@ -1,6 +1,6 @@
 ### Activity & Feedback
 
-[![Downloads](https://img.shields.io/github/downloads/karnyadavdev/Font-Wizard/total?style=flat-square)](https://github.com/karnyadavdev/Font-Wizard/releases)
+[![Downloads](https://img.shields.io/github/downloads/karnyadavdev/FontWizard/total?style=flat-square)](https://github.com/karnyadavdev/Font-Wizard/releases)
 ![Clones](https://img.shields.io/badge/git_clones-80%2B_/_week-blue?style=flat-square)
 
 If you find this app useful, please consider **starring** the repository. 
