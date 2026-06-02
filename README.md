@@ -1,6 +1,6 @@
-# Preview
 [![Downloads](https://img.shields.io/github/downloads/karnyadavdev/FontWizard/total?style=flat-square)](https://github.com/karnyadavdev/FontWizard/releases)
 ![Clones](https://img.shields.io/badge/git_clones-180%2B_/_week-blue?style=flat-square)
+# Preview
 <p align="center">
   <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview" width="900px"/>
   <br/><sub>Font applied across Windows</sub>
