@@ -1,21 +1,10 @@
-### Activity & Feedback
-
-[![Downloads](https://img.shields.io/github/downloads/karnyadavdev/FontWizard/total?style=flat-square)](https://github.com/karnyadavdev/FontWizard/releases)
-![Clones](https://img.shields.io/badge/git_clones-180%2B_/_week-blue?style=flat-square)
-
-If you find this app useful, please consider **starring** the repository. 
-Found a bug or have feedback? Feel free to open an **[issue](https://github.com/karnyadavdev/FontWizard/issues)**!
-
-# Font Wizard
-
-Font Wizard is a Windows 11 app for changing the Windows 11 system font across the entire interface including UWP, Win32, WinUI3, Electron, all kinds of apps
-
-## Preview
-
 <p align="center">
   <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview" width="900px"/>
   <br/><sub>Font applied across Windows</sub>
 </p>
+
+# Font Wizard
+Font Wizard is a Windows 11 app for changing the Windows 11 system font across the entire interface including UWP, Win32, WinUI3, Electron, all kinds of apps
 
 <table>
   <tr>
