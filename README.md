@@ -1,3 +1,4 @@
+# Preview
 <p align="center">
   <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview" width="900px"/>
   <br/><sub>Font applied across Windows</sub>
@@ -28,16 +29,6 @@ Font Wizard is a Windows 11 app for changing the Windows 11 system font across t
 ## Download
 
 Download `Font Wizard App.zip` from the [latest release](../../releases/latest), extract it, and run `Font Wizard.exe`.
-
-## Usage
-
-1. Open Font Wizard on Windows 11.
-2. Pick a static `.ttf` font.
-3. Preview style variants.
-4. Click **Apply Changes**.
-5. Restart Windows.
-
-Use **Restore Original Fonts** to go back to the Windows defaults.
 
 Only static TrueType fonts are supported. Variable fonts and `.otf` files are rejected.
 
