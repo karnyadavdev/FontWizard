@@ -30,7 +30,7 @@
 
 Download  [latest release](../../releases/latest) and run `FontWizard.exe`.
 
-Only static TrueType fonts are supported. Variable fonts and `.otf` files are rejected.
+Only .ttf fonts are supported. Variable fonts and `.otf` files are not supported currently.
 
 ## Build
 
@@ -47,7 +47,7 @@ Build output goes to `App\dist\`.
   
 ## Project Status
 
-Font Wizard is fully complete and in maintenance mode. I originally built it to be a commercial product, but decided to open-source it. Future updates will focus strictly on bug fixes, if any.
+I originally built it to be a commercial product, but decided to open-source it. Future updates will focus strictly on bug fixes, if any.
 
 ## License
 
