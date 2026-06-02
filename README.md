@@ -28,7 +28,7 @@
 
 ## Download
 
-Download `Font Wizard App.zip` from the [latest release](../../releases/latest), extract it, and run `Font Wizard.exe`.
+Download  [latest release](../../releases/latest) and run `FontWizard.exe`.
 
 Only static TrueType fonts are supported. Variable fonts and `.otf` files are rejected.
 
