@@ -1,4 +1,4 @@
-![Clones](https://img.shields.io/badge/git_clones-180%2B_/_week-blue?style=flat-square)
+![Clones](https://img.shields.io/badge/git_clones-230%2B_/_week-blue?style=flat-square)
 # Preview
 <p align="center">
   <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview" width="900px"/>
