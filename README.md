@@ -46,8 +46,8 @@ Build output goes to `App\dist\`.
   
 ## Project Status
 
-I originally built it to be a commercial product, but decided to open-source it. Future updates will focus strictly on bug fixes, if any.
-<b>Note: Use Brave browser instead of edge, in edge thin texts defaults to segoe ui ,  i have already fixed this issue but haven't updated it here, raise an issue if u want the next version<b></br>
+I originally built it to be a commercial product, but decided to open-source it. Future updates will focus strictly on bug fixes, if any.<br><br>
+<b>Note: Use Brave browser instead of edge/chrome, in chrome/edge thin texts defaults to segoe ui <br> i have already fixed this issue but haven't updated it here cause i dont think people notice it anyway raise an issue if u want the next version with this fix and maybe it will support variable and otf files if i had time<b></br>
 
 ## License
 
