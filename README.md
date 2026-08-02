@@ -1,3 +1,4 @@
+Note: Use Brave browser instead of edge, on some websites some thin text uses default font in edge, everywhere else it still works ,its edge specific issue
 ![Clones](https://img.shields.io/badge/git_clones-230%2B_/_week-blue?style=flat-square)
 # Preview
 <p align="center">
