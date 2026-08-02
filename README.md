@@ -1,4 +1,4 @@
-<b>Note: Use Brave browser instead of edge, in edge thin texts defaults to segoe ui , its edge specific issue. <b></br>
+<b>Note: Use Brave browser instead of edge, in edge thin texts defaults to segoe ui , its edge specific issue, i have already fixed it tho but not updated here, raise an issue if u want the next version<b></br>
 ![Clones](https://img.shields.io/badge/git_clones-230%2B_/_week-blue?style=flat-square)
 # Preview
 <p align="center">
