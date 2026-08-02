@@ -1,4 +1,3 @@
-<b>Note: Use Brave browser instead of edge, in edge thin texts defaults to segoe ui , its edge specific issue, i have already fixed it tho but not updated here, raise an issue if u want the next version<b></br>
 ![Clones](https://img.shields.io/badge/git_clones-230%2B_/_week-blue?style=flat-square)
 # Preview
 <p align="center">
@@ -48,6 +47,7 @@ Build output goes to `App\dist\`.
 ## Project Status
 
 I originally built it to be a commercial product, but decided to open-source it. Future updates will focus strictly on bug fixes, if any.
+<b>Note: Use Brave browser instead of edge, in edge thin texts defaults to segoe ui ,  i have already fixed this issue but haven't updated it here, raise an issue if u want the next version<b></br>
 
 ## License
 
