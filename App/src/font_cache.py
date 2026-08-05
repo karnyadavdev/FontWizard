@@ -122,7 +122,14 @@ def _cache_paths() -> list[Path]:
         windir / "System32" / "FNTCACHE.DAT",
     ]
     if local_app_data:
-        paths.append(Path(local_app_data) / "FontCache")
+        local_app = Path(local_app_data)
+        paths.append(local_app / "FontCache")
+        paths.append(local_app / "Microsoft" / "FontCache3.0.0.0.dat")
+        packages = local_app / "Packages"
+        if packages.exists():
+            for child in packages.iterdir():
+                if child.is_dir():
+                    paths.append(child / "LocalCache" / "Local" / "FontCache")
     return paths
 
 
@@ -209,6 +216,7 @@ def refresh_windows_font_cache():
     warnings = []
 
     stopped, stop_output = _run_sc("stop", "FontCache")
+    _run_sc("stop", "FontCache3.0.0.0")
     if not stopped:
         warnings.append(
             "Windows could not stop the Font Cache service. A restart is still required."
@@ -219,6 +227,7 @@ def refresh_windows_font_cache():
     for path in _cache_paths():
         _remove_cache_path(path, warnings)
 
+    _run_sc("start", "FontCache3.0.0.0")
     started, start_output = _run_sc("start", "FontCache")
     if not started:
         warnings.append("Windows could not restart the Font Cache service.")

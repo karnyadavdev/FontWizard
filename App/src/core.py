@@ -2,12 +2,12 @@
 
 from pathlib import Path
 
-from settings import WEIGHTS
+from settings import CONSOLAS_WEIGHTS, WEIGHTS
 from paths import RuntimePaths
 from checks import PreflightService
-from font_detection import detect_weight_overrides, inspect_font
+from font_detection import detect_mono_font_in_folder, detect_weight_overrides, inspect_font
 from journal import JOURNAL_FILENAME, OperationJournal
-from operation import FontWorkflow
+from operation import FontWorkflow, detect_mono_family
 from app_state import iso_now, ManagedStateStore
 
 from win_registry import WindowsFontRegistry
@@ -37,7 +37,8 @@ class FontWizardController:
             paths={w: None for w in WEIGHTS},
             labels={w: "unset" for w in WEIGHTS},
         )
-        self.monospace_font_path = None
+        self.monospace_paths = {weight: None for weight in CONSOLAS_WEIGHTS}
+        self.monospace_last_pick = None
 
     def refresh_preflight(self):
         report = self.preflight.collect()
@@ -81,27 +82,47 @@ class FontWizardController:
             paths[weight] = detected_path or path
             labels[weight] = "auto-detected"
 
+        if not any(self.monospace_paths.values()):
+            mono = detect_mono_font_in_folder(path)
+            self.monospace_last_pick = str(Path(mono).resolve()) if mono else None
+
     def apply(self, progress=None):
+        regular_path = self.selection.paths.get("regular")
         return self.workflow.apply(
             self.selection.paths,
             self.selection.labels,
-            monospace_font_path=self.monospace_font_path,
+            monospace_paths=self.effective_monospace_paths(regular_path),
             progress=progress,
         )
 
     def restore(self, progress=None):
         return self.workflow.restore(progress=progress)
 
-    def set_monospace_font(self, path):
+    def set_monospace_style(self, weight, path):
         metadata = inspect_font(path)
         if metadata.is_variable:
             raise ValueError(
                 "Variable fonts are not supported. Choose a static .ttf font"
             )
-        self.monospace_font_path = str(Path(path).resolve())
+        self.monospace_paths[weight] = str(Path(path).resolve())
+        self.monospace_last_pick = str(Path(path).resolve())
 
-    def clear_monospace_font(self):
-        self.monospace_font_path = None
+    def clear_monospace_style(self, weight):
+        self.monospace_paths[weight] = None
+        if not any(self.monospace_paths.values()):
+            self.monospace_last_pick = None
+
+    def effective_monospace_paths(self, regular_path):
+        base = detect_mono_family(self.monospace_last_pick) if self.monospace_last_pick else {}
+        paths = {}
+        for weight in CONSOLAS_WEIGHTS:
+            if self.monospace_paths.get(weight):
+                paths[weight] = self.monospace_paths[weight]
+            elif base.get(weight):
+                paths[weight] = base[weight]
+            else:
+                paths[weight] = regular_path
+        return paths
 
     def recover_pending_operation(self) -> list[str]:
         journal = OperationJournal(self.paths.data_root / JOURNAL_FILENAME)
@@ -117,7 +138,7 @@ class FontWizardController:
                 result = self.workflow.apply(
                     inputs.get("selection") or {},
                     inputs.get("source_labels"),
-                    monospace_font_path=inputs.get("monospace_font_path"),
+                    monospace_paths=self._recover_monospace_paths(inputs),
                 )
             elif kind == "restore":
                 result = self.workflow.restore()
@@ -137,6 +158,15 @@ class FontWizardController:
             warnings.append(message)
             self._log_recovery_outcome(kind, False, message, [])
         return warnings
+
+    def _recover_monospace_paths(self, inputs):
+        monospace_paths = inputs.get("monospace_paths")
+        if monospace_paths:
+            return {w: p for w, p in monospace_paths.items() if p}
+        legacy_base = inputs.get("monospace_font_path")
+        if legacy_base:
+            return detect_mono_family(legacy_base)
+        return {}
 
     def _log_recovery_outcome(self, kind, success, message, details):
         try:

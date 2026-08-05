@@ -16,9 +16,20 @@ from operation_files import (
     install_transaction,
     restore_original_fonts,
     rollback,
+    sanitize_previous_registry,
 )
 from settings import CONSOLAS_WEIGHTS, CONSOLAS_REGISTRY_NAMES, FONTS_DIR, WEIGHTS, default_registry_targets
 from app_state import hash_file, iso_now
+
+DEFAULT_FONT_SUBSTITUTES = {
+    "MS Shell Dlg": "Microsoft Sans Serif",
+    "MS Shell Dlg 2": "Tahoma",
+}
+
+_APP_SET_SUBSTITUTES = {
+    "MS Shell Dlg": "Segoe UI",
+    "MS Shell Dlg 2": "Segoe UI",
+}
 
 
 @dataclass
@@ -27,6 +38,25 @@ class OperationResult:
     message: str
     details: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+
+
+def detect_mono_family(font_path):
+    """Auto-map the 4 Consolas slots from a base mono font (legacy single-pick)."""
+    fallback = {weight: font_path for weight in CONSOLAS_WEIGHTS}
+    try:
+        from font_detection import detect_weight_overrides
+
+        mono_selection = detect_weight_overrides(
+            font_path,
+            {"regular": font_path},
+        )
+    except ValueError:
+        return fallback
+    mono_selection.setdefault("regular", font_path)
+    for weight in CONSOLAS_WEIGHTS:
+        if weight not in mono_selection:
+            mono_selection[weight] = font_path
+    return mono_selection
 
 
 class FontWorkflow:
@@ -38,7 +68,6 @@ class FontWorkflow:
         preflight,
         identity_fonts_root=None,
         active_fonts_root=None,
-        monospace_font_path=None,
     ):
         self.paths = paths
         self.registry = registry
@@ -46,29 +75,28 @@ class FontWorkflow:
         self.preflight = preflight
         self.identity_fonts_root = Path(identity_fonts_root or FONTS_DIR)
         self.active_fonts_root = Path(active_fonts_root or FONTS_DIR)
-        self.monospace_font_path = monospace_font_path
 
     def _system_font_files(self):
         return list(dict.fromkeys([*WEIGHTS.values(), *CONSOLAS_WEIGHTS.values()]))
 
-    def _effective_monospace_font_path(self, monospace_font_path):
-        if monospace_font_path is None:
-            monospace_font_path = self.monospace_font_path
-        return monospace_font_path
+    def _effective_monospace_paths(self, monospace_paths):
+        if monospace_paths is None:
+            monospace_paths = {}
+        return monospace_paths
 
-    def validate(self, selection, source_labels=None, monospace_font_path=None):
-        monospace_font_path = self._effective_monospace_font_path(monospace_font_path)
+    def validate(self, selection, source_labels=None, monospace_paths=None):
+        monospace_paths = self._effective_monospace_paths(monospace_paths)
         family = {"system_files": CONSOLAS_WEIGHTS, "registry_names": CONSOLAS_REGISTRY_NAMES}
-        if monospace_font_path:
-            family["source"] = Path(monospace_font_path)
+        if monospace_paths:
+            family["source"] = dict(monospace_paths)
         return validate_selection(
             selection,
             source_labels,
             extra_families=[family],
         )
 
-    def apply(self, selection, source_labels=None, progress=None, monospace_font_path=None):
-        monospace_font_path = self._effective_monospace_font_path(monospace_font_path)
+    def apply(self, selection, source_labels=None, progress=None, monospace_paths=None):
+        monospace_paths = self._effective_monospace_paths(monospace_paths)
         report = self.preflight.collect()
         if not report.is_supported:
             return OperationResult(False, "Font Wizard supports Windows 10 (build 10240+) and Windows 11.", report.issues, report.warnings)
@@ -83,15 +111,24 @@ class FontWorkflow:
             )
 
 
-        summary = self.validate(selection, source_labels, monospace_font_path)
+        summary = self.validate(selection, source_labels, monospace_paths)
         if not summary.ok:
             return OperationResult(False, summary.errors[0] if summary.errors else "The selected font cannot be used.", summary.errors, summary.warnings)
 
         stage_dir = self.paths.make_temp_dir("fontwizard-build-")
         rollback_dir = self.paths.make_temp_dir("fontwizard-rollback-")
         artifacts = {}
-        previous_registry = self.registry.read_targets(list(default_registry_targets().keys()))
-        saved_substitutes = (self.state_store.load() or {}).get("install", {}).get("previous_substitutes")
+        saved_state = self.state_store.load() or {}
+        existing_install = saved_state.get("install", {})
+        previous_registry = None
+        if existing_install.get("status") in ("applied", "pending_reboot", "pending_reboot_apply"):
+            saved_registry = existing_install.get("previous_registry")
+            if isinstance(saved_registry, dict) and saved_registry:
+                previous_registry = saved_registry
+        if not previous_registry:
+            previous_registry = self.registry.read_targets(list(default_registry_targets().keys()))
+        previous_registry = sanitize_previous_registry(previous_registry)
+        saved_substitutes = existing_install.get("previous_substitutes")
         previous_substitutes = saved_substitutes or self.registry.read_substitutes()
         protected_active_fonts = set(previous_registry.values())
 
@@ -101,7 +138,7 @@ class FontWorkflow:
             {
                 "selection": {weight: (str(path) if path else None) for weight, path in selection.items()},
                 "source_labels": dict(source_labels or {}),
-                "monospace_font_path": monospace_font_path,
+                "monospace_paths": {weight: (str(path) if path else None) for weight, path in monospace_paths.items()},
             },
             previous_registry,
         )
@@ -126,7 +163,7 @@ class FontWorkflow:
             journal.record_step("install")
 
             self._emit(progress, 84, "Applying the font to the protected system copies...")
-            system_warnings = backup_and_override_system_fonts(self, install_manifest["fonts"])
+            system_warnings = backup_and_override_system_fonts(self, install_manifest["fonts"], progress)
             journal.record_step("override_system_fonts")
 
             self._emit(progress, 88, "Refreshing the Windows font cache...")
@@ -137,7 +174,7 @@ class FontWorkflow:
             self._emit(progress, 92, "Saving the current Font Wizard state...")
             state = self.state_store.load_or_empty()
             install_manifest["options"] = {
-                "monospace_font_path": monospace_font_path,
+                "monospace_paths": {weight: (str(path) if path else None) for weight, path in monospace_paths.items()},
             }
             state["install"] = install_manifest
             state["last_action"] = {
@@ -207,30 +244,64 @@ class FontWorkflow:
             journal.record_step("cleanup")
 
             self._emit(progress, 20, "Restoring the original system font files...")
-            restored, missing_originals, restore_warnings, deferred_system_fonts = restore_original_fonts(self)
+            restored, missing_originals, restore_warnings, deferred_system_fonts = restore_original_fonts(self, progress=progress)
+            kept_system_filenames = {
+                system_file
+                for system_file in missing_originals
+                if not (self.active_fonts_root / system_file).exists()
+            }
             if missing_originals:
-                restore_warnings.append(
-                    "Original files were not found in the Font Wizard backup folder for: "
-                    + ", ".join(sorted(missing_originals))
-                    + ". Those weights keep the custom font until the originals are restored."
-                )
+                repointed = sorted(set(missing_originals) - kept_system_filenames)
+                if repointed:
+                    restore_warnings.append(
+                        "Original files were not found in the Font Wizard backup folder for: "
+                        + ", ".join(repointed)
+                        + ". Their registry entries were repointed to the system copies still present."
+                    )
+                if kept_system_filenames:
+                    restore_warnings.append(
+                        "Original files were not found in the Font Wizard backup folder for: "
+                        + ", ".join(sorted(kept_system_filenames))
+                        + ". Those weights keep the custom font until the originals are restored."
+                    )
             journal.record_step("restore_system_fonts")
 
             targets_to_write = {
                 name: filename
                 for name, filename in defaults.items()
-                if filename not in missing_originals
-                and (self.active_fonts_root / filename).exists()
+                if (self.active_fonts_root / filename).exists()
             }
 
             self._emit(progress, 35, "Restoring the Windows font registry entries...")
             self.registry.write_targets(targets_to_write)
             substitutes_warnings = []
+            final_substitutes = previous_substitutes or {}
             if previous_substitutes:
                 try:
                     self.registry.write_substitutes(previous_substitutes)
                 except Exception as exc:
                     substitutes_warnings.append(f"Could not restore the original MS Shell Dlg registry substitute: {exc}")
+            else:
+                current_substitutes = self.registry.read_substitutes()
+                if any(
+                    (current_substitutes.get(name) or "").strip().lower() == value.lower()
+                    for name, value in _APP_SET_SUBSTITUTES.items()
+                ):
+                    try:
+                        self.registry.write_substitutes(DEFAULT_FONT_SUBSTITUTES)
+                        final_substitutes = DEFAULT_FONT_SUBSTITUTES
+                        substitutes_warnings.append(
+                            "The original MS Shell Dlg substitutes were not recorded by the previous version, "
+                            "so they were reset to the Windows defaults (Microsoft Sans Serif / Tahoma)."
+                        )
+                    except Exception as exc:
+                        substitutes_warnings.append(
+                            f"Could not reset the MS Shell Dlg registry substitute: {exc}"
+                        )
+                else:
+                    substitutes_warnings.append(
+                        "The original MS Shell Dlg substitutes were not recorded, so they were left unchanged."
+                    )
             journal.record_step("registry")
 
             self._emit(progress, 60, "Cleaning up Font Wizard font files...")
@@ -238,7 +309,7 @@ class FontWorkflow:
                 self,
                 previous_registry,
                 state,
-                keep_system_filenames=missing_originals,
+                keep_system_filenames=kept_system_filenames,
             )
             journal.record_step("cleanup_managed_fonts")
 
@@ -253,6 +324,7 @@ class FontWorkflow:
                 "registry_targets": defaults,
                 "fonts": {},
                 "previous_registry": previous_registry,
+                "previous_substitutes": final_substitutes,
                 "applied_at": state.get("install", {}).get("applied_at"),
                 "restored_at": iso_now(),
             }

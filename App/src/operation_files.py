@@ -10,6 +10,7 @@ from pathlib import Path
 
 from settings import default_registry_targets
 from app_state import hash_file, iso_now
+from winsxs import find_winsxs_font, is_authentic_font, profile
 
 
 _MOVEFILE_DELAY_UNTIL_REBOOT = 0x4
@@ -215,6 +216,7 @@ def atomic_replace(src, dst) -> None:
     except OSError:
         temp.unlink(missing_ok=True)
         raise
+    _cancel_pending_rename_ops(dst)
 
 
 def _get_owner_name(path: Path):
@@ -417,7 +419,50 @@ def restore_file_acl(file_path: Path, backup_root: Path, system_filename: str, f
     return warnings
 
 
+def _cancel_pending_rename_ops(dst) -> None:
+    target_norm = _normalize_pending_path(str(dst))
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            _SESSION_MANAGER_SUBKEY,
+            0,
+            winreg.KEY_READ | winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY,
+        ) as key:
+            values, _ = winreg.QueryValueEx(key, _PENDING_RENAME_VALUE)
+    except OSError:
+        return
+    if not isinstance(values, list) or not values:
+        return
+
+    kept = []
+    removed = False
+    for index in range(0, len(values), 2):
+        pair = values[index:index + 2]
+        dest = pair[1] if len(pair) > 1 else None
+        if dest and _normalize_pending_path(dest) == target_norm:
+            removed = True
+            continue
+        kept.extend(pair)
+    if not removed:
+        return
+
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            _SESSION_MANAGER_SUBKEY,
+            0,
+            winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY,
+        ) as key:
+            if kept:
+                winreg.SetValueEx(key, _PENDING_RENAME_VALUE, 0, winreg.REG_MULTI_SZ, kept)
+            else:
+                winreg.DeleteValue(key, _PENDING_RENAME_VALUE)
+    except OSError:
+        pass
+
+
 def schedule_replace_on_reboot(workflow, src, dst):
+    _cancel_pending_rename_ops(dst)
     staged_src = stage_persistent_operation_file(workflow, src, dst, "_pending_replace")
     ok = _MoveFileExW(
         str(staged_src),
@@ -483,16 +528,6 @@ def install_transaction(workflow, artifacts: dict[str, dict], previous_registry:
     deferred_fonts = []
     warnings = []
 
-    workflow.registry.write_targets(targets)
-    try:
-        workflow.registry.ensure_font_substitutes()
-    except Exception as exc:
-        warnings.append(f"Could not update MS Shell Dlg 2 registry substitute: {exc}")
-
-    applied = workflow.registry.read_targets(list(targets.keys()))
-    if applied != targets:
-        raise RuntimeError("Registry verification failed before installing managed fonts.")
-
     for artifact in artifacts.values():
         staged_path = Path(artifact["staged_path"])
         system_filename = artifact["system_filename"]
@@ -502,7 +537,7 @@ def install_transaction(workflow, artifacts: dict[str, dict], previous_registry:
         prepare_rollback_file(active_path, rollback_dir)
         shutil.copy2(staged_path, managed_path)
         _verify_hash(managed_path, artifact["hash"], "managed")
-        
+
         deferred = force_copy(workflow, staged_path, active_path)
         if deferred:
             deferred_fonts.append(artifact["generated_filename"])
@@ -520,6 +555,16 @@ def install_transaction(workflow, artifacts: dict[str, dict], previous_registry:
             "sha256": artifact["hash"],
         }
 
+    workflow.registry.write_targets(targets)
+    try:
+        workflow.registry.ensure_font_substitutes()
+    except Exception as exc:
+        warnings.append(f"Could not update MS Shell Dlg 2 registry substitute: {exc}")
+
+    applied = workflow.registry.read_targets(list(targets.keys()))
+    if applied != targets:
+        raise RuntimeError("Registry verification failed after installing managed fonts.")
+
     cleanup_warnings = cleanup_stale_previous_fonts(workflow, previous_registry, fonts_manifest)
     warnings.extend(cleanup_warnings[0])
     if deferred_fonts:
@@ -534,11 +579,26 @@ def install_transaction(workflow, artifacts: dict[str, dict], previous_registry:
         "fonts": fonts_manifest,
         "deferred_fonts": deferred_fonts,
         "warnings": warnings,
-        "previous_registry": previous_registry,
+        "previous_registry": sanitize_previous_registry(previous_registry),
         "previous_substitutes": previous_substitutes,
         "applied_at": iso_now(),
         "restored_at": None,
     }
+
+
+def sanitize_previous_registry(previous_registry: dict[str, str | None]) -> dict[str, str | None]:
+    defaults = default_registry_targets()
+    cleaned = {}
+    for name, filename in previous_registry.items():
+        if not filename:
+            cleaned[name] = None
+            continue
+        lower = filename.lower()
+        if "_fontwizard" in lower or any(lower.endswith(s) for s in _MANAGED_SUFFIXES):
+            cleaned[name] = defaults.get(name, filename)
+        else:
+            cleaned[name] = filename
+    return cleaned
 
 
 def _verify_hash(path: Path, expected_hash: str, label: str) -> None:
@@ -739,7 +799,69 @@ def _apply_log(workflow, message: str) -> None:
         pass
 
 
-def backup_and_override_system_fonts(workflow, fonts_manifest: dict[str, dict]) -> list[str]:
+def _emit_progress(workflow, progress, value, message) -> None:
+    emitter = getattr(workflow, "_emit", None)
+    if progress and callable(emitter):
+        emitter(progress, value, message)
+
+
+def _clone_dacl_from_reference(workflow, dst: Path, system_file: str) -> list[str]:
+    reference = workflow.active_fonts_root / "arial.ttf"
+    if not reference.exists():
+        return [
+            f"Could not restore the original file permissions for {system_file} "
+            "(reference font arial.ttf is unavailable)."
+        ]
+    acl_dir = workflow.paths.temp_root / "acl-clone"
+    try:
+        workflow.paths.ensure_runtime_dirs()
+        acl_dir.mkdir(parents=True, exist_ok=True)
+        snapshot_file_acl(reference, acl_dir, reference.stem)
+        return restore_file_acl(dst, acl_dir, reference.stem)
+    except OSError:
+        return [f"Could not restore the original file permissions for {system_file}."]
+
+
+def _restore_from_store(workflow, system_file: str, dst: Path, store_file, restored, deferred, missing, warnings, source_note) -> None:
+    _apply_log(workflow, f"{system_file}: restoring from component store {store_file}")
+    try:
+        _grant_owner_write(dst)
+        atomic_replace(store_file, dst)
+    except OSError as exc:
+        staged = schedule_replace_on_reboot(workflow, store_file, dst)
+        if staged is not None:
+            deferred.add(system_file)
+            warnings.append(
+                f"Font {system_file} is locked and will be restored from the "
+                "Windows component store after restart."
+            )
+            _apply_log(workflow, f"{system_file}: store restore scheduled for reboot")
+        else:
+            warnings.append(f"Could not restore original font {system_file}: {exc}")
+            missing.add(system_file)
+            _apply_log(workflow, f"{system_file}: store restore failed: {exc}")
+        return
+    warnings.extend(_clone_dacl_from_reference(workflow, dst, system_file))
+    if source_note:
+        warnings.append(source_note)
+    restored.add(system_file)
+    _apply_log(workflow, f"{system_file}: restored from component store")
+
+
+def _note_inauthentic_live_font(workflow, system_filename: str, target: Path, warnings) -> None:
+    store_file = find_winsxs_font(system_filename)
+    if store_file is None:
+        return
+    store_profile = profile(store_file)
+    if store_profile and not is_authentic_font(target, store_profile):
+        warnings.append(
+            f"{system_filename} is not the genuine Windows font and was already replaced; "
+            "it will be saved as the previous font."
+        )
+        _apply_log(workflow, f"{system_filename}: live font is not genuine; saved as previous font")
+
+
+def backup_and_override_system_fonts(workflow, fonts_manifest: dict[str, dict], progress=None) -> list[str]:
     warnings = []
     backup_root = workflow.paths.original_fonts_root
     workflow.paths.ensure_runtime_dirs()
@@ -770,6 +892,8 @@ def backup_and_override_system_fonts(workflow, fonts_manifest: dict[str, dict]) 
                 warnings.append(f"Could not back up original font {system_filename}: {exc}")
                 _apply_log(workflow, f"{system_filename}: backup failed: {exc}")
                 continue
+            _emit_progress(workflow, progress, 85, "Checking the Windows component store...")
+            _note_inauthentic_live_font(workflow, system_filename, target, warnings)
 
         snapshot_file_acl(target, backup_root, system_filename)
 
@@ -803,22 +927,71 @@ def backup_and_override_system_fonts(workflow, fonts_manifest: dict[str, dict]) 
     return warnings
 
 
-def restore_original_fonts(workflow, system_files=None) -> tuple[set[str], set[str], list[str], set[str]]:
+def restore_original_fonts(workflow, system_files=None, progress=None) -> tuple[set[str], set[str], list[str], set[str]]:
     system_files = system_files or _default_system_files()
     backup_root = workflow.paths.original_fonts_root
     restored = set()
     missing = set()
     deferred = set()
     warnings = []
+    store_emitted = False
+
+    def emit_store_check():
+        nonlocal store_emitted
+        if not store_emitted:
+            store_emitted = True
+            _emit_progress(workflow, progress, 24, "Checking the Windows component store...")
 
     for system_file in system_files:
         dst = workflow.active_fonts_root / system_file
-        if not dst.exists():
-            continue
         backup = backup_root / system_file
-        if not backup.exists():
-            missing.add(system_file)
+
+        if not dst.exists():
+            if backup.exists():
+                try:
+                    _grant_owner_write(dst)
+                    atomic_replace(backup, dst)
+                    warnings.extend(restore_file_acl(dst, backup_root, system_file, final=True))
+                except OSError as exc:
+                    staged = schedule_replace_on_reboot(workflow, backup, dst)
+                    if staged is not None:
+                        deferred.add(system_file)
+                        restore_file_acl(staged, backup_root, system_file)
+                        warnings.append(f"Font {system_file} is locked and will be restored after restart.")
+                    else:
+                        warnings.append(f"Could not restore original font {system_file}: {exc}")
+                        missing.add(system_file)
+                    continue
+                restored.add(system_file)
+            else:
+                missing.add(system_file)
             continue
+
+        if not backup.exists():
+            emit_store_check()
+            store_file = find_winsxs_font(system_file)
+            if store_file is not None:
+                _restore_from_store(
+                    workflow, system_file, dst, store_file,
+                    restored, deferred, missing, warnings, None,
+                )
+            else:
+                missing.add(system_file)
+            continue
+
+        emit_store_check()
+        store_file = find_winsxs_font(system_file)
+        if store_file is not None:
+            store_profile = profile(store_file)
+            if store_profile and not is_authentic_font(backup, store_profile):
+                _restore_from_store(
+                    workflow, system_file, dst, store_file,
+                    restored, deferred, missing, warnings,
+                    f"The saved original for {system_file} was not the genuine Windows font; "
+                    "restored from the Windows component store.",
+                )
+                continue
+
         try:
             _grant_owner_write(dst)
             atomic_replace(backup, dst)

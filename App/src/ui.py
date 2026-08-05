@@ -47,7 +47,7 @@ from PySide6.QtWidgets import (
     QLayout,
 )
 
-from settings import APP_GITHUB_URL, APP_NAME, WEIGHT_TARGETS
+from settings import APP_GITHUB_URL, APP_NAME, CONSOLAS_WEIGHTS, WEIGHT_TARGETS
 from core import FontWizardController
 from font_detection import inspect_font
 from operation import OperationResult
@@ -541,7 +541,11 @@ class WeightCard(FadeFrame):
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
         
-        title_str = "Monospaced" if is_mono else weight.replace("_", " ").title()
+        title_str = (
+            f"Monospaced {weight[len('monospace_'):].replace('_', ' ').title()}"
+            if is_mono
+            else weight.replace("_", " ").title()
+        )
         title = QLabel(title_str)
         title.setObjectName("CardTitle")
         title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -765,10 +769,6 @@ class FontWizardApp(QMainWindow):
         self.setup_layout.addWidget(self.interface_row)
         self.main_layout.addWidget(self.setup_card)
 
-        self.error_banner = StatusBanner()
-        self.error_banner.hide()
-        self.main_layout.addWidget(self.error_banner)
-
     def _build_variants(self):
         self.variants_header = QWidget()
         v_layout = QHBoxLayout(self.variants_header)
@@ -940,13 +940,8 @@ class FontWizardApp(QMainWindow):
 
     def _show_error(self, title, message, icon="\uE7BA", color="danger"):
         colors = get_theme_colors(self.is_dark)
-        self.error_banner.set_icon(icon, colors.get(color, colors["danger"]))
-        self.error_banner.set_content(title, message)
-        self.error_banner.show()
-
-    def _hide_error(self):
-        if hasattr(self, "error_banner"):
-            self.error_banner.hide()
+        self.banner.set_icon(icon, colors.get(color, colors["danger"]))
+        self.banner.set_content(title, message)
 
     def _friendly_font_error(self, exc):
         text = str(exc)
@@ -980,7 +975,11 @@ class FontWizardApp(QMainWindow):
             self.refresh_all()
 
     def _on_change_variant_font(self, weight_key):
-        title_str = "Monospaced" if weight_key == "monospace" else weight_key.replace("_", " ").title()
+        title_str = (
+            "Monospaced"
+            if weight_key.startswith("monospace_")
+            else weight_key.replace("_", " ").title()
+        )
         font_path, _ = QFileDialog.getOpenFileName(
             self,
             f"Select Font File for {title_str}",
@@ -989,8 +988,9 @@ class FontWizardApp(QMainWindow):
         )
         if font_path:
             try:
-                if weight_key == "monospace":
-                    self.controller.set_monospace_font(font_path)
+                if weight_key.startswith("monospace_"):
+                    style = weight_key[len("monospace_"):]
+                    self.controller.set_monospace_style(style, font_path)
                 elif weight_key == "regular":
                     self.controller.set_regular_font(font_path)
                 else:
@@ -1007,8 +1007,9 @@ class FontWizardApp(QMainWindow):
                 self._show_error("Font not supported", self._friendly_font_error(exc), color="warning")
 
     def _on_reset_variant_font(self, weight_key):
-        if weight_key == "monospace":
-            self.controller.clear_monospace_font()
+        if weight_key.startswith("monospace_"):
+            style = weight_key[len("monospace_"):]
+            self.controller.clear_monospace_style(style)
         else:
             self.controller.selection.labels[weight_key] = "auto-detected"
             regular_path = self.controller.selection.paths.get("regular")
@@ -1066,6 +1067,7 @@ class FontWizardApp(QMainWindow):
                 "Apply failed" if btn is self.apply_btn else "Restore failed",
                 result.message,
                 "\uE783",
+                "danger",
             )
         self.refresh_all()
         if error_info:
@@ -1097,7 +1099,6 @@ class FontWizardApp(QMainWindow):
     def refresh_all(self):
         report = self.controller.refresh_preflight()
         colors = get_theme_colors(self.is_dark)
-        self._hide_error()
 
         is_pending = report.install_state in ("pending_reboot_apply", "pending_reboot_recovery")
         if report.install_state == "managed":
@@ -1147,7 +1148,7 @@ class FontWizardApp(QMainWindow):
             apply_text = "Apply Changes"
             restore_text = "Restore Original Fonts"
             apply_visible = has_selected_font
-            restore_visible = not has_selected_font
+            restore_visible = not has_selected_font or report.install_state == "managed"
 
         action_is_restart = self._apply_action == "restart"
         apply_available = apply_visible and (action_is_restart or can_apply)
@@ -1202,14 +1203,14 @@ class FontWizardApp(QMainWindow):
                     pass
 
         if has_selected_font:
-            mono_path = self.controller.monospace_font_path or regular_font
-            if mono_path:
+            effective_mono = self.controller.effective_monospace_paths(regular_font)
+            for weight in CONSOLAS_WEIGHTS:
                 try:
                     mono_card = WeightCard(
-                        "monospace",
-                        mono_path,
+                        f"monospace_{weight}",
+                        effective_mono[weight],
                         is_mono=True,
-                        has_override=self.controller.monospace_font_path is not None,
+                        has_override=self.controller.monospace_paths.get(weight) is not None,
                     )
                     mono_card.change_requested.connect(self._on_change_variant_font)
                     mono_card.reset_requested.connect(self._on_reset_variant_font)

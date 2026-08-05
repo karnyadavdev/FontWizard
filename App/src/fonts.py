@@ -63,10 +63,17 @@ def validate_selection(selection, source_labels=None, extra_families=None):
         for weight, system_filename in system_files.items():
             if weight == "variable" and not (FONTS_DIR / system_filename).exists():
                 continue
-            if forced_source:
-                source = forced_source
-            else:
+            if forced_source is None:
                 source = resolved.get(weight) or resolved.get("regular")
+            elif isinstance(forced_source, dict):
+                source = (
+                    forced_source.get(weight)
+                    or forced_source.get("regular")
+                    or resolved.get(weight)
+                    or resolved.get("regular")
+                )
+            else:
+                source = forced_source
             source_path = Path(source)
             if not source_path.exists():
                 summary.errors.append(f"Font file not found for {weight.replace('_', ' ')}.")
