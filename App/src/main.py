@@ -6,6 +6,12 @@ from pathlib import Path
 from checks import is_admin
 from paths import RuntimePaths
 
+_MUTEX_NAME = "Global\\FontWizard_SingleInstance"
+_MUTEX_ALREADY_EXISTS = 183
+
+_kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+_user32 = ctypes.windll.user32
+
 
 def run_as_admin():
     executable = sys.executable
@@ -26,15 +32,38 @@ def run_as_admin():
     return True
 
 
+def acquire_single_instance_mutex():
+    handle = _kernel32.CreateMutexW(None, False, _MUTEX_NAME)
+    if handle:
+        if _kernel32.GetLastError() == _MUTEX_ALREADY_EXISTS:
+            _kernel32.CloseHandle(handle)
+            return None
+        return handle
+    if _kernel32.GetLastError() == _MUTEX_ALREADY_EXISTS:
+        return None
+    return False
+
+
 def main():
     if "--no-admin" not in sys.argv and not is_admin():
         if not run_as_admin():
             return 1
         return 0
 
+    mutex = acquire_single_instance_mutex()
+    if mutex is None:
+        _user32.MessageBoxW(
+            None,
+            "Font Wizard is already running. Close the existing window and try again.",
+            "Font Wizard",
+            0x40,
+        )
+        return 0
+
     from PySide6.QtGui import QFontDatabase
     from PySide6.QtWidgets import QApplication
 
+    from core import FontWizardController
     from ui import FontWizardApp
 
     paths = RuntimePaths.discover()
@@ -52,9 +81,13 @@ def main():
     sys.excepthook = logging_hook
 
     try:
+        controller = FontWizardController()
+        controller.recover_pending_operation()
+        controller.sweep_stale_temp_dirs()
+
         app = QApplication(sys.argv)
         app.setFont(QFontDatabase.systemFont(QFontDatabase.GeneralFont))
-        window = FontWizardApp()
+        window = FontWizardApp(controller=controller)
         return window.run()
     except Exception:
         write_crash_log(traceback.format_exc())

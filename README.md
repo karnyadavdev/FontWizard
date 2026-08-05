@@ -1,11 +1,34 @@
-![Clones](https://img.shields.io/badge/git_clones-230%2B_/_week-blue?style=flat-square)
-# Preview
+# Font Wizard
+
+Swap the built-in **Segoe UI** and **Consolas** fonts at the Windows level, system-wide.
+
+## Preview
 <p align="center">
   <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview" width="900px"/>
   <br/><sub>Font applied across Windows</sub>
 </p>
 
-# Usage
+## What it changes
+
+Font Wizard swaps the built-in **Segoe UI** (interface) and **Consolas** (monospace) fonts at the
+Windows level. Because it replaces the font sources that Windows hands to apps, your new font shows
+up almost everywhere — not just in Font Wizard:
+
+| Area | You'll see your font in |
+|---|---|
+| **Windows UI** | Start menu, Taskbar, Settings, Explorer, context menus |
+| **WinUI 3 / modern apps** | Newer Windows apps, notifications, dialogs (Windows 11) |
+| **Classic apps** | Traditional Win32 desktop apps, Office, most toolbars |
+| **Electron apps** | VS Code, Discord, Slack, Teams, GitHub Desktop |
+| **Browsers** | Chrome/Edge UI itself, not the content of web pages |
+| **Terminal & code** | Command Prompt, Notepad, code editors — via the Consolas (Monospaced) slot; optionally set a monospace font card, otherwise the UI font is used |
+
+A few things worth knowing:
+
+- Apps that **bundle their own fonts** (some games, specialist editors) are unaffected by design.
+- Apps already open keep the old font until they are restarted; the rest of Windows finishes after the next restart.
+
+## Usage
 <table>
   <tr>
     <td><img src="App/src/assets/screenshots/app-ready.png" alt="Font Wizard ready state"/></td>
@@ -27,7 +50,9 @@
 
 ## Download
 
-Download  [latest release](../../releases/latest) and run `FontWizard.exe`.
+Download [latest release](../../releases/latest) and run `Font Wizard.exe`.
+
+Supports Windows 10 (build 10240+) and Windows 11.
 
 Only .ttf fonts are supported. Variable fonts and `.otf` files are not supported currently.
 
@@ -39,6 +64,15 @@ Only .ttf fonts are supported. Variable fonts and `.otf` files are not supported
 
 Build output goes to `App\dist\`.
 
+## Developer / testing
+
+You can run Font Wizard against a sandbox instead of the real system fonts by setting
+these environment variables (useful for development and the test suite):
+
+- `FONTWIZARD_FONTS_DIR` — folder treated as the Windows Fonts directory (default: `%WINDIR%\Fonts`).
+- `FONTWIZARD_DATA_DIR` — app data (state, managed/original fonts, pending operations). Default: `%PROGRAMDATA%\Font Wizard`.
+- `FONTWIZARD_LOCAL_DIR` — logs and temporary files. Default: `%LOCALAPPDATA%\Font Wizard`.
+
 ## Built With
 
 - PySide6
@@ -46,8 +80,7 @@ Build output goes to `App\dist\`.
   
 ## Project Status
 
-I originally built it to be a commercial product, but decided to open-source it. Future updates will focus strictly on bug fixes, if any.<br><br>
-<b>Note: Use Brave browser instead of edge/chrome, in chrome/edge thin texts defaults to segoe ui <br> i have already fixed this issue but haven't updated it here cause i dont think people notice it anyway raise an issue if u want the next version with this fix and maybe it will support variable and otf files if i had time<b></br>
+I originally built it to be a commercial product, but decided to open-source it. Future updates will focus strictly on bug fixes, if any.
 
 ## License
 

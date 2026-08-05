@@ -2,12 +2,60 @@ import ctypes
 import os
 import subprocess
 import time
+from ctypes import wintypes
 from pathlib import Path
 
 
 _HWND_BROADCAST = 0xFFFF
 _WM_FONTCHANGE = 0x001D
 _SMTO_ABORTIFHUNG = 0x0002
+
+_SC_MANAGER_CONNECT = 0x0001
+_SERVICE_QUERY_STATUS = 0x0004
+_SERVICE_STOPPED = 0x0001
+_SERVICE_RUNNING = 0x0004
+
+
+class _SERVICE_STATUS(ctypes.Structure):
+    _fields_ = [
+        ("dwServiceType", wintypes.DWORD),
+        ("dwCurrentState", wintypes.DWORD),
+        ("dwControlsAccepted", wintypes.DWORD),
+        ("dwWin32ExitCode", wintypes.DWORD),
+        ("dwServiceSpecificExitCode", wintypes.DWORD),
+        ("dwCheckPoint", wintypes.DWORD),
+        ("dwWaitHint", wintypes.DWORD),
+    ]
+
+
+_advapi32 = ctypes.windll.advapi32
+_advapi32.OpenSCManagerW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.DWORD]
+_advapi32.OpenSCManagerW.restype = wintypes.HANDLE
+_advapi32.OpenServiceW.argtypes = [wintypes.HANDLE, wintypes.LPCWSTR, wintypes.DWORD]
+_advapi32.OpenServiceW.restype = wintypes.HANDLE
+_advapi32.QueryServiceStatus.argtypes = [wintypes.HANDLE, ctypes.POINTER(_SERVICE_STATUS)]
+_advapi32.QueryServiceStatus.restype = wintypes.BOOL
+_advapi32.CloseServiceHandle.argtypes = [wintypes.HANDLE]
+_advapi32.CloseServiceHandle.restype = wintypes.BOOL
+
+
+def _query_service_state(service: str):
+    service_manager = _advapi32.OpenSCManagerW(None, None, _SC_MANAGER_CONNECT)
+    if not service_manager:
+        return None
+    try:
+        service_handle = _advapi32.OpenServiceW(service_manager, service, _SERVICE_QUERY_STATUS)
+        if not service_handle:
+            return None
+        try:
+            status = _SERVICE_STATUS()
+            if not _advapi32.QueryServiceStatus(service_handle, ctypes.byref(status)):
+                return None
+            return status.dwCurrentState
+        finally:
+            _advapi32.CloseServiceHandle(service_handle)
+    finally:
+        _advapi32.CloseServiceHandle(service_manager)
 
 
 _user32 = ctypes.windll.user32
@@ -56,14 +104,14 @@ def _run_sc(command, service, timeout=20):
     if completed.returncode == 0:
         return True, output
 
-    already_ok = (
-        command == "stop"
-        and any(token in output.lower() for token in ("has not been started", "not been started"))
-    ) or (
-        command == "start"
-        and any(token in output.lower() for token in ("already been started", "already running"))
+    state = _query_service_state(service)
+    harmless = (
+        (command == "stop" and (state == _SERVICE_STOPPED or state is None))
+        or (command == "start" and state == _SERVICE_RUNNING)
     )
-    return already_ok, output
+    if harmless:
+        return True, output
+    return False, output
 
 
 def _cache_paths() -> list[Path]:
@@ -78,6 +126,64 @@ def _cache_paths() -> list[Path]:
     return paths
 
 
+def _grant_access_and_remove(path: Path) -> bool:
+    flags = subprocess.CREATE_NO_WINDOW
+    snapshot = None
+    if os.environ.get("TEMP"):
+        snapshot = Path(os.environ["TEMP"]) / f"fontwizard-acl-{os.getpid()}.sda"
+        try:
+            completed = subprocess.run(
+                ["icacls.exe", str(path), "/save", str(snapshot)],
+                capture_output=True,
+                timeout=30,
+                creationflags=flags,
+            )
+            if completed.returncode != 0:
+                snapshot.unlink(missing_ok=True)
+                snapshot = None
+        except (OSError, subprocess.SubprocessError):
+            snapshot = None
+
+    removed = False
+    granted = False
+    try:
+        if snapshot is not None:
+            subprocess.run(
+                ["takeown.exe", "/f", str(path), "/a"],
+                capture_output=True,
+                timeout=30,
+                creationflags=flags,
+            )
+            subprocess.run(
+                ["icacls.exe", str(path), "/grant", "*S-1-5-32-544:F"],
+                capture_output=True,
+                timeout=30,
+                creationflags=flags,
+            )
+            granted = True
+        path.unlink(missing_ok=True)
+        removed = not path.exists()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    finally:
+        if granted and not removed and snapshot is not None:
+            try:
+                subprocess.run(
+                    ["icacls.exe", str(path), "/restore", str(snapshot)],
+                    capture_output=True,
+                    timeout=30,
+                    creationflags=flags,
+                )
+            except (OSError, subprocess.SubprocessError):
+                pass
+        if snapshot is not None:
+            try:
+                snapshot.unlink(missing_ok=True)
+            except OSError:
+                pass
+    return removed
+
+
 def _remove_cache_path(path, warnings):
     if not path.exists():
         return
@@ -86,7 +192,8 @@ def _remove_cache_path(path, warnings):
         try:
             path.unlink()
         except OSError as exc:
-            warnings.append(f"Could not remove font cache file {path}: {exc}")
+            if not _grant_access_and_remove(path):
+                warnings.append(f"Could not remove font cache file {path}: {exc}")
         return
 
     for child in path.glob("*"):
@@ -94,7 +201,8 @@ def _remove_cache_path(path, warnings):
             if child.is_file():
                 child.unlink()
         except OSError as exc:
-            warnings.append(f"Could not remove font cache file {child}: {exc}")
+            if not _grant_access_and_remove(child):
+                warnings.append(f"Could not remove font cache file {child}: {exc}")
 
 
 def refresh_windows_font_cache():

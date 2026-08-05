@@ -162,6 +162,8 @@ def detect_weight_overrides(primary_path, existing=None):
         candidates.append((candidate, metadata))
 
     for candidate, metadata in candidates:
+        if metadata.is_variable:
+            continue
         weight = classify_weight(candidate, metadata)
         if not weight or weight == "regular" or existing.get(weight) or weight in detected:
             continue
