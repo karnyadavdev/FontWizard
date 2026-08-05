@@ -1,3 +1,9 @@
+<p>
+  <img src="https://img.shields.io/badge/Downloads-600%2B-2ea44f?style=flat-square" alt="Downloads">
+  <img src="https://img.shields.io/badge/Windows%2010-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Windows 10">
+  <img src="https://img.shields.io/badge/Windows%2011-0078D4?style=flat-square&logo=windows11&logoColor=white" alt="Windows 11">
+</p>
+
 ## Preview
 <p align="center">
   <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview" width="900px"/>
