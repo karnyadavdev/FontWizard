@@ -1,7 +1,6 @@
-<img src="https://img.shields.io/badge/Downloads-600%2B-2ea44f?style=flat" alt="Downloads">
+<img src="https://img.shields.io/badge/Downloads-600%2B-2ea44f?style=flat" alt="Downloads">  100% coverage including UWP, Win32, WinUI 3, Electron, etc and safe restore with one click
 
-
-100% coverage including UWP, Win32, WinUI 3, Electron, etc and safe restore with one click    
+## Preview    
 
 <p align="center">
   <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview" width="900px"/>
