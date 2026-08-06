@@ -1,4 +1,4 @@
-<img src="https://img.shields.io/badge/Downloads-600%2B-2ea44f?style=flat" alt="Downloads"> 
+<img src="https://img.shields.io/badge/Downloads-600%2B-2ea44f?style=for-the-badge" alt="Downloads"> 
 
 ## Preview    
 
