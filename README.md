@@ -1,3 +1,5 @@
+- Only tool that changes Windows 10 & 11 system font with 100% coverage 
+- UWP, Win32, WinUI 3, Electron and all kinds of apps and safely restore the original Windows font with one click.
 <p>
   <img src="https://img.shields.io/badge/Downloads-600%2B-2ea44f?style=for-the-badge" alt="Downloads">
  <img src="https://img.shields.io/badge/Windows%2010-0078D4?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40NDlMOS43NSAyLjF2OS40NTFIMG0xMC45NDktOS42MDJMMjQgMHYxMS40SDEwLjk0OU0wIDEyLjZoOS43NXY5LjQ1MUwwIDIwLjY5OU0xMC45NDkgMTIuNkgyNFYyNGwtMTMuMDUxLTEuOTI5Ii8%2BPC9zdmc%2B" alt="Windows 10">
