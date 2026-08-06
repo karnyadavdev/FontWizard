@@ -1,5 +1,4 @@
-- 100% coverage supporting all kinds of apps, UWP, Win32, WinUI 3, Electron, etc and safe restore with one click.
-<img src="https://img.shields.io/badge/Downloads-600%2B-2ea44f?style=for-the-badge" alt="Downloads">
+- 100% coverage including UWP, Win32, WinUI 3, Electron, etc and safe restore with one click    .   <img src="https://img.shields.io/badge/Downloads-600%2B-2ea44f?style=flat" alt="Downloads">
 
 
 ## Preview 
