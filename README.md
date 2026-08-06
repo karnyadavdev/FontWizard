@@ -14,20 +14,8 @@
 ## Usage
 <table>
   <tr>
-    <td><img src="App/src/assets/screenshots/app-ready.png" alt="Font Wizard ready state"/></td>
-    <td><img src="App/src/assets/screenshots/app-variants.png" alt="Font style variants preview"/></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Launch screen</sub></td>
-    <td align="center"><sub>Font selected</sub></td>
-  </tr>
-  <tr>
-    <td><img src="App/src/assets/screenshots/app-applying.png" alt="Applying a font change"/></td>
-    <td><img src="App/src/assets/screenshots/app-restart.png" alt="Restart required after applying fonts"/></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Applying process</sub></td>
-    <td align="center"><sub>Waiting for restart</sub></td>
+    <td><img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/></td>
+    <td><img src="App/src/assets/screenshots/app-restart.png" alt="Font style Restart Screen"/></td>
   </tr>
 </table>
 
