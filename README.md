@@ -7,7 +7,7 @@
 ## Preview
 <p align="center">
   <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview" width="900px"/>
-  <br/><sub>Applied Font being displayed</sub>
+  <br/><sub>Applied Font being displayed everywhere</sub>
 </p>
 
 
