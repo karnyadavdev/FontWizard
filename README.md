@@ -15,7 +15,7 @@
 </p>
 
 
-## Preview
+## Screenshots
 
 <table>
   <tr>
