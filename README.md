@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="120"/>
+  <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
 
 <h1 align="center">Font Wizard</h1>
@@ -7,7 +7,7 @@
 
 <p align="center">
   <b>Swap Segoe UI and Consolas system-wide with one click.</b><br><br>
-  Every app that asks for Segoe UI gets your font instead be it Start menu, Taskbar, Settings, Explorer, Office, Chrome, VS Code, Discord, all of them. Pick any static <code>.ttf</code>, apply once, restart, done.
+  Every app that asks for Segoe UI gets your font instead be it Start menu, Taskbar, Settings, Explorer, Office, Chrome, VS Code, Discord, all of them. Pick any font, apply once, restart, done.
 </p>
 
 
