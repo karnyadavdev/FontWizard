@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <sub>Built with Python · PySides6 · Fonttools </sub> <br>
+  <sub>Built with Python · PySide6 · fontTools </sub> <br>
   <sub>License: MIT &nbsp;·&nbsp; Status: Public Release v2.0</sub>
 </p>
 
@@ -22,19 +22,23 @@
     <td><img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/></td>
     <td><img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview"/></td>
   </tr>
+  <tr>
+    <td align="center"><sub>App screen</sub></td>
+    <td align="center"><sub>System after font applied</sub></td>
+  </tr>
 </table>
 
 ---
 
 ## Download
-Download the [latest release](https://github.com/karnyadavdev/FontWizard/releases/latest)  and run `Font Wizard.exe`.
+
+Download the [latest release](https://github.com/karnyadavdev/FontWizard/releases/latest) and run `Font Wizard.exe`.
 
 - Supports **Windows 10 (build 10240+)** and **Windows 11**.
 - Only `.ttf` fonts are supported. Variable fonts and `.otf` files are not supported currently.
 
 ---
 
-  
 ## Build
 
 ```bat
@@ -43,9 +47,9 @@ Download the [latest release](https://github.com/karnyadavdev/FontWizard/release
 
 Build output goes to `App\dist\`.
 
-
 ---
- <p align="center"> 
+
+<p align="center"> 
 Built with ❤️ by <a href="https://github.com/karnyadavdev">karnyadavdev</a>. If Font Wizard helped you, consider starring the repo</a> ⭐
 
 </p>
