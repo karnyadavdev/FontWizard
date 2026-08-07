@@ -56,6 +56,25 @@ WM_SETTINGCHANGE = 0x001A
 WM_THEMECHANGED = 0x031A
 WM_DWMCOLORIZATIONCOLORCHANGED = 0x0320
 
+
+def _friendly_warning_lines(warnings):
+    """Turn raw warning strings into short friendly lines for the banner.
+
+    Returns (lines, hidden_count). Lines are deduplicated and truncated at a
+    comfortable length; technical detail is kept out of the UI.
+    """
+    lines = []
+    for text in warnings:
+        text = (text or "").strip()
+        if not text:
+            continue
+        if text in lines:
+            continue
+        lines.append(text[:220])
+    if len(lines) <= 4:
+        return lines, 0
+    return lines[:4], len(lines) - 4
+
 def get_system_accent_color() -> tuple[str, str, str]:
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\Accent") as key:
@@ -953,7 +972,9 @@ class FontWizardApp(QMainWindow):
             return "Variable fonts are not supported. Choose a static .ttf font"
         if "truetype-outline" in text.lower() or "unable to read" in text.lower():
             return "Unable to read the font file. Choose a valid static .ttf font"
-        return text
+        if "permission" in text.lower() or "denied" in text.lower():
+            return "This font file can't be opened right now. Make sure it isn't open in another program."
+        return "This font file couldn't be used. Please choose a different .ttf font."
 
     def on_browse(self):
         if self._browse_action == "restart":
@@ -1072,6 +1093,17 @@ class FontWizardApp(QMainWindow):
         self.refresh_all()
         if error_info:
             self._show_error(*error_info)
+        elif result.warnings:
+            self._show_warnings(result.message, result.warnings)
+
+    def _show_warnings(self, message, warnings):
+        colors = get_theme_colors(self.is_dark)
+        cleaned, extra = _friendly_warning_lines(warnings)
+        lines = list(dict.fromkeys(cleaned))[:4]
+        if extra:
+            lines.append(f"…and {extra} more (see details)")
+        self.banner.set_icon("\uE73E", colors["accent"])
+        self.banner.set_content(message, "\n".join(lines))
 
     def closeEvent(self, event):
         self._closing = True
@@ -1103,6 +1135,8 @@ class FontWizardApp(QMainWindow):
         is_pending = report.install_state in ("pending_reboot_apply", "pending_reboot_recovery")
         if report.install_state == "managed":
             self.banner.set_icon("\uE73E", colors["accent"])
+        elif report.install_state == "reverted":
+            self.banner.set_icon("\uE7BA", colors["warning"])
         elif is_pending:
             self.banner.set_icon("\uE777", colors["warning"])
         elif report.issues:
@@ -1148,7 +1182,7 @@ class FontWizardApp(QMainWindow):
             apply_text = "Apply Changes"
             restore_text = "Restore Original Fonts"
             apply_visible = has_selected_font
-            restore_visible = not has_selected_font or report.install_state == "managed"
+            restore_visible = not has_selected_font or report.install_state in ("managed", "reverted")
 
         action_is_restart = self._apply_action == "restart"
         apply_available = apply_visible and (action_is_restart or can_apply)

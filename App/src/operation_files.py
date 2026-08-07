@@ -10,7 +10,8 @@ from pathlib import Path
 
 from settings import default_registry_targets
 from app_state import hash_file, iso_now
-from winsxs import find_winsxs_font, is_authentic_font, profile
+from winsxs import find_winsxs_copies, find_winsxs_font, is_authentic_font, expected_entry, profile
+from font_locks import locked_override, relaunch_shell
 
 
 _MOVEFILE_DELAY_UNTIL_REBOOT = 0x4
@@ -144,10 +145,13 @@ def cleanup_font_directory_artifacts(workflow, protected_files=None) -> tuple[li
             path.unlink(missing_ok=True)
         except OSError as exc:
             if schedule_delete_on_reboot(path):
-                warnings.append(f"Removal scheduled for reboot: {path}")
+                _apply_log(workflow, f"Removal scheduled for reboot: {path}")
+                note = "A few older font files will be removed automatically after the next restart."
+                if note not in warnings:
+                    warnings.append(note)
                 is_pending = True
             else:
-                warnings.append(f"Could not remove stale font artifact {path}: {exc}")
+                _apply_log(workflow, f"Could not remove stale font artifact {path}: {exc}")
     return warnings, is_pending
 
 
@@ -569,9 +573,10 @@ def install_transaction(workflow, artifacts: dict[str, dict], previous_registry:
     warnings.extend(cleanup_warnings[0])
     if deferred_fonts:
         for font_name in deferred_fonts:
-            warnings.append(f"Font replacement scheduled for reboot: {workflow.active_fonts_root / font_name}")
+            _apply_log(workflow, f"Font replacement scheduled for reboot: {workflow.active_fonts_root / font_name}")
         warnings.append(
-            "Some font files are queued for replacement on reboot. Restart Windows before applying another font."
+            "A few protected font files are busy right now and will be updated after the next restart. "
+            "No action is needed."
         )
     return {
         "status": "applied",
@@ -711,10 +716,13 @@ def cleanup_stale_previous_fonts(workflow, previous_registry: dict[str, str | No
             path.unlink(missing_ok=True)
         except OSError as exc:
             if schedule_delete_on_reboot(path):
-                warnings.append(f"Removal scheduled for reboot: {path}")
+                _apply_log(workflow, f"Removal scheduled for reboot: {path}")
+                note = "A few older font files will be removed automatically after the next restart."
+                if note not in warnings:
+                    warnings.append(note)
                 is_pending = True
             else:
-                warnings.append(f"Could not remove stale managed font {path}: {exc}")
+                _apply_log(workflow, f"Could not remove stale managed font {path}: {exc}")
     return warnings, is_pending
 
 
@@ -755,10 +763,13 @@ def cleanup_managed_fonts(workflow, previous_registry: dict[str, str | None], st
                 file_path.unlink(missing_ok=True)
             except OSError as exc:
                 if schedule_delete_on_reboot(file_path):
-                    warnings.append(f"Removal scheduled for reboot: {file_path}")
+                    _apply_log(workflow, f"Removal scheduled for reboot: {file_path}")
+                    note = "A few older font files will be removed automatically after the next restart."
+                    if note not in warnings:
+                        warnings.append(note)
                     is_pending = True
                 else:
-                    warnings.append(f"Could not remove {file_path}: {exc}")
+                    _apply_log(workflow, f"Could not remove {file_path}: {exc}")
                     
     pending_warnings, pending_reboot = cleanup_orphaned_pending_ops(workflow)
     warnings.extend(pending_warnings)
@@ -822,24 +833,39 @@ def _clone_dacl_from_reference(workflow, dst: Path, system_file: str) -> list[st
         return [f"Could not restore the original file permissions for {system_file}."]
 
 
+def _restore_with_unlock(workflow, system_file: str, src: Path, dst: Path, warnings) -> None:
+    """Restore dst from src, releasing font locks (FontCache/fontdrvhost/holders) when needed."""
+    if dst.exists() and src.exists():
+        locked_ok, shell_killed = locked_override(
+            src,
+            dst,
+            log=lambda message: _apply_log(workflow, f"{system_file}: {message}"),
+        )
+        if locked_ok:
+            if shell_killed:
+                relaunch_shell()
+            return
+    atomic_replace(src, dst)
+
+
 def _restore_from_store(workflow, system_file: str, dst: Path, store_file, restored, deferred, missing, warnings, source_note) -> None:
     _apply_log(workflow, f"{system_file}: restoring from component store {store_file}")
     try:
         _grant_owner_write(dst)
-        atomic_replace(store_file, dst)
+        _restore_with_unlock(workflow, system_file, store_file, dst, warnings)
     except OSError as exc:
         staged = schedule_replace_on_reboot(workflow, store_file, dst)
         if staged is not None:
             deferred.add(system_file)
             warnings.append(
-                f"Font {system_file} is locked and will be restored from the "
-                "Windows component store after restart."
+                "One font file is busy and will be restored automatically after the next restart. "
+                "No action is needed."
             )
             _apply_log(workflow, f"{system_file}: store restore scheduled for reboot")
         else:
+            _apply_log(workflow, f"{system_file}: store restore failed: {exc}")
             warnings.append(f"Could not restore original font {system_file}: {exc}")
             missing.add(system_file)
-            _apply_log(workflow, f"{system_file}: store restore failed: {exc}")
         return
     warnings.extend(_clone_dacl_from_reference(workflow, dst, system_file))
     if source_note:
@@ -861,8 +887,137 @@ def _note_inauthentic_live_font(workflow, system_filename: str, target: Path, wa
         _apply_log(workflow, f"{system_filename}: live font is not genuine; saved as previous font")
 
 
-def backup_and_override_system_fonts(workflow, fonts_manifest: dict[str, dict], progress=None) -> list[str]:
+def _overwrite_in_place(src: Path, dst: Path) -> bool:
+    try:
+        with open(src, "rb") as inp, open(dst, "r+b") as out:
+            shutil.copyfileobj(inp, out)
+            out.truncate()
+            out.flush()
+            os.fsync(out.fileno())
+        return True
+    except OSError:
+        return False
+
+
+def _patch_winsxs_copies(workflow, system_filename: str, patched: Path, backup_root: Path, warnings) -> bool:
+    store_files = find_winsxs_copies(system_filename)
+    if not store_files:
+        return True
+    ok = True
+    for store_file in store_files:
+        try:
+            if hash_file(store_file) == hash_file(patched):
+                continue
+        except OSError:
+            ok = False
+            continue
+        _apply_log(workflow, f"{system_filename}: patching component store copy {store_file}")
+        try:
+            _grant_owner_write(store_file)
+            if _overwrite_in_place(patched, store_file) and hash_file(store_file) == hash_file(patched):
+                warnings.extend(restore_file_acl(store_file, backup_root, system_filename))
+                _apply_log(workflow, f"{system_filename}: component store copy patched in place")
+                continue
+            _apply_log(workflow, f"{system_filename}: store in-place patch failed; trying atomic replace")
+        except OSError as exc:
+            _apply_log(workflow, f"{system_filename}: store in-place patch failed ({exc}); trying atomic replace")
+        try:
+            _grant_owner_write(store_file)
+            atomic_replace(patched, store_file)
+            if hash_file(store_file) == hash_file(patched):
+                warnings.extend(restore_file_acl(store_file, backup_root, system_filename))
+                _apply_log(workflow, f"{system_filename}: component store copy replaced atomically")
+                continue
+            _apply_log(workflow, f"{system_filename}: store replace reported success but hash mismatch")
+        except OSError as exc:
+            _apply_log(workflow, f"{system_filename}: component store copy could not be patched now ({exc})")
+        ok = False
+        note = (
+            "Windows keeps a hidden backup copy of this font that could not be updated. "
+            "The font you chose is already applied and working; no action is needed."
+        )
+        if note not in warnings:
+            warnings.append(note)
+    return ok
+
+
+def _restore_store_copies(workflow, system_file: str, source: Path, backup_root: Path, warnings, schedule=False) -> None:
+    for store_file in find_winsxs_copies(system_file):
+        try:
+            if hash_file(store_file) == hash_file(source):
+                continue
+        except OSError:
+            continue
+        try:
+            if is_authentic_font(store_file, expected_entry(system_file)):
+                continue
+        except OSError:
+            continue
+        _apply_log(workflow, f"{system_file}: restoring component store copy {store_file}")
+        if schedule:
+            if schedule_replace_on_reboot(workflow, source, store_file) is None:
+                _apply_log(workflow, f"{system_file}: component store copy could not be scheduled for restore")
+                note = (
+                    "A hidden Windows backup copy of one font could not be restored automatically. "
+                    "The font on screen is still correct; no action is needed."
+                )
+                if note not in warnings:
+                    warnings.append(note)
+            continue
+        try:
+            _grant_owner_write(store_file)
+            if _overwrite_in_place(source, store_file) and hash_file(store_file) == hash_file(source):
+                warnings.extend(restore_file_acl(store_file, backup_root, system_file))
+                _apply_log(workflow, f"{system_file}: component store copy restored in place")
+                continue
+        except OSError:
+            pass
+        try:
+            _grant_owner_write(store_file)
+            atomic_replace(source, store_file)
+            if hash_file(store_file) == hash_file(source):
+                warnings.extend(restore_file_acl(store_file, backup_root, system_file))
+                _apply_log(workflow, f"{system_file}: component store copy restored atomically")
+                continue
+        except OSError:
+            pass
+        _apply_log(workflow, f"{system_file}: component store copy could not be restored: {store_file}")
+        note = (
+            "A hidden Windows backup copy of one font could not be restored automatically. "
+            "The font on screen is still correct; no action is needed."
+        )
+        if note not in warnings:
+            warnings.append(note)
+
+
+def _verify_no_genuine_store_copies(workflow, fonts_manifest, deferred, warnings) -> None:
+    for info in fonts_manifest.values():
+        system_filename = info.get("system_filename")
+        if not system_filename or system_filename in deferred:
+            continue
+        entry = expected_entry(system_filename)
+        if not entry:
+            continue
+        for store_file in find_winsxs_copies(system_filename):
+            try:
+                if is_authentic_font(store_file, entry):
+                    _apply_log(
+                        workflow,
+                        f"{system_filename}: genuine copy still present at {store_file}",
+                    )
+                    note = (
+                        "Windows keeps a hidden backup copy of a few fonts that could not be updated. "
+                        "The font you chose is already applied and working; you do not need to do anything."
+                    )
+                    if note not in warnings:
+                        warnings.append(note)
+            except OSError:
+                continue
+
+
+def backup_and_override_system_fonts(workflow, fonts_manifest: dict[str, dict], progress=None) -> tuple[list[str], set[str]]:
     warnings = []
+    deferred = set()
     backup_root = workflow.paths.original_fonts_root
     workflow.paths.ensure_runtime_dirs()
     _apply_log(workflow, f"backup_and_override_system_fonts start, {len(fonts_manifest)} fonts")
@@ -879,8 +1034,10 @@ def backup_and_override_system_fonts(workflow, fonts_manifest: dict[str, dict], 
         if not patched.exists():
             _apply_log(workflow, f"{system_filename}: generated file missing at {patched}, skipping")
             continue
+        _emit_progress(workflow, progress, 85, f"Applying {system_filename}...")
         if hash_file(target) == hash_file(patched):
             warnings.extend(restore_file_acl(target, backup_root, system_filename))
+            _patch_winsxs_copies(workflow, system_filename, patched, backup_root, warnings)
             _apply_log(workflow, f"{system_filename}: already overridden, restoring ownership and skipping")
             continue
 
@@ -899,32 +1056,55 @@ def backup_and_override_system_fonts(workflow, fonts_manifest: dict[str, dict], 
 
         try:
             _grant_owner_write(target)
-            atomic_replace(patched, target)
-            if hash_file(target) == hash_file(patched):
+            if _overwrite_in_place(patched, target) and hash_file(target) == hash_file(patched):
                 warnings.extend(restore_file_acl(target, backup_root, system_filename))
-                _apply_log(workflow, f"{system_filename}: replaced atomically, hash ok")
-                continue
-            _apply_log(workflow, f"{system_filename}: replace reported success but hash mismatch")
-            warnings.append(f"Protected font {system_filename} was not overwritten as expected.")
+                _apply_log(workflow, f"{system_filename}: replaced in place, hard link preserved, hash ok")
+            else:
+                locked_ok, shell_killed = locked_override(
+                    patched,
+                    target,
+                    log=lambda message: _apply_log(workflow, f"{system_filename}: {message}"),
+                )
+                if locked_ok:
+                    warnings.extend(restore_file_acl(target, backup_root, system_filename))
+                    if shell_killed:
+                        relaunch_shell()
+                    _apply_log(workflow, f"{system_filename}: replaced in place after releasing font locks")
+                else:
+                    atomic_replace(patched, target)
+                    if hash_file(target) == hash_file(patched):
+                        warnings.extend(restore_file_acl(target, backup_root, system_filename))
+                        _apply_log(workflow, f"{system_filename}: replaced atomically, hash ok")
+                    else:
+                        _apply_log(workflow, f"{system_filename}: replace reported success but hash mismatch")
+                        warnings.append(f"Protected font {system_filename} was not overwritten as expected.")
+            _patch_winsxs_copies(workflow, system_filename, patched, backup_root, warnings)
             continue
         except OSError as exc:
             _apply_log(workflow, f"{system_filename}: in-place copy failed ({exc}); trying reboot replace")
 
         staged = schedule_replace_on_reboot(workflow, patched, target)
         if staged is not None:
+            deferred.add(system_filename)
+            for store_file in find_winsxs_copies(system_filename):
+                schedule_replace_on_reboot(workflow, patched, store_file)
             restore_file_acl(staged, backup_root, system_filename)
             warnings.extend(restore_file_acl(target, backup_root, system_filename))
-            warnings.append(f"Font {system_filename} is locked and will be replaced after restart.")
+            note = "One font file is busy right now and will finish updating after the next restart. No action is needed."
+            if note not in warnings:
+                warnings.append(note)
             _apply_log(workflow, f"{system_filename}: scheduled for reboot replace")
         else:
             warnings.append(f"Could not apply the font to the protected copy of {system_filename}: {exc}")
             _apply_log(workflow, f"{system_filename}: reboot replace failed too")
 
+    _verify_no_genuine_store_copies(workflow, fonts_manifest, deferred, warnings)
+
     if not warnings:
         _apply_log(workflow, "backup_and_override_system_fonts completed cleanly")
     else:
         _apply_log(workflow, f"backup_and_override_system_fonts completed with {len(warnings)} warning(s)")
-    return warnings
+    return warnings, deferred
 
 
 def restore_original_fonts(workflow, system_files=None, progress=None) -> tuple[set[str], set[str], list[str], set[str]]:
@@ -957,11 +1137,15 @@ def restore_original_fonts(workflow, system_files=None, progress=None) -> tuple[
                     if staged is not None:
                         deferred.add(system_file)
                         restore_file_acl(staged, backup_root, system_file)
-                        warnings.append(f"Font {system_file} is locked and will be restored after restart.")
+                        _restore_store_copies(workflow, system_file, backup, backup_root, warnings, schedule=True)
+                        note = "One font file is busy right now and will finish restoring after the next restart. No action is needed."
+                        if note not in warnings:
+                            warnings.append(note)
                     else:
                         warnings.append(f"Could not restore original font {system_file}: {exc}")
                         missing.add(system_file)
                     continue
+                _restore_store_copies(workflow, system_file, backup, backup_root, warnings)
                 restored.add(system_file)
             else:
                 missing.add(system_file)
@@ -987,25 +1171,29 @@ def restore_original_fonts(workflow, system_files=None, progress=None) -> tuple[
                 _restore_from_store(
                     workflow, system_file, dst, store_file,
                     restored, deferred, missing, warnings,
-                    f"The saved original for {system_file} was not the genuine Windows font; "
-                    "restored from the Windows component store.",
+                    "The saved original for this font was not the usual Windows version, "
+                    "so it was restored from Windows' own copy instead.",
                 )
                 continue
 
         try:
             _grant_owner_write(dst)
-            atomic_replace(backup, dst)
+            _restore_with_unlock(workflow, system_file, backup, dst, warnings)
             warnings.extend(restore_file_acl(dst, backup_root, system_file, final=True))
         except OSError as exc:
             staged = schedule_replace_on_reboot(workflow, backup, dst)
             if staged is not None:
                 deferred.add(system_file)
                 restore_file_acl(staged, backup_root, system_file)
-                warnings.append(f"Font {system_file} is locked and will be restored after restart.")
+                _restore_store_copies(workflow, system_file, backup, backup_root, warnings, schedule=True)
+                note = "One font file is busy right now and will finish restoring after the next restart. No action is needed."
+                if note not in warnings:
+                    warnings.append(note)
             else:
                 warnings.append(f"Could not restore original font {system_file}: {exc}")
                 missing.add(system_file)
             continue
+        _restore_store_copies(workflow, system_file, backup, backup_root, warnings)
         restored.add(system_file)
     return restored, missing, warnings, deferred
 

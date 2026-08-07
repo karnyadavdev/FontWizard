@@ -127,7 +127,7 @@ def validate_selection(selection, source_labels=None, extra_families=None):
 
     if len(family_names) > 1:
         summary.warnings.append(
-            "The selected styles come from more than one font family. Review them carefully before applying."
+            "The selected files come from more than one font family. That is fine, but double-check the preview before applying."
         )
 
     return summary

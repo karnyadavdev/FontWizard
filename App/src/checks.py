@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 
 from settings import SUPPORTED_WINDOWS_MAJOR, WINDOWS_10_BUILD, WINDOWS_11_BUILD, default_registry_targets, FONTS_DIR
-from app_state import validate_state
+from app_state import hash_file, validate_state
 
 
 def is_admin():
@@ -62,6 +62,43 @@ def _targets_match(actual, expected):
     return True
 
 
+def _system_copies_reverted(fonts) -> bool:
+    mismatches = 0
+    for info in fonts.values():
+        system_filename = info.get("system_filename")
+        expected = info.get("sha256")
+        if not system_filename or not expected:
+            continue
+        live = FONTS_DIR / system_filename
+        try:
+            actual = hash_file(live)
+        except OSError:
+            mismatches += 1
+            continue
+        if actual != expected:
+            mismatches += 1
+    return mismatches > 0
+
+
+def _deferred_copies_still_original(fonts, deferred_filenames) -> bool:
+    """True if any font queued for a reboot replace still carries the original content."""
+    deferred = {name.lower() for name in deferred_filenames}
+    for info in fonts.values():
+        system_filename = info.get("system_filename")
+        expected = info.get("sha256")
+        if not system_filename or system_filename.lower() not in deferred:
+            continue
+        if not expected:
+            continue
+        live = FONTS_DIR / system_filename
+        try:
+            if not live.exists() or hash_file(live) != expected:
+                return True
+        except OSError:
+            return True
+    return False
+
+
 def install_state(registry_targets, default_targets, state, paths=None, pending_deletions=None):
     pending_deletions = pending_deletions or set()
 
@@ -69,7 +106,7 @@ def install_state(registry_targets, default_targets, state, paths=None, pending_
         install = state.get("install", {})
         expected = install.get("registry_targets", {})
         fonts = install.get("fonts", {})
-        if install.get("status") in ("applied", "pending_reboot", "clean"):
+        if install.get("status") in ("applied", "pending_reboot", "pending_reboot_apply", "clean"):
             expected_matches = (
                 (expected.items() <= registry_targets.items()) if fonts else _targets_match(registry_targets, expected)
             )
@@ -80,8 +117,11 @@ def install_state(registry_targets, default_targets, state, paths=None, pending_
                             return "clean"
                         return "pending_reboot_recovery"
                 else:
-                    if not _booted_since(install.get("applied_at")):
+                    deferred = install.get("deferred_system_fonts") or []
+                    if deferred and fonts and _deferred_copies_still_original(fonts, deferred):
                         return "pending_reboot_apply"
+                    if fonts and _system_copies_reverted(fonts):
+                        return "reverted"
                     return "managed"
 
     if _targets_match(registry_targets, default_targets) and paths:
@@ -130,6 +170,13 @@ def experience_state(is_supported, is_admin, install_state):
             "The original fonts have been set up, but some files still need a restart to take effect.",
             "Restart your PC, then open Font Wizard again if you want to apply a new font.",
         )
+    if install_state == "reverted":
+        return (
+            "reverted",
+            "Your font is still in place",
+            "Windows refreshed a few related font files at startup, but the font you chose is still active and applied. Nothing needs to be done.",
+            "To be safe, re-apply from Font Setup, or restore the original Windows fonts from Recovery.",
+        )
     if install_state == "managed":
         return (
             "managed",
@@ -152,10 +199,12 @@ def build_messages(install_state, is_supported):
     notes = []
     if install_state == "managed":
         notes.append("The current fonts were installed by Font Wizard.")
+    if install_state == "reverted":
+        notes.append("Windows refreshed a few related font files at startup; your font is still active.")
     if install_state == "pending_reboot_apply":
-        notes.append("Restart Windows to fully apply the font, or select another font to apply.")
+        notes.append("Restart Windows to finish applying the font, or select another font.")
     if install_state == "pending_reboot_recovery":
-        notes.append("Restart Windows before applying another font.")
+        notes.append("Restart Windows to finish restoring the original fonts.")
     notes.append("Use Recovery if you want to put Windows fonts back without applying a new font.")
     return notes
 

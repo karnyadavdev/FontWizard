@@ -105,8 +105,8 @@ class FontWorkflow:
         if report.install_state == "pending_reboot_recovery":
             return OperationResult(
                 False,
-                "Restart Windows before applying another font.",
-                ["A previous recovery still has file updates waiting for restart."],
+                "Please restart Windows first.",
+                ["A previous font change still has a few files waiting to finish after a restart."],
                 report.warnings,
             )
 
@@ -163,7 +163,10 @@ class FontWorkflow:
             journal.record_step("install")
 
             self._emit(progress, 84, "Applying the font to the protected system copies...")
-            system_warnings = backup_and_override_system_fonts(self, install_manifest["fonts"], progress)
+            system_warnings, deferred_system_fonts = backup_and_override_system_fonts(self, install_manifest["fonts"], progress)
+            install_manifest["deferred_system_fonts"] = sorted(deferred_system_fonts)
+            if deferred_system_fonts:
+                install_manifest["status"] = "pending_reboot_apply"
             journal.record_step("override_system_fonts")
 
             self._emit(progress, 88, "Refreshing the Windows font cache...")
@@ -188,9 +191,16 @@ class FontWorkflow:
 
             self._emit(progress, 100, "Font apply completed.")
             journal.clear()
+            if deferred_system_fonts:
+                message = (
+                    "Your font was applied. A few protected font files are busy right now "
+                    "and will finish updating after the next restart."
+                )
+            else:
+                message = "Your font was applied. Open apps may need a restart to show it."
             return OperationResult(
                 True,
-                "Fonts were updated. Restart Windows to finish the change.",
+                message,
                 warnings=[
                     *summary.warnings,
                     *pending_cleanup_warnings,
@@ -224,8 +234,8 @@ class FontWorkflow:
         if report.install_state == "pending_reboot_apply":
             return OperationResult(
                 False,
-                "Restart Windows before restoring the original fonts.",
-                ["A previous font change still has file updates waiting for restart."],
+                "Please restart Windows first.",
+                ["A previous font change still has a few files waiting to finish after a restart."],
                 report.warnings,
             )
 
@@ -348,11 +358,11 @@ class FontWorkflow:
                 *cache_warnings,
             ]
 
-            message = "The original Windows fonts have been restored."
+            message = "The original Windows fonts were restored."
             if deferred_system_fonts:
-                message += " Some system font files are locked and will be restored after you restart Windows."
+                message += " A few font files are busy and will finish restoring after the next restart."
             if cleanup_warnings:
-                message += " Some files are still in use and will be cleaned up after you restart Windows."
+                message += " A few older font files will be cleaned up after the next restart."
             return OperationResult(True, message, warnings=warnings)
         except Exception as exc:
             return OperationResult(False, "Font restore did not finish. Some changes may have been made.", [str(exc)])

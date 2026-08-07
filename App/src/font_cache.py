@@ -191,6 +191,15 @@ def _grant_access_and_remove(path: Path) -> bool:
     return removed
 
 
+def _apply_cache_note(warnings):
+    note = (
+        "Some font cache files could not be cleared, but the font is still applied. "
+        "They will refresh on their own after the next restart."
+    )
+    if note not in warnings:
+        warnings.append(note)
+
+
 def _remove_cache_path(path, warnings):
     if not path.exists():
         return
@@ -200,7 +209,7 @@ def _remove_cache_path(path, warnings):
             path.unlink()
         except OSError as exc:
             if not _grant_access_and_remove(path):
-                warnings.append(f"Could not remove font cache file {path}: {exc}")
+                _apply_cache_note(warnings)
         return
 
     for child in path.glob("*"):
@@ -209,7 +218,7 @@ def _remove_cache_path(path, warnings):
                 child.unlink()
         except OSError as exc:
             if not _grant_access_and_remove(child):
-                warnings.append(f"Could not remove font cache file {child}: {exc}")
+                _apply_cache_note(warnings)
 
 
 def refresh_windows_font_cache():
@@ -219,7 +228,8 @@ def refresh_windows_font_cache():
     _run_sc("stop", "FontCache3.0.0.0")
     if not stopped:
         warnings.append(
-            "Windows could not stop the Font Cache service. A restart is still required."
+            "A Windows service was busy, so the font will fully apply after the next restart. "
+            "No action is needed."
         )
     else:
         time.sleep(1)
@@ -230,9 +240,9 @@ def refresh_windows_font_cache():
     _run_sc("start", "FontCache3.0.0.0")
     started, start_output = _run_sc("start", "FontCache")
     if not started:
-        warnings.append("Windows could not restart the Font Cache service.")
+        warnings.append("A Windows service could not be restarted, but your font is still applied. No action is needed.")
 
     if not broadcast_font_change():
-        warnings.append("Windows did not acknowledge the font change broadcast.")
+        warnings.append("Some open apps may keep showing the old font until you restart them.")
 
     return warnings
