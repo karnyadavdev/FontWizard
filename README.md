@@ -11,7 +11,7 @@
 
 <p align="center">
   <sub>Built with Python · PySide6 · fontTools </sub> <br>
-  <sub>License: MIT &nbsp;·&nbsp; Status: Public Release v2.0</sub>
+  <sub>License: MIT &nbsp;·&nbsp; Status: Public Release v1.0</sub>
 </p>
 
 
@@ -34,7 +34,7 @@
 
 Download the [latest release](https://github.com/karnyadavdev/FontWizard/releases/latest) and run `Font Wizard.exe`.
 
-- Supports **Windows 10 (build 10240+)** and **Windows 11**.
+- Supports **Windows 11**.
 - Only `.ttf` fonts are supported. Variable fonts and `.otf` files are not supported currently.
 
 ---
