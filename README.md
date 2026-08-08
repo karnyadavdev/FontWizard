@@ -1,35 +1,43 @@
-![Clones](https://img.shields.io/badge/git_clones-230%2B_/_week-blue?style=flat-square)
-# Preview
 <p align="center">
-  <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview" width="900px"/>
-  <br/><sub>Font applied across Windows</sub>
+  <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
 
-# Usage
+<h1 align="center">Font Wizard</h1>
+
+
+<p align="center">
+  Every app that asks for Segoe UI gets your font instead be it Start menu, Taskbar, Settings, Explorer, Office, Chrome, VS Code, Discord, all of them. Pick any font, apply once, restart, done.
+</p>
+
+<p align="center">
+  <sub>Built with Python · PySide6 · fontTools </sub> <br>
+  <sub>License: MIT &nbsp;·&nbsp; Status: Public Release v1.0</sub>
+</p>
+
+
+## Screenshots
+
 <table>
   <tr>
-    <td><img src="App/src/assets/screenshots/app-ready.png" alt="Font Wizard ready state"/></td>
-    <td><img src="App/src/assets/screenshots/app-variants.png" alt="Font style variants preview"/></td>
+    <td><img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/></td>
+    <td><img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview"/></td>
   </tr>
   <tr>
-    <td align="center"><sub>Launch screen</sub></td>
-    <td align="center"><sub>Font selected</sub></td>
-  </tr>
-  <tr>
-    <td><img src="App/src/assets/screenshots/app-applying.png" alt="Applying a font change"/></td>
-    <td><img src="App/src/assets/screenshots/app-restart.png" alt="Restart required after applying fonts"/></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Applying process</sub></td>
-    <td align="center"><sub>Waiting for restart</sub></td>
+    <td align="center"><sub>App screen</sub></td>
+    <td align="center"><sub>System after font applied</sub></td>
   </tr>
 </table>
 
+---
+
 ## Download
 
-Download  [latest release](../../releases/latest) and run `FontWizard.exe`.
+Download the [latest release](https://github.com/karnyadavdev/FontWizard/releases/latest) and run `Font Wizard.exe`.
 
-Only .ttf fonts are supported. Variable fonts and `.otf` files are not supported currently.
+- Supports **Windows 11**.
+- Only `.ttf` fonts are supported. Variable fonts and `.otf` files are not supported currently.
+
+---
 
 ## Build
 
@@ -39,15 +47,9 @@ Only .ttf fonts are supported. Variable fonts and `.otf` files are not supported
 
 Build output goes to `App\dist\`.
 
-## Built With
+---
 
-- PySide6
-- fontTools
-  
-## Project Status
+<p align="center"> 
+Built with ❤️ by <a href="https://github.com/karnyadavdev">karnyadavdev</a>. If Font Wizard helped you, consider starring the repo</a> ⭐
 
-I originally built it to be a commercial product, but decided to open-source it. Future updates will focus strictly on bug fixes, if any.
-
-## License
-
-[MIT](LICENSE)
+</p>
