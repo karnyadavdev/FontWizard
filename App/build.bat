@@ -18,7 +18,6 @@ echo Building Font Wizard...
 python -m PyInstaller --noconfirm --onefile --windowed --name "Font Wizard" ^
     --add-data "src/assets;assets" ^
     --icon="src/assets/font-wizard.ico" ^
-    --version-file="fontwizard_version_info.txt" ^
     "src/main.py"
 if errorlevel 1 (
     popd

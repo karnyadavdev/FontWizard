@@ -4,11 +4,10 @@ import uuid
 import hashlib
 
 APP_NAME = "Font Wizard"
-APP_GITHUB_URL = "https://github.com/karnyadavdev/FontWizard"
+APP_GITHUB_URL = "https://github.com/karnyadavdev"
 SCHEMA_VERSION = 1
 
 SUPPORTED_WINDOWS_MAJOR = 10
-WINDOWS_10_BUILD = 10240
 WINDOWS_11_BUILD = 22000
 
 FONT_EXTENSIONS = {".ttf"}
@@ -16,11 +15,7 @@ MANAGED_FONT_SUFFIX = "_fontwizard"
 
 FONT_REGISTRY_SUBKEY = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
 
-_fonts_dir_env = os.environ.get("FONTWIZARD_FONTS_DIR")
-if _fonts_dir_env:
-    FONTS_DIR = Path(_fonts_dir_env)
-else:
-    FONTS_DIR = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
+FONTS_DIR = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
 
 WEIGHTS = {
     "regular": "segoeui.ttf",
@@ -54,20 +49,6 @@ REGISTRY_NAMES = {
     "variable": "Segoe UI Variable (TrueType)",
 }
 
-CONSOLAS_WEIGHTS = {
-    "regular": "consola.ttf",
-    "bold": "consolab.ttf",
-    "italic": "consolai.ttf",
-    "bold_italic": "consolaz.ttf",
-}
-
-CONSOLAS_REGISTRY_NAMES = {
-    "regular": "Consolas (TrueType)",
-    "bold": "Consolas Bold (TrueType)",
-    "italic": "Consolas Italic (TrueType)",
-    "bold_italic": "Consolas Bold Italic (TrueType)",
-}
-
 WEIGHT_TARGETS = {
     "regular":          (400, False),
     "bold":             (700, False),
@@ -95,12 +76,7 @@ def mod_filename(system_file, source_path=None):
 
 
 def default_registry_targets():
-    targets = {
+    return {
         REGISTRY_NAMES[weight]: filename
         for weight, filename in WEIGHTS.items()
     }
-    targets.update({
-        CONSOLAS_REGISTRY_NAMES[weight]: filename
-        for weight, filename in CONSOLAS_WEIGHTS.items()
-    })
-    return targets

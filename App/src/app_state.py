@@ -1,7 +1,5 @@
 import hashlib
 import json
-import os
-import uuid
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -69,17 +67,8 @@ class ManagedStateStore:
 
     def save(self, state):
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
-        temp = self.state_path.parent / f".{self.state_path.name}.{uuid.uuid4().hex[:8]}.tmp"
-        try:
-            with temp.open("w", encoding="utf-8") as handle:
-                json.dump(state, handle, indent=2, sort_keys=True)
-            os.replace(temp, self.state_path)
-        except OSError:
-            try:
-                temp.unlink(missing_ok=True)
-            except OSError:
-                pass
-            raise
+        with self.state_path.open("w", encoding="utf-8") as handle:
+            json.dump(state, handle, indent=2, sort_keys=True)
 
     def load_or_empty(self):
         state = self.load()
