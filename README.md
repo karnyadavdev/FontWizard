@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <sub>Built with Python · PySide6 · fontTools </sub> <br>
+  <sub>Built with Python · PySide6 · FontTools </sub> <br>
   <sub>License: MIT &nbsp;·&nbsp; Status: Public Release <b>v2.0</b></sub>
 </p>
 
