@@ -1,4 +1,4 @@
-<i>Fixed : default font appearing in few apps</i>
+<i>✔️Fixed : default font appearing in few apps</i>
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
