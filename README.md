@@ -57,6 +57,6 @@ Build output goes to `App\dist\`.
 ---
 
 <p align="center"> 
-Built with ❤️ by <a href="https://github.com/karnyadavdev">karnyadavdev</a>. If Font Wizard helped you, consider <a href="https://github.com/karnyadavdev/fontwizard">starring the repo</a> ⭐
+Built with ❤️ by <a href="https://github.com/karnyadavdev">karnyadavdev</a>. If Font Wizard helped you, consider starring the repo ⭐
 </p>
 
