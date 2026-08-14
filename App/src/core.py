@@ -98,12 +98,35 @@ class FontWizardController:
         if not primary_path:
             return
 
+        system_weights = self.workflow._system_weights()
+
         if weight == "regular":
             self.selection.paths["regular"] = primary_path
             self.selection.labels["regular"] = "primary"
             return
 
-        system_weights = self.workflow._system_weights()
+        if weight == "consolas_regular":
+            from settings import CONSOLAS_WEIGHTS
+            self.selection.labels["consolas_regular"] = "auto-detected"
+            detected_from_primary = detect_weight_overrides(primary_path, weights=CONSOLAS_WEIGHTS)
+            for mono_weight in CONSOLAS_WEIGHTS:
+                if mono_weight == "consolas_regular" or self.selection.labels.get(mono_weight) != "manual":
+                    self.selection.paths[mono_weight] = detected_from_primary.get(mono_weight) or primary_path
+                    self.selection.labels[mono_weight] = "auto-detected"
+            return
+
+        if weight.startswith("consolas_"):
+            from settings import CONSOLAS_WEIGHTS
+            if self.selection.labels.get("consolas_regular") == "manual" and self.selection.paths.get("consolas_regular"):
+                mono_root = self.selection.paths["consolas_regular"]
+                detected_mono = detect_weight_overrides(mono_root, weights=CONSOLAS_WEIGHTS)
+                self.selection.paths[weight] = detected_mono.get(weight) or mono_root
+            else:
+                detected_from_primary = detect_weight_overrides(primary_path, weights={weight: system_weights.get(weight)})
+                self.selection.paths[weight] = detected_from_primary.get(weight) or primary_path
+            self.selection.labels[weight] = "auto-detected"
+            return
+
         detected = detect_weight_overrides(primary_path, weights={weight: system_weights.get(weight)})
         self.selection.paths[weight] = detected.get(weight) or primary_path
         self.selection.labels[weight] = "auto-detected"

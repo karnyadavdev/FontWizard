@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <sub>Built with Python · PySide6 · FontTools </sub> <br>
-  <sub>License: MIT &nbsp;·&nbsp; Status: Public Release <b>v2.0</b></sub>
+  <sub>Built with Python · PySide6 · fontTools </sub> <br>
+  <sub>License: MIT &nbsp;·&nbsp; Status: Public Release v2.0</sub>
 </p>
 
 
@@ -57,6 +57,6 @@ Build output goes to `App\dist\`.
 ---
 
 <p align="center"> 
-Built with ❤️ by <a href="https://github.com/karnyadavdev">karnyadavdev</a>. If Font Wizard helped you, consider starring the repo ⭐
+Built with ❤️ by <a href="https://github.com/karnyadavdev">karnyadavdev</a>. If Font Wizard helped you, consider <a href="https://github.com/karnyadavdev/fontwizard">starring the repo</a> ⭐
 </p>
 

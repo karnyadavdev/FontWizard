@@ -40,7 +40,50 @@ def is_windows_11() -> bool:
     except Exception:
         return False
 
+def get_windows_accent_color(is_dark: bool = True) -> tuple[str, str, str, str]:
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\Accent") as key:
+            palette, _ = winreg.QueryValueEx(key, "AccentPalette")
+            if len(palette) >= 32:
+                colors = []
+                for i in range(0, 32, 4):
+                    chunk = palette[i:i+4]
+                    colors.append(f"#{chunk[0]:02X}{chunk[1]:02X}{chunk[2]:02X}")
+                if is_dark:
+                    return colors[3], colors[2], "#FFFFFF", colors[1]
+                else:
+                    return colors[4], colors[3], "#FFFFFF", colors[5]
+    except Exception:
+        pass
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\DWM") as key:
+            val, _ = winreg.QueryValueEx(key, "AccentColor")
+            r = val & 0xFF
+            g = (val >> 8) & 0xFF
+            b = (val >> 16) & 0xFF
+            if is_dark:
+                r_h = min(255, int(r * 1.25 + 30))
+                g_h = min(255, int(g * 1.25 + 30))
+                b_h = min(255, int(b * 1.25 + 30))
+                r_i = min(255, int(r * 1.45 + 50))
+                g_i = min(255, int(g * 1.45 + 50))
+                b_i = min(255, int(b * 1.45 + 50))
+            else:
+                r_h = max(0, int(r * 0.85))
+                g_h = max(0, int(g * 0.85))
+                b_h = max(0, int(b * 0.85))
+                r_i = r
+                g_i = g
+                b_i = b
+            lum = 0.299 * r + 0.587 * g + 0.114 * b
+            text_color = "#000000" if lum > 160 else "#FFFFFF"
+            return f"#{r:02X}{g:02X}{b:02X}", f"#{r_h:02X}{g_h:02X}{b_h:02X}", text_color, f"#{r_i:02X}{g_i:02X}{b_i:02X}"
+    except Exception:
+        pass
+    return ("#2993CC", "#59C5FF", "#FFFFFF", "#80D2FF") if is_dark else ("#006499", "#2993CC", "#FFFFFF", "#004B73")
+
 def get_theme_colors(is_dark: bool, is_win11: bool = True) -> dict[str, str]:
+    accent, accent_hover, accent_text, accent_icon = get_windows_accent_color(is_dark)
     if is_dark:
         return {
             "bg_window": "transparent" if is_win11 else "#202020",
@@ -54,17 +97,18 @@ def get_theme_colors(is_dark: bool, is_win11: bool = True) -> dict[str, str]:
             "text_primary": "#FFFFFF",
             "text_secondary": "rgba(255, 255, 255, 0.78)" if is_win11 else "#CCCCCC",
             "text_muted": "rgba(255, 255, 255, 0.55)" if is_win11 else "#888888",
-            "accent": "#38BDF8",
-            "accent_hover": "#60CDFF",
-            "accent_text": "#000000",
-            "success": "#22C55E",
-            "success_hover": "#4ADE80",
-            "warning": "#F59E0B",
-            "warning_hover": "#FBBF24",
-            "warning_text": "#000000",
-            "danger": "#EF4444",
-            "danger_hover": "#F87171",
-            "danger_text": "#FFFFFF",
+            "accent": accent,
+            "accent_hover": accent_hover,
+            "accent_text": accent_text,
+            "accent_icon": accent_icon,
+            "success": accent,
+            "success_hover": accent_hover,
+            "warning": accent,
+            "warning_hover": accent_hover,
+            "warning_text": accent_text,
+            "danger": accent,
+            "danger_hover": accent_hover,
+            "danger_text": accent_text,
             "bg_dialog": "#202020",
         }
     return {
@@ -79,17 +123,18 @@ def get_theme_colors(is_dark: bool, is_win11: bool = True) -> dict[str, str]:
         "text_primary": "rgba(0, 0, 0, 0.9)" if is_win11 else "#1A1A1A",
         "text_secondary": "rgba(0, 0, 0, 0.6)" if is_win11 else "#555555",
         "text_muted": "rgba(0, 0, 0, 0.45)" if is_win11 else "#777777",
-        "accent": "#0066CC",
-        "accent_hover": "#0052A3",
-        "accent_text": "#FFFFFF",
-        "success": "#16A34A",
-        "success_hover": "#15803D",
-        "warning": "#D97706",
-        "warning_hover": "#B45309",
-        "warning_text": "#FFFFFF",
-        "danger": "#DC2626",
-        "danger_hover": "#B91C1C",
-        "danger_text": "#FFFFFF",
+        "accent": accent,
+        "accent_hover": accent_hover,
+        "accent_text": accent_text,
+        "accent_icon": accent_icon,
+        "success": accent,
+        "success_hover": accent_hover,
+        "warning": accent,
+        "warning_hover": accent_hover,
+        "warning_text": accent_text,
+        "danger": accent,
+        "danger_hover": accent_hover,
+        "danger_text": accent_text,
         "bg_dialog": "#F3F3F3",
     }
 
@@ -148,7 +193,21 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
     return f"""
     QMainWindow {{ background-color: {win_bg}; }}
     QWidget#CentralWidget {{ background-color: {win_bg}; }}
-    QFrame, QScrollArea {{ background: transparent; }}
+    QScrollArea#WeightScrollArea {{ 
+        background: transparent; 
+        background-color: transparent; 
+        border: none; 
+    }}
+    QWidget#WeightContainer {{ 
+        background: transparent; 
+        background-color: transparent; 
+        border: none; 
+    }}
+    QScrollArea {{ 
+        background: transparent; 
+        background-color: transparent; 
+        border: none; 
+    }}
     QWidget {{ 
         color: {colors["text_primary"]}; 
         font-family: {font_stack}; 
@@ -184,30 +243,34 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
     
     #CardChangeBtn {{
         background-color: transparent;
-        border: 1px solid {colors["border_button"]};
+        border: none;
         border-radius: 4px;
-        padding: 0 8px;
-        min-height: 24px;
-        max-height: 24px;
-        font-size: 11px;
-        font-weight: 500;
-        color: {colors["text_secondary"]};
+        padding: 0;
+        min-width: 28px;
+        max-width: 28px;
+        min-height: 28px;
+        max-height: 28px;
+        font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
+        font-size: 15px;
+        color: {colors["accent_icon"]};
         outline: none;
     }}
     #CardChangeBtn:hover {{
         background-color: {colors["bg_button_hover"]};
-        color: {colors["text_primary"]};
+        color: {colors["accent_hover"]};
     }}
     #CardChangeBtn:pressed {{
         background-color: {colors["bg_button_pressed"]};
     }}
-    #CustomBadge {{
-        background-color: {colors["accent"]};
-        color: {colors["accent_text"]};
-        border-radius: 3px;
-        padding: 1px 6px;
-        font-size: 10px;
-        font-weight: 600;
+    #CardChangeBtn[isCustom="true"] {{
+        color: {colors["accent_icon"]};
+        border: 1px solid {colors["accent_icon"]};
+        background-color: {colors["bg_button"]};
+    }}
+    #CardChangeBtn[isCustom="true"]:hover {{
+        color: {colors["accent_hover"]};
+        border-color: {colors["accent_hover"]};
+        background-color: {colors["bg_button_hover"]};
     }}
     
     QPushButton {{ 
@@ -235,25 +298,24 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
     QPushButton[buttonRole="primary"]:hover {{ background-color: {colors["accent_hover"]}; border-color: {colors["accent_hover"]}; }}
     
     QPushButton[buttonRole="warning"] {{ 
-        background-color: {colors["warning"]}; 
-        border: 1px solid {colors["warning"]}; 
-        color: {colors["warning_text"]}; 
+        background-color: {colors["accent"]}; 
+        border: 1px solid {colors["accent"]}; 
+        color: {colors["accent_text"]}; 
         outline: none;
     }}
     QPushButton[buttonRole="warning"]:hover {{ 
-        background-color: {colors["warning_hover"]}; 
-        border-color: {colors["warning_hover"]}; 
+        background-color: {colors["accent_hover"]}; 
+        border-color: {colors["accent_hover"]}; 
     }}
     
     QPushButton[buttonRole="danger"] {{ 
         background-color: {colors["bg_card"]}; 
-        border: 1px solid {colors["danger"]}; 
-        color: {colors["danger"]}; 
+        border: 1px solid {colors["border_card"]}; 
+        color: {colors["text_primary"]}; 
     }}
     QPushButton[buttonRole="danger"]:hover {{ 
-        background-color: {colors["danger"]}; 
-        border-color: {colors["danger"]}; 
-        color: {colors["danger_text"]}; 
+        background-color: {colors["bg_button_hover"]}; 
+        border-color: {colors["border_button"]}; 
     }}
     QPushButton[buttonRole="secondary"] {{ 
         background-color: {colors["bg_card"]}; 
@@ -268,14 +330,13 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
         max-width: 32px;
         min-height: 32px;
         max-height: 32px;
+        border-radius: 4px;
     }}
     #HeaderIconButton:hover {{
-        background-color: transparent;
-        border: none;
+        background-color: {colors["bg_button_hover"]};
     }}
     #HeaderIconButton:pressed {{
-        background-color: transparent;
-        border: none;
+        background-color: {colors["bg_button_pressed"]};
     }}
     
     QScrollBar:vertical {{ border: none; background: transparent; width: 12px; margin: 0; }}
@@ -453,17 +514,14 @@ class WeightCard(QFrame):
         title.setStyleSheet(f"color: {colors['text_primary']}; font-weight: 600; font-size: 14px;")
         header_layout.addWidget(title, 0, Qt.AlignVCenter)
 
-        if is_manual:
-            badge = QLabel("Custom")
-            badge.setObjectName("CustomBadge")
-            header_layout.addWidget(badge, 0, Qt.AlignVCenter)
-
         header_layout.addStretch(1)
 
-        action_btn = QPushButton("Reset to Auto" if is_manual else "Select File")
+        action_btn = QPushButton("\uE7A7" if is_manual else "\uE7C3")
         action_btn.setObjectName("CardChangeBtn")
+        action_btn.setProperty("isCustom", "true" if is_manual else "false")
         action_btn.setCursor(Qt.PointingHandCursor)
         action_btn.setFocusPolicy(Qt.NoFocus)
+        action_btn.setToolTip("Reset to automatic font" if is_manual else "Select custom font file")
         if is_manual:
             if on_reset:
                 action_btn.clicked.connect(lambda: on_reset(self.weight))
@@ -604,17 +662,15 @@ class FontWizardApp(QMainWindow):
         title.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         title_row_layout.addWidget(title, 0, Qt.AlignBottom)
 
-        github_btn = QPushButton()
-        github_btn.setObjectName("HeaderIconButton")
-        github_btn.setFlat(True)
-        github_icon_path = get_asset_path("github-mark.svg")
-        if github_icon_path.exists():
-            github_btn.setIcon(QIcon(str(github_icon_path)))
-        github_btn.setIconSize(QSize(20, 20))
-        github_btn.setCursor(Qt.PointingHandCursor)
-        github_btn.setAccessibleName("GitHub")
-        github_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(APP_GITHUB_URL)))
-        title_row_layout.addWidget(github_btn, 0, Qt.AlignBottom)
+        self.github_btn = QPushButton()
+        self.github_btn.setObjectName("HeaderIconButton")
+        self.github_btn.setFlat(True)
+        self.github_btn.setIconSize(QSize(20, 20))
+        self.github_btn.setCursor(Qt.PointingHandCursor)
+        self.github_btn.setAccessibleName("GitHub")
+        self.github_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(APP_GITHUB_URL)))
+        self._update_github_icon()
+        title_row_layout.addWidget(self.github_btn, 0, Qt.AlignBottom)
         text_layout.addWidget(title_row, 0, Qt.AlignLeft)
 
         subtitle = QLabel("Customize your system font")
@@ -703,13 +759,16 @@ class FontWizardApp(QMainWindow):
         empty_layout.setAlignment(Qt.AlignCenter)
         self.main_layout.addWidget(self.empty_variants, 1000)
 
-        self.weight_scroll = QScrollArea()
+        self.weight_scroll = QScrollArea(objectName="WeightScrollArea")
         self.weight_scroll.setWidgetResizable(True)
         self.weight_scroll.setFrameShape(QFrame.NoFrame)
         self.weight_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.weight_scroll.viewport().setAutoFillBackground(False)
         self.weight_scroll.hide()
 
-        self.weight_widget = QWidget()
+        self.weight_widget = QWidget(objectName="WeightContainer")
+        self.weight_widget.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.weight_widget.setAutoFillBackground(False)
         self.weight_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.weight_layout = FlowLayout(self.weight_widget, margin=0, spacing=16)
         self.weight_layout.setContentsMargins(0, 0, 0, 0)
@@ -731,21 +790,47 @@ class FontWizardApp(QMainWindow):
             button.style().polish(button)
             button.update()
 
+    def _update_github_icon(self):
+        if not hasattr(self, "github_btn"):
+            return
+        fill_color = "#FFFFFF" if self.is_dark else "#1F2328"
+        svg_path = get_asset_path("github-mark.svg")
+        if svg_path.exists():
+            try:
+                svg_content = svg_path.read_text(encoding="utf-8").replace("#ffffff", fill_color).replace("#FFFFFF", fill_color)
+                pixmap = QPixmap()
+                if pixmap.loadFromData(svg_content.encode("utf-8"), "SVG"):
+                    self.github_btn.setIcon(QIcon(pixmap))
+                    return
+            except Exception:
+                pass
+            self.github_btn.setIcon(QIcon(str(svg_path)))
+
     def _apply_theme(self, is_dark: bool):
-        self.is_dark = is_dark
-        self.setStyleSheet(get_wizard_stylesheet(is_dark))
-        apply_native_mica(int(self.winId()), is_dark)
-        self._apply_widget_theme()
-        self.refresh_all()
+        if getattr(self, "_is_updating_theme", False):
+            return
+        self._is_updating_theme = True
+        try:
+            self.is_dark = is_dark
+            self.setStyleSheet(get_wizard_stylesheet(is_dark))
+            apply_native_mica(int(self.winId()), is_dark)
+            self._update_github_icon()
+            self._apply_widget_theme()
+            self.refresh_all()
+        finally:
+            self._is_updating_theme = False
 
     def _sync_theme(self):
+        if getattr(self, "_is_updating_theme", False):
+            return
         current_dark = is_system_dark_mode()
-        if current_dark != self.is_dark:
-            self._apply_theme(current_dark)
+        self._apply_theme(current_dark)
 
     def changeEvent(self, event):
         super().changeEvent(event)
-        if event.type() in (QEvent.PaletteChange, QEvent.ThemeChange, QEvent.ActivationChange, QEvent.ApplicationPaletteChange):
+        if getattr(self, "_is_updating_theme", False):
+            return
+        if event.type() in (QEvent.ThemeChange, QEvent.ApplicationPaletteChange):
             self._sync_theme()
 
     def resizeEvent(self, event):
@@ -852,7 +937,7 @@ class FontWizardApp(QMainWindow):
         for button in self._action_buttons:
             button.setEnabled(False)
         btn.setText(text)
-        self._set_button_role(btn, "warning")
+        self._set_button_role(btn, "primary")
         self._op_thread = OperationThread(func, self)
         self._op_thread.progress.connect(lambda v, m: self._update_progress_text(btn, v, m))
         self._op_thread.done.connect(lambda r: self._on_operation_done(r, btn))
@@ -911,15 +996,15 @@ class FontWizardApp(QMainWindow):
 
         is_pending = report.install_state in ("pending_reboot_apply", "pending_reboot_recovery")
         if not report.is_supported:
-            self.banner.set_icon("\uEA39", colors["danger"])
+            self.banner.set_icon("\uEA39", colors["accent"])
         elif not report.is_admin:
-            self.banner.set_icon("\uE7BA", colors["warning"])
+            self.banner.set_icon("\uE7BA", colors["accent"])
         elif is_pending:
-            self.banner.set_icon("\uE777", colors["warning"])
+            self.banner.set_icon("\uE777", colors["accent"])
         elif report.install_state == "managed":
             self.banner.set_icon("\uE73E", colors["accent"])
         elif report.issues:
-            self.banner.set_icon("\uEA39", colors["danger"])
+            self.banner.set_icon("\uEA39", colors["accent"])
         else:
             self.banner.set_icon("\uE946", colors["accent"])
 
@@ -999,8 +1084,8 @@ class FontWizardApp(QMainWindow):
             self.restore_btn.setToolTip("")
 
         browse_role = "secondary" if (has_selected_font or is_pending) else "primary"
-        apply_role = "warning" if self._apply_action == "restart" else "primary"
-        restore_role = "warning" if self._restore_action == "restart" else "danger"
+        apply_role = "primary"
+        restore_role = "secondary"
 
         self._set_button_role(self.browse_btn, browse_role)
         self._set_button_role(self.apply_btn, apply_role)
@@ -1040,10 +1125,14 @@ class FontWizardApp(QMainWindow):
             self.refresh_all()
 
         cards_added = 0
+        is_mono_custom_group = (self.controller.selection.labels.get("consolas_regular") == "manual")
         for weight, font_path in self.controller.selection.paths.items():
             if font_path and weight != "variable":
                 try:
-                    is_manual = (self.controller.selection.labels.get(weight) == "manual")
+                    is_manual = (
+                        self.controller.selection.labels.get(weight) == "manual"
+                        or (weight.startswith("consolas_") and is_mono_custom_group)
+                    )
                     card = WeightCard(
                         weight,
                         font_path,
