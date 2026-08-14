@@ -11,7 +11,7 @@
 
 <p align="center">
   <sub>Built with Python · PySide6 · fontTools </sub> <br>
-  <sub>License: MIT &nbsp;·&nbsp; Status: Public Release v2.0</sub>
+  <sub>License: MIT &nbsp;·&nbsp; Status: Public Release <b>v2.0</b></sub>
 </p>
 
 
