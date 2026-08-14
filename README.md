@@ -1,6 +1,4 @@
-
-![Downloads](https://img.shields.io/badge/downloads-650%2B-blue?style=flat&logo=windows&logoColor=white)
-
+<i><b>Fixed : default font still appearing in some apps</i></b>
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
