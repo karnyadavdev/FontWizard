@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from font_detection import inspect_font
-from settings import REGISTRY_NAMES, WEIGHTS, mod_filename
+from settings import REGISTRY_NAMES, get_system_weights, mod_filename
 
 @dataclass
 class FontPlanEntry:
@@ -27,26 +27,33 @@ class ValidationSummary:
         return not self.errors and bool(self.entries)
 
 
-def resolve_font_selection(selection):
+def resolve_font_selection(selection, weights=None):
+    active_weights = weights if weights is not None else get_system_weights()
     regular_path = selection.get("regular")
     if not regular_path:
         return {}
 
     resolved = {}
-    for weight in WEIGHTS:
-        resolved[weight] = selection.get(weight) or regular_path
+    mono_fallback = selection.get("consolas_regular") or regular_path
+    for weight in active_weights:
+        if weight.startswith("consolas_"):
+            resolved[weight] = selection.get(weight) or mono_fallback
+        else:
+            resolved[weight] = selection.get(weight) or regular_path
     return resolved
 
 
-def validate_selection(selection, source_labels=None):
+def validate_selection(selection, source_labels=None, weights=None):
+    active_weights = weights if weights is not None else get_system_weights()
     summary = ValidationSummary()
-    resolved = resolve_font_selection(selection)
+    resolved = resolve_font_selection(selection, active_weights)
     if not resolved:
         summary.errors.append("Choose a regular font to continue.")
         return summary
 
     metadata_cache = {}
-    family_names = set()
+    ui_family_names = set()
+    mono_family_names = set()
     variable_rejections = set()
     invalid_source_rejections = set()
     source_labels = source_labels or {}
@@ -66,7 +73,7 @@ def validate_selection(selection, source_labels=None):
                     if ext == ".otf":
                         summary.errors.append(
                             f"OpenType (.otf) fonts are not supported. "
-                            f"Segoe UI replacement requires TrueType (.ttf) files. "
+                            f"System font replacement requires TrueType (.ttf) files. "
                             f"File: {source_path.name}"
                         )
                     elif ext != ".ttf":
@@ -88,24 +95,29 @@ def validate_selection(selection, source_labels=None):
                 variable_rejections.add(cache_key)
             continue
 
+        if weight.startswith("consolas_"):
+            mono_family_names.add(metadata.family_name)
+        else:
+            ui_family_names.add(metadata.family_name)
 
-        family_names.add(metadata.family_name)
+        system_filename = active_weights[weight]
         summary.entries.append(
             FontPlanEntry(
                 weight=weight,
                 source_path=metadata.path,
                 source_label=source_labels.get(weight, "resolved"),
-                system_filename=WEIGHTS[weight],
+                system_filename=system_filename,
                 registry_name=REGISTRY_NAMES[weight],
-                generated_filename=mod_filename(WEIGHTS[weight], metadata.path),
+                generated_filename=mod_filename(system_filename, metadata.path),
                 family_name=metadata.family_name,
                 full_name=metadata.full_name,
             )
         )
 
-    if len(family_names) > 1:
+    if len(ui_family_names) > 1 or len(mono_family_names) > 1:
         summary.warnings.append(
-            "The selected styles come from more than one font family. Review them carefully before applying."
+            "Selected styles come from multiple font families. Review them carefully before applying."
         )
 
     return summary
+

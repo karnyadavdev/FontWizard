@@ -20,6 +20,7 @@ class FontMetadata:
     units_per_em: int = 2048
     is_italic: bool = False
     is_variable: bool = False
+    is_monospace: bool = False
 
 
 WEIGHT_REGEX = [
@@ -91,16 +92,39 @@ def _inspect_font_cached(font_path_str: str) -> FontMetadata:
         except Exception:
             is_italic = False
 
+        try:
+            is_mono = bool(font["post"].isFixedPitch != 0)
+        except Exception:
+            is_mono = False
+
+        if not is_mono:
+            try:
+                panose = getattr(font["OS/2"], "panose", None)
+                if panose and getattr(panose, "bProportion", 0) == 9:
+                    is_mono = True
+            except Exception:
+                pass
+
+        family_name = font["name"].getBestFamilyName() or font_path.stem
+        full_name = font["name"].getBestFullName() or font_path.stem
+        subfamily_name = font["name"].getBestSubFamilyName() or ""
+
+        if not is_mono:
+            combined = f"{font_path.stem} {family_name} {full_name}".lower()
+            if any(term in combined for term in ("mono", "code", "console", "typewriter")):
+                is_mono = True
+
         metadata = FontMetadata(
             path=font_path,
             extension=extension,
-            family_name=font["name"].getBestFamilyName() or font_path.stem,
-            full_name=font["name"].getBestFullName() or font_path.stem,
-            subfamily_name=font["name"].getBestSubFamilyName() or "",
+            family_name=family_name,
+            full_name=full_name,
+            subfamily_name=subfamily_name,
             weight_class=weight_class,
             units_per_em=font["head"].unitsPerEm,
             is_italic=is_italic,
             is_variable="fvar" in font,
+            is_monospace=is_mono,
         )
     finally:
         font.close()
@@ -139,57 +163,104 @@ def _same_family(primary_label, candidate_label):
     return primary_label and primary_label == candidate_label
 
 
-def detect_weight_overrides(primary_path, existing=None):
+def _score_candidate(candidate, metadata, target_weight, target_value, target_italic, is_mono_target, primary_metadata, primary_root):
+    score = 0
+
+    if is_mono_target:
+        if metadata.is_monospace:
+            score += 20000
+    else:
+        if metadata.is_monospace == primary_metadata.is_monospace:
+            score += 5000
+
+    cand_name = _clean_family_text(_normalized_text(metadata.family_name, metadata.full_name, candidate.stem))
+    if primary_root and primary_root in cand_name:
+        score += 3000
+
+    if metadata.is_italic == target_italic:
+        score += 10000
+    else:
+        score -= 5000
+
+    score -= abs(metadata.weight_class - target_value)
+
+    norm_stem = _normalized_text(candidate.stem, metadata.subfamily_name)
+    target_clean = target_weight.replace("consolas_", "").replace("_", " ")
+    for kw in target_clean.split():
+        if kw in norm_stem:
+            score += 250
+
+    return score
+
+
+def detect_weight_overrides(primary_path, existing=None, weights=None, manual_overrides=None):
+    from settings import get_system_weights
+    active_weights = weights if weights is not None else get_system_weights()
     primary = Path(primary_path).resolve()
     folder = primary.parent
     primary_metadata = inspect_font(primary)
     primary_family = _family_label(primary, primary_metadata)
+    primary_root = _tokenize(primary_family)[0] if _tokenize(primary_family) else ""
     existing = existing or {}
+    manual_overrides = manual_overrides or {}
     detected = {}
 
-    candidates = []
+    all_candidates = []
     for candidate in folder.iterdir():
-        if not candidate.is_file():
-            continue
-        if candidate.resolve() == primary or candidate.suffix.lower() not in FONT_EXTENSIONS:
+        if not candidate.is_file() or candidate.suffix.lower() not in FONT_EXTENSIONS:
             continue
         try:
             metadata = inspect_font(candidate)
         except ValueError:
             continue
-        if not _same_family(primary_family, _family_label(candidate, metadata)):
+        if not metadata.is_variable:
+            all_candidates.append((candidate, metadata))
+
+    if (primary, primary_metadata) not in all_candidates:
+        all_candidates.append((primary, primary_metadata))
+
+    for target_weight in active_weights:
+        if target_weight == "variable":
             continue
-        candidates.append((candidate, metadata))
+        if target_weight in manual_overrides and manual_overrides[target_weight]:
+            override_path = Path(manual_overrides[target_weight])
+            if override_path.exists():
+                detected[target_weight] = str(override_path.resolve())
+                continue
 
-    for candidate, metadata in candidates:
-        weight = classify_weight(candidate, metadata)
-        if not weight or weight == "regular" or existing.get(weight) or weight in detected:
+        if target_weight in existing and existing[target_weight]:
             continue
-        detected[weight] = str(candidate)
 
-    unfilled = [
-        w for w in WEIGHTS
-        if w != "regular" and w != "variable" and w not in existing and w not in detected
-    ]
-    nearest_candidates = [(primary, primary_metadata), *candidates]
-    if unfilled and nearest_candidates:
-        for target_weight in unfilled:
-            target_value, target_italic = WEIGHT_TARGETS[target_weight]
+        if target_weight not in WEIGHT_TARGETS:
+            continue
 
-            best_path = None
-            best_distance = float("inf")
-            best_weight = -1
+        target_value, target_italic = WEIGHT_TARGETS[target_weight]
+        is_mono_target = target_weight.startswith("consolas_")
 
-            for candidate, metadata in nearest_candidates:
-                if metadata.is_variable or metadata.is_italic != target_italic:
-                    continue
-                distance = abs(metadata.weight_class - target_value)
-                if distance < best_distance or (distance == best_distance and metadata.weight_class > best_weight):
-                    best_distance = distance
-                    best_weight = metadata.weight_class
-                    best_path = str(candidate)
+        best_cand = None
+        best_score = float("-inf")
 
-            if best_path is not None:
-                detected[target_weight] = best_path
+        for candidate, metadata in all_candidates:
+            score = _score_candidate(
+                candidate,
+                metadata,
+                target_weight,
+                target_value,
+                target_italic,
+                is_mono_target,
+                primary_metadata,
+                primary_root,
+            )
+            if score > best_score:
+                best_score = score
+                best_cand = candidate
+
+        if best_cand is not None:
+            detected[target_weight] = str(best_cand.resolve())
+        else:
+            detected[target_weight] = str(primary)
 
     return detected
+
+
+

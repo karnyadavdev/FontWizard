@@ -18,9 +18,9 @@ VSVersionInfo(
             StringStruct('CompanyName', 'karnyadavdev'),
             StringStruct('FileDescription', 'Font Wizard - Change the system font on Windows 10 and 11'),
             StringStruct('FileVersion', '2.0'),
-            StringStruct('InternalName', 'Font Wizard'),
+            StringStruct('InternalName', 'FontWizard'),
             StringStruct('LegalCopyright', 'Copyright (c) 2026 karnyadavdev'),
-            StringStruct('OriginalFilename', 'Font Wizard.exe'),
+            StringStruct('OriginalFilename', 'FontWizard.exe'),
             StringStruct('ProductName', 'Font Wizard'),
             StringStruct('ProductVersion', '2.0')
           ]

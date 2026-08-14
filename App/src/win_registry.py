@@ -47,4 +47,6 @@ class WindowsFontRegistry:
         ) as key:
             winreg.SetValueEx(key, "MS Shell Dlg", 0, winreg.REG_SZ, "Segoe UI")
             winreg.SetValueEx(key, "MS Shell Dlg 2", 0, winreg.REG_SZ, "Segoe UI")
+            winreg.SetValueEx(key, "Segoe WPC", 0, winreg.REG_SZ, "Segoe UI")
+
 

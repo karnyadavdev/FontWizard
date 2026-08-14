@@ -14,6 +14,7 @@ class RuntimePaths:
     local_root: Path
     managed_font_root: Path
     pending_ops_root: Path
+    backup_root: Path
     log_root: Path
     temp_root: Path
     state_path: Path
@@ -43,6 +44,7 @@ class RuntimePaths:
             local_root=local_root,
             managed_font_root=data_root / "managed_fonts",
             pending_ops_root=data_root / "managed_fonts" / "pending_ops",
+            backup_root=data_root / "backup",
             log_root=local_root / "logs",
             temp_root=local_root / "temp",
             state_path=data_root / "state.json",
@@ -54,6 +56,7 @@ class RuntimePaths:
             self.local_root,
             self.managed_font_root,
             self.pending_ops_root,
+            self.backup_root,
             self.log_root,
             self.temp_root,
         ):

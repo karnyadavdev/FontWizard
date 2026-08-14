@@ -2,8 +2,16 @@ import ctypes
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
-from settings import APP_NAME, SUPPORTED_WINDOWS_MAJOR, WINDOWS_11_BUILD, default_registry_targets, FONTS_DIR
+from settings import (
+    APP_NAME,
+    SUPPORTED_WINDOWS_MAJOR,
+    WINDOWS_10_MIN_BUILD,
+    WINDOWS_11_BUILD,
+    default_registry_targets,
+    FONTS_DIR,
+)
 from app_state import validate_state
 
 
@@ -16,9 +24,17 @@ def is_admin():
 
 def windows_status():
     winver = sys.getwindowsversion()
-    is_supported = winver.major == SUPPORTED_WINDOWS_MAJOR and winver.build >= WINDOWS_11_BUILD
-    label = f"Windows 11 (build {winver.build})" if is_supported else f"Windows build {winver.build}"
+    is_win11 = winver.major == SUPPORTED_WINDOWS_MAJOR and winver.build >= WINDOWS_11_BUILD
+    is_win10 = winver.major == SUPPORTED_WINDOWS_MAJOR and winver.build >= WINDOWS_10_MIN_BUILD
+    is_supported = is_win11 or is_win10
+    if is_win11:
+        label = f"Windows 11 (build {winver.build})"
+    elif is_win10:
+        label = f"Windows 10 (build {winver.build})"
+    else:
+        label = f"Windows build {winver.build}"
     return label, is_supported
+
 
 
 def _booted_since(timestamp):
@@ -38,39 +54,103 @@ def _booted_since(timestamp):
         kernel32.GetTickCount64.restype = ctypes.c_uint64
         uptime_ms = kernel32.GetTickCount64()
         boot_time = datetime.now(timezone.utc) - timedelta(milliseconds=uptime_ms)
+        if boot_time > (applied_at + timedelta(seconds=2)):
+            return True
     except Exception:
+        pass
+
+    return False
+
+
+def _has_pending_font_operations(pending_deletions):
+    if not pending_deletions:
+        return False
+    for item in pending_deletions:
+        lower = str(item).lower()
+        if (
+            "staged_replace_" in lower
+            or "staged_restore_" in lower
+            or "_fontwizard" in lower
+            or "_pending_replace" in lower
+            or "segoe" in lower
+            or ".old" in lower
+            or "_mod.ttf" in lower
+        ):
+            return True
+    return False
+
+
+def _is_physically_custom(paths=None):
+    active_segoe = FONTS_DIR / "segoeui.ttf"
+    if not active_segoe.exists():
+        return False
+    try:
+        active_size = active_segoe.stat().st_size
+    except OSError:
         return False
 
-    return boot_time > (applied_at + timedelta(seconds=2))
+    # Authentic Segoe UI is > 500KB; custom replacement fonts are typically < 200KB.
+    if active_size < 200_000:
+        return True
+
+    if paths and hasattr(paths, "backup_root") and paths.backup_root.exists():
+        backup_segoe = paths.backup_root / "segoeui.ttf"
+        if backup_segoe.exists() and backup_segoe.stat().st_size > 200_000:
+            if active_size != backup_segoe.stat().st_size:
+                return True
+
+    scratch_backup = Path(__file__).resolve().parent.parent.parent / "scratch" / "original_segoe_backup" / "segoeui.ttf"
+    if scratch_backup.exists() and scratch_backup.stat().st_size > 200_000:
+        if active_size != scratch_backup.stat().st_size:
+            return True
+
+    return False
 
 
 def install_state(registry_targets, default_targets, state, paths=None, pending_deletions=None):
     pending_deletions = pending_deletions or set()
+    has_pending = _has_pending_font_operations(pending_deletions)
+
 
     if state:
         install = state.get("install", {})
-        expected = install.get("registry_targets", {})
-        fonts = install.get("fonts", {})
-        if install.get("status") in ("applied", "pending_reboot", "clean") and expected == registry_targets:
-            if expected == default_targets and not fonts:
-                if install.get("status") == "pending_reboot":
-                    if _booted_since(install.get("restored_at")):
-                        return "clean"
-                    return "pending_reboot_recovery"
-            else:
-                if not _booted_since(install.get("applied_at")):
-                    return "pending_reboot_apply"
-                return "managed"
+        status = install.get("status")
 
-    if registry_targets == default_targets and paths:
-        orphans = (
-            list(FONTS_DIR.glob("*_fontwizard*"))
-            + list(FONTS_DIR.glob("*_mod.ttf"))
-        )
-        if orphans and all(str(o).lower() in pending_deletions for o in orphans):
-            return "pending_reboot_recovery"
+        if status == "clean":
+            if has_pending:
+                return "pending_reboot_recovery"
+            if _is_physically_custom():
+                return "managed"
+            return "clean"
+
+        if status == "pending_reboot_apply":
+            if has_pending:
+                return "pending_reboot_apply"
+            return "managed"
+
+        if status == "pending_reboot_recovery":
+            if has_pending:
+                return "pending_reboot_recovery"
+            if _is_physically_custom():
+                return "managed"
+            return "clean"
+
+        if status in ("managed", "applied"):
+            if has_pending:
+                return "pending_reboot_apply"
+            return "managed"
+
+    if has_pending:
+        for item in pending_deletions:
+            if "staged_restore_" in str(item).lower():
+                return "pending_reboot_recovery"
+        return "pending_reboot_apply"
+
+    if _is_physically_custom():
+        return "managed"
 
     return "clean"
+
 
 
 def experience_state(is_supported, is_admin, install_state):
@@ -78,8 +158,8 @@ def experience_state(is_supported, is_admin, install_state):
         return (
             "unsupported",
             "This PC is not supported",
-            "Font Wizard only supports Windows 11.",
-            "Run Font Wizard on a Windows 11 PC.",
+            "Font Wizard supports Windows 10 (build 10240+) and Windows 11.",
+            "Run Font Wizard on a supported Windows 10 or Windows 11 PC.",
         )
     if not is_admin:
         return (
@@ -119,7 +199,7 @@ def experience_state(is_supported, is_admin, install_state):
 
 def build_messages(install_state, is_supported):
     if not is_supported:
-        return ["Use Font Wizard on Windows 11."]
+        return ["Use Font Wizard on Windows 10 or Windows 11."]
 
     notes = []
     if install_state == "managed":
@@ -130,6 +210,7 @@ def build_messages(install_state, is_supported):
         notes.append("Restart Windows before applying another font.")
     notes.append("Use Recovery if you want to put Windows fonts back without applying a new font.")
     return notes
+
 
 
 @dataclass
@@ -181,8 +262,9 @@ class PreflightService:
 
         issues = []
         if not is_supported:
-            issues.append("This version of Font Wizard supports Windows 11 only.")
+            issues.append("This version of Font Wizard supports Windows 10 (build 10240+) and Windows 11.")
         warnings = []
+
 
         readiness, headline, summary, next_step = experience_state(
             is_supported=is_supported,

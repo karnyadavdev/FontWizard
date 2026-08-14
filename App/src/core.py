@@ -1,12 +1,11 @@
 from dataclasses import dataclass
+from pathlib import Path
 
-from settings import WEIGHTS
 from paths import RuntimePaths
 from checks import PreflightService
 from font_detection import detect_weight_overrides, inspect_font
 from operation import FontWorkflow
 from app_state import ManagedStateStore
-
 from win_registry import WindowsFontRegistry
 
 
@@ -30,14 +29,14 @@ class FontWizardController:
             self.state_store,
             self.preflight,
         )
+        system_weights = self.workflow._system_weights()
         self.selection = SelectionState(
-            paths={w: None for w in WEIGHTS},
-            labels={w: "unset" for w in WEIGHTS},
+            paths={w: None for w in system_weights},
+            labels={w: "unset" for w in system_weights},
         )
 
     def refresh_preflight(self):
         report = self.preflight.collect()
-        
 
         if report.install_state == "clean" and report.managed_state_valid:
             state = self.state_store.load()
@@ -48,7 +47,7 @@ class FontWizardController:
                 except OSError as exc:
                     import logging
                     logging.getLogger(__name__).warning("Failed to save state during preflight refresh: %s", exc)
-                    
+
         return report
 
     def set_regular_font(self, path):
@@ -58,6 +57,7 @@ class FontWizardController:
                 "Variable fonts are not supported. Choose a static .ttf file instead."
             )
 
+        system_weights = self.workflow._system_weights()
         paths = self.selection.paths
         labels = self.selection.labels
         manual_paths = {
@@ -66,16 +66,33 @@ class FontWizardController:
             if weight != "regular" and labels.get(weight) == "manual"
         }
         manual_paths["regular"] = path
-        detected = detect_weight_overrides(path, manual_paths)
+        detected = detect_weight_overrides(path, manual_paths, weights=system_weights)
 
         paths["regular"] = path
         labels["regular"] = "manual"
-        for weight in WEIGHTS:
+        for weight in system_weights:
             if weight == "regular" or labels.get(weight) == "manual":
                 continue
             detected_path = detected.get(weight)
             paths[weight] = detected_path or path
             labels[weight] = "auto-detected"
+
+    def set_card_override(self, weight, path):
+        metadata = inspect_font(path)
+        if metadata.is_variable:
+            raise ValueError(
+                "Variable fonts are not supported. Choose a static .ttf file instead."
+            )
+        self.selection.paths[weight] = str(Path(path).resolve())
+        self.selection.labels[weight] = "manual"
+
+    def reset_card_override(self, weight):
+        if weight == "regular":
+            return
+        self.selection.labels[weight] = "unset"
+        regular_path = self.selection.paths.get("regular")
+        if regular_path:
+            self.set_regular_font(regular_path)
 
     def apply(self, progress=None):
         return self.workflow.apply(
@@ -86,3 +103,4 @@ class FontWizardController:
 
     def restore(self, progress=None):
         return self.workflow.restore(progress=progress)
+

@@ -92,60 +92,11 @@ def build_font(source_path, segoe_path, output_path):
 
 
 def build_variable_font(source_path, segoe_var_path, output_path):
-    source_path = Path(source_path)
-    segoe_var_path = Path(segoe_var_path)
-    output_path = Path(output_path)
-    
-    if not source_path.exists():
-        raise FileNotFoundError(f"Font not found: {source_path}")
-    if not segoe_var_path.exists():
-        raise FileNotFoundError(f"System variable font not found: {segoe_var_path}")
+    """Build a clean static font containing Segoe UI Variable's identity.
 
+    Tricking Windows 11 into using a user's static font when Segoe UI Variable is requested
+    is achieved by generating a valid static TrueType font with Segoe UI Variable's name
+    and OS/2 tables. Splicing partial variable tables without gvar is invalid per OpenType spec.
+    """
+    return build_font(source_path, segoe_var_path, output_path)
 
-    donor = None
-    source = None
-    try:
-        donor = TTFont(segoe_var_path)
-        source = TTFont(source_path)
-        donor.sfntVersion = source.sfntVersion
-
-        tables_to_swap = [
-            "glyf", "loca", "hmtx", "maxp", "cmap", "post",
-            "prep", "fpgm", "cvt ", "gasp",
-            "GSUB", "GPOS", "GDEF",
-            "kern", "vmtx", "vhea",
-            "math", "BASE", "JSTF",
-            "hdmx", "LTSH", "VDMX", "PCLT",
-        ]
-
-        for tag in tables_to_swap:
-            if tag in source:
-                donor[tag] = source[tag]
-            elif tag in donor:
-                del donor[tag]
-
-        donor.setGlyphOrder(source.getGlyphOrder())
-
-        for attr in ("xMin", "yMin", "xMax", "yMax", "unitsPerEm"):
-            setattr(donor["head"], attr, getattr(source["head"], attr))
-
-        donor["hhea"].ascent = source["hhea"].ascent
-        donor["hhea"].descent = source["hhea"].descent
-        donor["hhea"].lineGap = source["hhea"].lineGap
-        donor["hhea"].numberOfHMetrics = source["hhea"].numberOfHMetrics
-
-        for attr in ("sTypoAscender", "sTypoDescender", "sTypoLineGap", "usWinAscent", "usWinDescent"):
-            setattr(donor["OS/2"], attr, getattr(source["OS/2"], attr))
-
-        for tag in ("gvar", "cvar", "MVAR", "HVAR", "VVAR", "avar", "DSIG"):
-            if tag in donor:
-                del donor[tag]
-
-        donor.save(output_path)
-    finally:
-        if donor is not None:
-            donor.close()
-        if source is not None:
-            source.close()
-
-    return output_path

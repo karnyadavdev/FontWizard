@@ -1,2 +1,2 @@
 fonttools>=4.40.0
-PySide6>=6.6.0
+PySide6-Essentials>=6.6.0

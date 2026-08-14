@@ -1,6 +1,8 @@
 import ctypes
 import json
+import os
 import shutil
+import subprocess
 import uuid
 import winreg
 from pathlib import Path
@@ -20,57 +22,265 @@ _MoveFileExW.restype = ctypes.c_bool
 
 _SESSION_MANAGER_SUBKEY = r"SYSTEM\CurrentControlSet\Control\Session Manager"
 _PENDING_RENAME_VALUE = "PendingFileRenameOperations"
-_OLD_FILE_SUFFIX = ".old"
-_MANAGED_SUFFIXES = ("_mod.ttf",)
 
 
-def stage_persistent_operation_file(workflow, src, dst, suffix):
+def take_canonical_font_ownership(font_names: list[str], fonts_dir: Path) -> list[str]:
+    """
+    Takes ownership and grants FullControl permissions (SYSTEM & Administrators)
+    using language-independent Well-Known SIDs:
+      - *S-1-5-18: NT AUTHORITY\\SYSTEM
+      - *S-1-5-32-544: BUILTIN\\Administrators
+    """
+    warnings = []
+    for name in font_names:
+        target = fonts_dir / name
+        if not target.exists():
+            continue
+        try:
+            subprocess.run(
+                ["takeown", "/F", str(target), "/A"],
+                check=False,
+                capture_output=True,
+                creationflags=0x08000000,
+            )
+            subprocess.run(
+                ["icacls", str(target), "/grant", "*S-1-5-18:F", "*S-1-5-32-544:F", "/c"],
+                check=False,
+                capture_output=True,
+                creationflags=0x08000000,
+            )
+        except Exception as exc:
+            warnings.append(f"Permission grant warning for {name}: {exc}")
+    return warnings
+
+
+def find_original_font_backup(workflow, name: str) -> Path | None:
+    """
+    Finds authentic original system font file across backup directories,
+    workspace scratch locations, and WinSxS servicing store.
+    Caches discovered font into %PROGRAMDATA%\\Font Wizard\\backup.
+    """
+    backup_dir = workflow.paths.backup_root
+    cached = backup_dir / name
+    if cached.exists() and cached.stat().st_size > 200_000:
+        return cached
+
+    candidate_dirs = [
+        workflow.paths.project_root / "scratch" / "original_segoe_backup",
+        workflow.paths.project_root.parent / "scratch" / "original_segoe_backup",
+        Path(__file__).resolve().parent.parent.parent / "scratch" / "original_segoe_backup",
+    ]
+
+    for cdir in candidate_dirs:
+        candidate = cdir / name
+        if candidate.exists() and candidate.stat().st_size > 200_000:
+            try:
+                workflow.paths.ensure_runtime_dirs()
+                shutil.copy2(candidate, cached)
+            except OSError:
+                pass
+            return candidate
+
+    # WinSxS Servicing Store Fallback
+    try:
+        from winsxs import find_winsxs_font
+        sxs_path = find_winsxs_font(name)
+        if sxs_path and sxs_path.exists() and sxs_path.stat().st_size > 200_000:
+            try:
+                workflow.paths.ensure_runtime_dirs()
+                shutil.copy2(sxs_path, cached)
+            except OSError:
+                pass
+            return sxs_path
+    except Exception:
+        pass
+
+    return None
+
+
+def backup_canonical_fonts(workflow, font_names: list[str]) -> tuple[list[str], int]:
+    """
+    Safely backs up original system fonts into %PROGRAMDATA%\\Font Wizard\\backup.
+    """
     workflow.paths.ensure_runtime_dirs()
-    staged = workflow.paths.pending_ops_root / f"{dst.stem}_{uuid.uuid4().hex[:8]}{suffix}{dst.suffix}"
-    shutil.copy2(src, staged)
-    return staged
+    backup_dir = workflow.paths.backup_root
+    warnings = []
+    backed_up_count = 0
+
+    for name in font_names:
+        dest = backup_dir / name
+        if dest.exists() and dest.stat().st_size > 200_000:
+            backed_up_count += 1
+            continue
+
+        src = find_original_font_backup(workflow, name)
+        if not src:
+            # If active font in C:\Windows\Fonts is original (large size), back it up
+            active = workflow.active_fonts_root / name
+            if active.exists() and active.stat().st_size > 200_000:
+                src = active
+
+        if src and src.exists():
+            try:
+                shutil.copy2(src, dest)
+                backed_up_count += 1
+            except OSError as exc:
+                warnings.append(f"Could not back up original font {name}: {exc}")
+        else:
+            warnings.append(f"Original font file not found for backup: {name}")
+
+    return warnings, backed_up_count
+
+
+def schedule_canonical_replacement(workflow, artifacts: dict[str, dict]) -> tuple[dict, list[str]]:
+    """
+    Stages custom font files into C:\\Windows\\Fonts\\staged_replace_* and registers
+    atomic physical in-place overwrite via MoveFileExW with SYSTEM:F permissions.
+    """
+    font_names = [a["system_filename"] for a in artifacts.values()]
+    perm_warnings = take_canonical_font_ownership(font_names, workflow.active_fonts_root)
+
+    manifest = {}
+    warnings = list(perm_warnings)
+    scheduled_count = 0
+
+    for artifact in artifacts.values():
+        system_filename = artifact["system_filename"]
+        target_path = workflow.active_fonts_root / system_filename
+        staged_src = workflow.active_fonts_root / f"staged_replace_{system_filename}"
+
+        shutil.copy2(artifact["staged_path"], staged_src)
+
+        try:
+            subprocess.run(
+                ["icacls", str(staged_src), "/grant", "*S-1-5-18:F", "*S-1-5-32-544:F", "/c"],
+                check=False,
+                capture_output=True,
+                creationflags=0x08000000,
+            )
+        except Exception:
+            pass
+
+        ok = _MoveFileExW(
+            str(staged_src),
+            str(target_path),
+            _MOVEFILE_DELAY_UNTIL_REBOOT | _MOVEFILE_REPLACE_EXISTING,
+        )
+        if ok:
+            scheduled_count += 1
+        else:
+            warnings.append(f"Failed to schedule boot replacement for {system_filename}")
+
+        manifest[artifact["weight"]] = {
+            "source_path": artifact["source_path"],
+            "family_name": artifact["family_name"],
+            "full_name": artifact["full_name"],
+            "system_filename": system_filename,
+            "staged_path": str(staged_src),
+            "target_path": str(target_path),
+            "sha256": artifact["hash"],
+        }
+
+    return manifest, warnings
+
+
+def schedule_canonical_restore(workflow, font_names: list[str]) -> tuple[int, list[str]]:
+    take_canonical_font_ownership(font_names, workflow.active_fonts_root)
+    warnings = []
+    scheduled_count = 0
+
+    for name in font_names:
+        backup_file = find_original_font_backup(workflow, name)
+
+        if not backup_file or not backup_file.exists():
+            warnings.append(f"Authentic backup file missing for {name}; skipping restore.")
+            continue
+
+        target_path = workflow.active_fonts_root / name
+        staged_src = workflow.active_fonts_root / f"staged_restore_{name}"
+
+        try:
+            shutil.copy2(backup_file, staged_src)
+        except Exception as exc:
+            warnings.append(f"Could not stage {name} for restore: {exc}")
+            continue
+
+        try:
+            subprocess.run(
+                ["icacls", str(staged_src), "/grant", "*S-1-5-18:F", "*S-1-5-32-544:F", "/c"],
+                check=False,
+                capture_output=True,
+                creationflags=0x08000000,
+            )
+        except Exception:
+            pass
+
+        ok = _MoveFileExW(
+            str(staged_src),
+            str(target_path),
+            _MOVEFILE_DELAY_UNTIL_REBOOT | _MOVEFILE_REPLACE_EXISTING,
+        )
+        if ok:
+            scheduled_count += 1
+        else:
+            warnings.append(f"Failed to schedule restore for {name}")
+
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes",
+            0,
+            winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY,
+        ) as key:
+            for sub_name in ["Segoe WPC", "Segoe WPC Semibold"]:
+                try:
+                    winreg.DeleteValue(key, sub_name)
+                except OSError:
+                    pass
+    except OSError:
+        pass
+
+    return scheduled_count, warnings
+
+
+def purge_system_font_cache() -> list[str]:
+    warnings = []
+    subprocess.run(["net", "stop", "FontCache"], check=False, capture_output=True, creationflags=0x08000000)
+
+    fntcache = Path(os.environ.get("WINDIR", r"C:\Windows")) / "System32" / "FNTCACHE.DAT"
+    if fntcache.exists():
+        try:
+            fntcache.unlink(missing_ok=True)
+        except OSError:
+            _MoveFileExW(str(fntcache), None, _MOVEFILE_DELAY_UNTIL_REBOOT)
+
+    dwrite_cache_dir = Path(os.environ.get("WINDIR", r"C:\Windows")) / "ServiceProfiles" / "LocalService" / "AppData" / "Local" / "FontCache"
+    if dwrite_cache_dir.exists():
+        for item in dwrite_cache_dir.glob("FontCache-*.dat"):
+            try:
+                item.unlink(missing_ok=True)
+            except OSError:
+                _MoveFileExW(str(item), None, _MOVEFILE_DELAY_UNTIL_REBOOT)
+
+    return warnings
 
 
 def cleanup_orphaned_pending_ops(workflow) -> tuple[list[str], bool]:
     referenced = _read_pending_rename_sources()
     warnings = []
     is_pending = False
-    for path in workflow.paths.pending_ops_root.glob("*_pending_replace.*"):
-        if str(path).lower() in referenced:
-            is_pending = True
-            continue
-        try:
-            path.unlink(missing_ok=True)
-        except OSError as exc:
-            warnings.append(f"Could not remove stale pending operation {path}: {exc}")
-    return warnings, is_pending
 
-
-def cleanup_font_directory_artifacts(workflow, protected_files=None) -> tuple[list[str], bool]:
-    referenced = _read_pending_rename_sources()
-    protected = {str(name).lower() for name in (protected_files or []) if name}
-    warnings = []
-    is_pending = False
-    managed_stems = {Path(name).stem.lower() for name in workflow._system_font_files()}
-
-    for path in workflow.active_fonts_root.iterdir():
-        if not path.is_file():
-            continue
-        if path.name.lower() in protected:
-            continue
-        if not _is_cleanup_candidate(path.name, managed_stems):
-            continue
-        if str(path).lower() in referenced:
-            is_pending = True
-            continue
-        try:
-            path.unlink(missing_ok=True)
-        except OSError as exc:
-            if schedule_delete_on_reboot(path):
-                warnings.append(f"Removal scheduled for reboot: {path}")
+    # Check staged files in Fonts root
+    for pattern in ("staged_replace_*", "staged_restore_*"):
+        for path in workflow.active_fonts_root.glob(pattern):
+            if str(path).lower() in referenced:
                 is_pending = True
-            else:
-                warnings.append(f"Could not remove stale font artifact {path}: {exc}")
+                continue
+            try:
+                path.unlink(missing_ok=True)
+            except OSError as exc:
+                warnings.append(f"Could not remove stale staged file {path}: {exc}")
+
     return warnings, is_pending
 
 
@@ -106,283 +316,3 @@ def _normalize_pending_path(value):
         if normalized.startswith(prefix):
             normalized = normalized[len(prefix):]
     return normalized.lower()
-
-
-def _is_cleanup_candidate(filename, managed_stems):
-    lower = filename.lower()
-    stem = Path(lower).stem
-    return any(
-        (lower.endswith(_OLD_FILE_SUFFIX) and stem.startswith(f"{managed_stem}_"))
-        or (lower.startswith(f"{managed_stem}_fontwizard"))
-        or (lower.startswith(f"{managed_stem}_pending_replace"))
-        for managed_stem in managed_stems
-    )
-
-
-def schedule_delete_on_reboot(path):
-    return bool(_MoveFileExW(str(path), None, _MOVEFILE_DELAY_UNTIL_REBOOT))
-
-
-def schedule_replace_on_reboot(workflow, src, dst):
-    staged_src = stage_persistent_operation_file(workflow, src, dst, "_pending_replace")
-    ok = _MoveFileExW(
-        str(staged_src),
-        str(dst),
-        _MOVEFILE_DELAY_UNTIL_REBOOT | _MOVEFILE_REPLACE_EXISTING,
-    )
-    if not ok:
-        staged_src.unlink(missing_ok=True)
-        return False
-    return True
-
-
-def force_copy(workflow, src, dst):
-    try:
-        shutil.copy2(src, dst)
-        return False
-    except OSError:
-        if not dst.exists():
-            raise
-
-    old_name = dst.parent / f"{dst.stem}_{uuid.uuid4().hex[:8]}.old"
-    try:
-        dst.rename(old_name)
-    except OSError:
-        pass
-    else:
-        try:
-            shutil.copy2(src, dst)
-        except OSError:
-            if not dst.exists():
-                try:
-                    old_name.rename(dst)
-                except OSError:
-                    pass
-            raise
-        schedule_delete_on_reboot(old_name)
-        return False
-
-    if schedule_replace_on_reboot(workflow, src, dst):
-        return True
-
-    raise OSError(
-        f"Cannot write to {dst} - the file is locked by another process "
-        f"and all fallback strategies have been exhausted."
-    )
-
-
-def install_transaction(workflow, artifacts: dict[str, dict], previous_registry: dict[str, str | None], rollback_dir: Path) -> dict:
-    targets = default_registry_targets()
-    for artifact in artifacts.values():
-        targets[artifact["registry_name"]] = artifact["generated_filename"]
-
-    fonts_manifest = {}
-    deferred_fonts = []
-    warnings = []
-
-    workflow.registry.write_targets(targets)
-    try:
-        workflow.registry.ensure_font_substitutes()
-    except Exception as exc:
-        warnings.append(f"Could not update MS Shell Dlg 2 registry substitute: {exc}")
-
-    applied = workflow.registry.read_targets(list(targets.keys()))
-    if applied != targets:
-        raise RuntimeError("Registry verification failed before installing managed fonts.")
-
-    for artifact in artifacts.values():
-        staged_path = Path(artifact["staged_path"])
-        system_filename = artifact["system_filename"]
-        managed_path = workflow.paths.managed_font_root / artifact["generated_filename"]
-        active_path = workflow.active_fonts_root / artifact["generated_filename"]
-
-        prepare_rollback_file(active_path, rollback_dir)
-        shutil.copy2(staged_path, managed_path)
-        _verify_hash(managed_path, artifact["hash"], "managed")
-        
-        deferred = force_copy(workflow, staged_path, active_path)
-        if deferred:
-            deferred_fonts.append(artifact["generated_filename"])
-        else:
-            _verify_hash(active_path, artifact["hash"], "installed")
-
-        fonts_manifest[artifact["weight"]] = {
-            "source_path": artifact["source_path"],
-            "family_name": artifact["family_name"],
-            "full_name": artifact["full_name"],
-            "system_filename": system_filename,
-            "generated_filename": artifact["generated_filename"],
-            "managed_path": str(managed_path),
-            "active_path": str(active_path),
-            "sha256": artifact["hash"],
-        }
-
-    cleanup_warnings = cleanup_stale_previous_fonts(workflow, previous_registry, fonts_manifest)
-    warnings.extend(cleanup_warnings[0])
-    if deferred_fonts:
-        for font_name in deferred_fonts:
-            warnings.append(f"Font replacement scheduled for reboot: {workflow.active_fonts_root / font_name}")
-        warnings.append(
-            "Some font files are queued for replacement on reboot. Restart Windows before applying another font."
-        )
-    return {
-        "status": "applied",
-        "registry_targets": targets,
-        "fonts": fonts_manifest,
-        "deferred_fonts": deferred_fonts,
-        "warnings": warnings,
-        "previous_registry": previous_registry,
-        "applied_at": iso_now(),
-        "restored_at": None,
-    }
-
-
-def _verify_hash(path: Path, expected_hash: str, label: str) -> None:
-    if not path.exists():
-        raise RuntimeError(f"Expected {label} font file does not exist: {path.name}")
-    actual_hash = hash_file(path)
-    if actual_hash != expected_hash:
-        raise RuntimeError(
-            f"Installed {label} font hash mismatch for {path.name}: "
-            f"{actual_hash} != {expected_hash}"
-        )
-
-
-def rollback_status_path(active_path: Path, rollback_dir: Path) -> Path:
-    return rollback_dir / f"{active_path.name}.rollback.json"
-
-
-def write_rollback_status(active_path: Path, rollback_dir: Path, payload: dict) -> None:
-    path = rollback_status_path(active_path, rollback_dir)
-    path.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
-
-
-def read_rollback_status(active_path: Path, rollback_dir: Path) -> dict:
-    path = rollback_status_path(active_path, rollback_dir)
-    if not path.exists():
-        return {"status": "unknown"}
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {"status": "unknown"}
-
-
-def prepare_rollback_file(active_path: Path, rollback_dir: Path) -> None:
-    if not active_path.exists():
-        write_rollback_status(active_path, rollback_dir, {"status": "missing"})
-        return
-
-    backup_path = rollback_dir / active_path.name
-    try:
-        shutil.copy2(active_path, backup_path)
-    except OSError as exc:
-        raise RuntimeError(f"Could not capture rollback backup for {active_path.name}: {exc}") from exc
-
-    write_rollback_status(
-        active_path,
-        rollback_dir,
-        {"status": "backed_up", "backup_path": str(backup_path)},
-    )
-
-
-def rollback(workflow, previous_registry, artifacts, rollback_dir):
-    workflow.registry.write_targets(previous_registry)
-
-    for artifact in artifacts.values():
-        active_path = workflow.active_fonts_root / artifact["generated_filename"]
-        managed_path = workflow.paths.managed_font_root / artifact["generated_filename"]
-        status = read_rollback_status(active_path, rollback_dir)
-        state = status.get("status")
-
-        if state == "backed_up":
-            backup_path = Path(status.get("backup_path", ""))
-            if backup_path.exists():
-                try:
-                    force_copy(workflow, backup_path, active_path)
-                except OSError:
-                    pass
-        elif state == "missing":
-            try:
-                active_path.unlink(missing_ok=True)
-            except OSError:
-                schedule_delete_on_reboot(active_path)
-
-        try:
-            managed_path.unlink(missing_ok=True)
-        except OSError:
-            schedule_delete_on_reboot(managed_path)
-
-
-def cleanup_stale_previous_fonts(workflow, previous_registry: dict[str, str | None], fonts_manifest: dict[str, dict]) -> tuple[list[str], bool]:
-    current_files = {font["generated_filename"] for font in fonts_manifest.values()}
-    warnings = []
-    is_pending = False
-    
-    stale_paths = set()
-    for root in (workflow.paths.managed_font_root, workflow.active_fonts_root):
-        if not root.exists():
-            continue
-        for path in root.iterdir():
-            if not path.is_file():
-                continue
-            name_lower = path.name.lower()
-            if "_fontwizard" not in name_lower and not any(name_lower.endswith(s) for s in _MANAGED_SUFFIXES):
-                continue
-            if path.name in current_files:
-                continue
-            stale_paths.add(path)
-
-    for path in stale_paths:
-        try:
-            path.unlink(missing_ok=True)
-        except OSError as exc:
-            if schedule_delete_on_reboot(path):
-                warnings.append(f"Removal scheduled for reboot: {path}")
-                is_pending = True
-            else:
-                warnings.append(f"Could not remove stale managed font {path}: {exc}")
-    return warnings, is_pending
-
-
-def cleanup_managed_fonts(workflow, previous_registry: dict[str, str | None], state: dict) -> tuple[list[str], bool]:
-    managed_files = set()
-    is_pending = False
-    install_data = state.get("install") or {}
-    for info in install_data.get("fonts", {}).values():
-        managed_path = info.get("managed_path", "")
-        active_path = info.get("active_path", "")
-        if managed_path:
-            managed_files.add(Path(managed_path))
-        if active_path and _is_managed_extra_font(active_path):
-            managed_files.add(Path(active_path))
-
-    for filename in previous_registry.values():
-        if not filename:
-            continue
-        lower = filename.lower()
-        if "_fontwizard" in lower or any(lower.endswith(s) for s in _MANAGED_SUFFIXES):
-            managed_files.add(workflow.active_fonts_root / filename)
-
-    warnings = []
-    for file_path in managed_files:
-        if file_path and file_path.exists():
-            try:
-                file_path.unlink(missing_ok=True)
-            except OSError as exc:
-                if schedule_delete_on_reboot(file_path):
-                    warnings.append(f"Removal scheduled for reboot: {file_path}")
-                    is_pending = True
-                else:
-                    warnings.append(f"Could not remove {file_path}: {exc}")
-                    
-    pending_warnings, pending_reboot = cleanup_orphaned_pending_ops(workflow)
-    warnings.extend(pending_warnings)
-    if pending_reboot:
-        is_pending = True
-    
-    return warnings, is_pending
-
-
-def _is_managed_extra_font(path_value):
-    lower = Path(path_value).name.lower()
-    return "_fontwizard" in lower or any(lower.endswith(s) for s in _MANAGED_SUFFIXES)

@@ -5,16 +5,16 @@ from pathlib import Path
 from fontTools.ttLib import TTFont
 
 from font_cache import refresh_windows_font_cache
-from font_generation import build_font, build_variable_font
+from font_generation import build_font
 from fonts import validate_selection
 from operation_files import (
-    cleanup_font_directory_artifacts,
-    cleanup_managed_fonts,
+    backup_canonical_fonts,
     cleanup_orphaned_pending_ops,
-    install_transaction,
-    rollback,
+    purge_system_font_cache,
+    schedule_canonical_replacement,
+    schedule_canonical_restore,
 )
-from settings import FONTS_DIR, WEIGHTS, default_registry_targets
+from settings import FONTS_DIR, default_registry_targets
 from app_state import hash_file, iso_now
 
 
@@ -43,18 +43,24 @@ class FontWorkflow:
         self.identity_fonts_root = Path(identity_fonts_root or FONTS_DIR)
         self.active_fonts_root = Path(active_fonts_root or FONTS_DIR)
 
+    def _system_weights(self):
+        from settings import get_system_weights
+        return get_system_weights(self.identity_fonts_root)
+
     def _system_font_files(self):
-        return list(dict.fromkeys(WEIGHTS.values()))
+        return list(dict.fromkeys(self._system_weights().values()))
 
     def validate(self, selection, source_labels=None):
-        return validate_selection(selection, source_labels)
+        return validate_selection(selection, source_labels, weights=self._system_weights())
 
     def apply(self, selection, source_labels=None, progress=None):
         report = self.preflight.collect()
         if not report.is_supported:
-            return OperationResult(False, "Font Wizard only supports Windows 11.", report.issues, report.warnings)
+            return OperationResult(False, "Font Wizard supports Windows 10 (build 10240+) and Windows 11.", report.issues, report.warnings)
+
         if not report.is_admin:
             return OperationResult(False, "Run Font Wizard as Administrator before applying fonts.", report.issues, report.warnings)
+
         if report.install_state == "pending_reboot_recovery":
             return OperationResult(
                 False,
@@ -63,61 +69,67 @@ class FontWorkflow:
                 report.warnings,
             )
 
-
         summary = self.validate(selection, source_labels)
         if not summary.ok:
             return OperationResult(False, summary.errors[0] if summary.errors else "The selected font cannot be used.", summary.errors, summary.warnings)
 
         stage_dir = self.paths.make_temp_dir("fontwizard-build-")
-        rollback_dir = self.paths.make_temp_dir("fontwizard-rollback-")
-        artifacts = {}
-        previous_registry = self.registry.read_targets(list(default_registry_targets().keys()))
-        protected_active_fonts = set(previous_registry.values())
+        system_files = self._system_font_files()
 
         try:
-            self._emit(progress, 2, "Cleaning up old pending file changes...")
-            pending_cleanup_warnings, _ = cleanup_orphaned_pending_ops(self)
-            font_dir_cleanup_warnings, _ = cleanup_font_directory_artifacts(
-                self,
-                protected_files=protected_active_fonts,
-            )
+            self._emit(progress, 5, "Backing up original Windows system fonts...")
+            backup_warnings, backed_count = backup_canonical_fonts(self, system_files)
 
-            self._emit(progress, 20, "Preparing managed font files...")
+            self._emit(progress, 15, "Cleaning up old pending operations...")
+            pending_cleanup_warnings, _ = cleanup_orphaned_pending_ops(self)
+
+            self._emit(progress, 30, "Compiling custom TrueType font weights...")
             artifacts = build_artifacts(self, summary.entries, stage_dir)
 
-            self._emit(progress, 70, "Installing the selected font files...")
-            install_manifest = install_transaction(self, artifacts, previous_registry, rollback_dir)
-            
-            self._emit(progress, 88, "Refreshing the Windows font cache...")
-            cache_warnings = refresh_windows_font_cache()
-            install_warnings = install_manifest.get("warnings", [])
+            self._emit(progress, 75, "Scheduling physical in-place replacement on boot...")
+            manifest, schedule_warnings = schedule_canonical_replacement(self, artifacts)
 
-            self._emit(progress, 92, "Saving the current Font Wizard state...")
+            self._emit(progress, 88, "Purging system font caches...")
+            cache_warnings = purge_system_font_cache()
+            refresh_windows_font_cache()
+
+            # Ensure Segoe WPC substitute is set in registry
+            try:
+                self.registry.ensure_font_substitutes()
+            except Exception:
+                pass
+
+            self._emit(progress, 95, "Saving installation state...")
             state = self.state_store.load_or_empty()
-            state["install"] = install_manifest
+            state["install"] = {
+                "status": "pending_reboot_apply",
+                "fonts": manifest,
+                "backed_up_count": backed_count,
+                "applied_at": iso_now(),
+                "restored_at": None,
+            }
             state["last_action"] = {
                 "kind": "apply",
                 "status": "success",
                 "timestamp": iso_now(),
-                "details": "Apply completed.",
+                "details": "Scheduled physical in-place replacement on boot.",
             }
             self.state_store.save(state)
 
-            self._emit(progress, 100, "Font apply completed.")
+            self._emit(progress, 100, "Font setup complete!")
+            all_warnings = [
+                *summary.warnings,
+                *backup_warnings,
+                *pending_cleanup_warnings,
+                *schedule_warnings,
+                *cache_warnings,
+            ]
             return OperationResult(
                 True,
-                "Fonts were updated. Restart Windows to finish the change.",
-                warnings=[
-                    *summary.warnings,
-                    *pending_cleanup_warnings,
-                    *font_dir_cleanup_warnings,
-                    *install_warnings,
-                    *cache_warnings,
-                ],
+                "Physical replacement scheduled. Restart Windows now to finish applying the font.",
+                warnings=all_warnings,
             )
         except Exception as exc:
-            rollback(self, previous_registry, artifacts, rollback_dir)
-            
             state = self.state_store.load_or_empty()
             state["last_action"] = {
                 "kind": "apply",
@@ -126,41 +138,39 @@ class FontWorkflow:
                 "details": str(exc),
             }
             self.state_store.save(state)
-            return OperationResult(False, "Something went wrong while applying. Your previous fonts were restored.", [str(exc)], summary.warnings)
+            return OperationResult(False, f"Failed to apply font changes: {exc}", [str(exc)], summary.warnings)
         finally:
             shutil.rmtree(stage_dir, ignore_errors=True)
-            shutil.rmtree(rollback_dir, ignore_errors=True)
 
     def restore(self, progress=None):
         report = self.preflight.collect()
         if not report.is_admin:
             return OperationResult(False, "Run Font Wizard as Administrator before restoring fonts.", report.issues, report.warnings)
 
-        defaults = default_registry_targets()
-        previous_registry = self.registry.read_targets(list(defaults.keys()))
-        state = self.state_store.load_or_empty()
+        system_files = self._system_font_files()
 
         try:
-            self._emit(progress, 2, "Cleaning up old pending file changes...")
-            pending_cleanup_warnings, is_pending1 = cleanup_orphaned_pending_ops(self)
-            font_dir_cleanup_warnings, is_pending2 = cleanup_font_directory_artifacts(self)
+            self._emit(progress, 10, "Cleaning up stale pending files...")
+            pending_cleanup_warnings, _ = cleanup_orphaned_pending_ops(self)
 
-            self._emit(progress, 30, "Restoring the Windows font registry entries...")
-            self.registry.write_targets(defaults)
+            self._emit(progress, 35, "Scheduling restore of original fonts on boot...")
+            scheduled_count, restore_warnings = schedule_canonical_restore(self, system_files)
+            if scheduled_count == 0:
+                return OperationResult(
+                    False,
+                    "Failed to schedule font restore: No authentic backup font files were found.",
+                    restore_warnings,
+                )
 
-            self._emit(progress, 60, "Cleaning up Font Wizard font files...")
-            cleanup_warnings, is_pending3 = cleanup_managed_fonts(self, previous_registry, state)
+            self._emit(progress, 75, "Purging system font caches...")
+            cache_warnings = purge_system_font_cache()
+            refresh_windows_font_cache()
 
-            self._emit(progress, 88, "Refreshing the Windows font cache...")
-            cache_warnings = refresh_windows_font_cache()
-            
-            is_pending = is_pending1 or is_pending2 or is_pending3
-
+            self._emit(progress, 92, "Saving restore state...")
+            state = self.state_store.load_or_empty()
             state["install"] = {
-                "status": "pending_reboot" if is_pending else "clean",
-                "registry_targets": defaults,
+                "status": "pending_reboot_recovery",
                 "fonts": {},
-                "previous_registry": previous_registry,
                 "applied_at": state.get("install", {}).get("applied_at"),
                 "restored_at": iso_now(),
             }
@@ -168,24 +178,23 @@ class FontWorkflow:
                 "kind": "restore",
                 "status": "success",
                 "timestamp": iso_now(),
-                "details": "Restore completed.",
+                "details": f"Scheduled restore of {scheduled_count} original Microsoft fonts on boot.",
             }
             self.state_store.save(state)
-            self._emit(progress, 100, "Font restore completed.")
 
-            warnings = [
+            self._emit(progress, 100, "Font restore scheduled!")
+            all_warnings = [
                 *pending_cleanup_warnings,
-                *font_dir_cleanup_warnings,
-                *cleanup_warnings,
+                *restore_warnings,
                 *cache_warnings,
             ]
-
-            message = "The original Windows fonts have been restored."
-            if cleanup_warnings:
-                message += " Some files are still in use and will be cleaned up after you restart Windows."
-            return OperationResult(True, message, warnings=warnings)
+            return OperationResult(
+                True,
+                f"Original Windows fonts ({scheduled_count}/{len(system_files)}) scheduled for restore. Restart Windows now to finish.",
+                warnings=all_warnings,
+            )
         except Exception as exc:
-            return OperationResult(False, "Font restore did not finish. Some changes may have been made.", [str(exc)])
+            return OperationResult(False, f"Font restore failed: {exc}", [str(exc)])
 
     def _emit(self, callback, value, message):
         if callback:
@@ -246,19 +255,16 @@ def build_artifacts(workflow, entries, stage_dir):
     artifacts = {}
     for entry in entries:
         segoe_path = workflow.identity_fonts_root / entry.system_filename
-        output_path = stage_dir / entry.generated_filename
+        output_path = stage_dir / entry.system_filename
 
-        if entry.weight == "variable":
-            build_variable_font(entry.source_path, segoe_path, output_path)
-        else:
-            build_font(entry.source_path, segoe_path, output_path)
-            _verify_build_output(output_path, segoe_path)
+        build_font(entry.source_path, segoe_path, output_path)
+        _verify_build_output(output_path, segoe_path)
 
         artifacts[entry.weight] = {
             "weight": entry.weight,
             "registry_name": entry.registry_name,
             "system_filename": entry.system_filename,
-            "generated_filename": entry.generated_filename,
+            "generated_filename": entry.system_filename,
             "source_path": str(entry.source_path),
             "family_name": entry.family_name,
             "full_name": entry.full_name,

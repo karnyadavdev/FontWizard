@@ -5,7 +5,7 @@ import winreg
 from ctypes import wintypes
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThread, Signal, QSize, QPoint, QRect, QUrl
+from PySide6.QtCore import Qt, QThread, Signal, QSize, QPoint, QRect, QUrl, QTimer, QEvent
 from PySide6.QtGui import QDesktopServices, QFontDatabase, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -33,44 +33,63 @@ WM_SETTINGCHANGE = 0x001A
 WM_THEMECHANGED = 0x031A
 WM_DWMCOLORIZATIONCOLORCHANGED = 0x0320
 
-def get_theme_colors(is_dark: bool) -> dict[str, str]:
+def is_windows_11() -> bool:
+    try:
+        winver = sys.getwindowsversion()
+        return winver.major == 10 and winver.build >= 22000
+    except Exception:
+        return False
+
+def get_theme_colors(is_dark: bool, is_win11: bool = True) -> dict[str, str]:
     if is_dark:
         return {
-            "bg_card": "rgba(255, 255, 255, 0.04)",
-            "bg_card_hover": "rgba(255, 255, 255, 0.07)",
-            "bg_button": "rgba(255, 255, 255, 0.06)",
-            "bg_button_hover": "rgba(255, 255, 255, 0.09)",
-            "bg_button_pressed": "rgba(255, 255, 255, 0.03)",
-            "border_card": "rgba(255, 255, 255, 0.08)",
-            "border_button": "rgba(255, 255, 255, 0.08)",
+            "bg_window": "transparent" if is_win11 else "#202020",
+            "bg_card": "rgba(255, 255, 255, 0.04)" if is_win11 else "#2B2B2B",
+            "bg_card_hover": "rgba(255, 255, 255, 0.07)" if is_win11 else "#353535",
+            "bg_button": "rgba(255, 255, 255, 0.06)" if is_win11 else "#2D2D2D",
+            "bg_button_hover": "rgba(255, 255, 255, 0.09)" if is_win11 else "#383838",
+            "bg_button_pressed": "rgba(255, 255, 255, 0.03)" if is_win11 else "#242424",
+            "border_card": "rgba(255, 255, 255, 0.08)" if is_win11 else "#383838",
+            "border_button": "rgba(255, 255, 255, 0.08)" if is_win11 else "#383838",
             "text_primary": "#FFFFFF",
-            "text_secondary": "rgba(255, 255, 255, 0.78)",
-            "text_muted": "rgba(255, 255, 255, 0.55)",
-            "accent": "#60CDFF",
-            "accent_hover": "#7AD7FF",
+            "text_secondary": "rgba(255, 255, 255, 0.78)" if is_win11 else "#CCCCCC",
+            "text_muted": "rgba(255, 255, 255, 0.55)" if is_win11 else "#888888",
+            "accent": "#38BDF8",
+            "accent_hover": "#60CDFF",
             "accent_text": "#000000",
-            "success": "#6CCB5F",
-            "warning": "#C4B5FD",
-            "danger": "#FF99A4",
+            "success": "#22C55E",
+            "success_hover": "#4ADE80",
+            "warning": "#F59E0B",
+            "warning_hover": "#FBBF24",
+            "warning_text": "#000000",
+            "danger": "#EF4444",
+            "danger_hover": "#F87171",
+            "danger_text": "#FFFFFF",
             "bg_dialog": "#202020",
         }
     return {
-        "bg_card": "rgba(255, 255, 255, 0.7)",
-        "bg_card_hover": "rgba(255, 255, 255, 0.85)",
-        "bg_button": "rgba(255, 255, 255, 0.7)",
-        "bg_button_hover": "rgba(255, 255, 255, 0.85)",
-        "bg_button_pressed": "rgba(255, 255, 255, 0.5)",
-        "border_card": "rgba(0, 0, 0, 0.06)",
-        "border_button": "rgba(0, 0, 0, 0.06)",
-        "text_primary": "rgba(0, 0, 0, 0.9)",
-        "text_secondary": "rgba(0, 0, 0, 0.6)",
-        "text_muted": "rgba(0, 0, 0, 0.45)",
-        "accent": "#005FB8",
+        "bg_window": "transparent" if is_win11 else "#F3F3F3",
+        "bg_card": "rgba(255, 255, 255, 0.7)" if is_win11 else "#FFFFFF",
+        "bg_card_hover": "rgba(255, 255, 255, 0.85)" if is_win11 else "#F9F9F9",
+        "bg_button": "rgba(255, 255, 255, 0.7)" if is_win11 else "#E5E5E5",
+        "bg_button_hover": "rgba(255, 255, 255, 0.85)" if is_win11 else "#DEDEDE",
+        "bg_button_pressed": "rgba(255, 255, 255, 0.5)" if is_win11 else "#CCCCCC",
+        "border_card": "rgba(0, 0, 0, 0.06)" if is_win11 else "#E0E0E0",
+        "border_button": "rgba(0, 0, 0, 0.06)" if is_win11 else "#D0D0D0",
+        "text_primary": "rgba(0, 0, 0, 0.9)" if is_win11 else "#1A1A1A",
+        "text_secondary": "rgba(0, 0, 0, 0.6)" if is_win11 else "#555555",
+        "text_muted": "rgba(0, 0, 0, 0.45)" if is_win11 else "#777777",
+        "accent": "#0066CC",
         "accent_hover": "#0052A3",
         "accent_text": "#FFFFFF",
-        "success": "#0F7B0F",
-        "warning": "#6D28D9",
-        "danger": "#C42B1C",
+        "success": "#16A34A",
+        "success_hover": "#15803D",
+        "warning": "#D97706",
+        "warning_hover": "#B45309",
+        "warning_text": "#FFFFFF",
+        "danger": "#DC2626",
+        "danger_hover": "#B91C1C",
+        "danger_text": "#FFFFFF",
         "bg_dialog": "#F3F3F3",
     }
 
@@ -92,13 +111,22 @@ def apply_native_mica(hwnd_id, is_dark):
         dwmapi = ctypes.windll.dwmapi
         hwnd = wintypes.HWND(hwnd_id)
         dark_mode = ctypes.c_int(1 if is_dark else 0)
-        dwmapi.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(dark_mode), ctypes.sizeof(dark_mode))
-        backdrop_type = ctypes.c_int(2) # 2 for Mica
-        dwmapi.DwmSetWindowAttribute(hwnd, 38, ctypes.byref(backdrop_type), ctypes.sizeof(backdrop_type))
-        margins = MARGINS(-1, -1, -1, -1)
-        dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
-        caption_color = ctypes.c_int(0xFFFFFFFE)
-        dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(caption_color), ctypes.sizeof(caption_color))
+        res = dwmapi.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(dark_mode), ctypes.sizeof(dark_mode))
+        if res != 0:
+            dwmapi.DwmSetWindowAttribute(hwnd, 19, ctypes.byref(dark_mode), ctypes.sizeof(dark_mode))
+
+        if is_windows_11():
+            backdrop_type = ctypes.c_int(2)  # 2 for Mica (DWMSBT_MAINWINDOW on Win 11 22H2 / 23H2 / 24H2)
+            res_backdrop = dwmapi.DwmSetWindowAttribute(hwnd, 38, ctypes.byref(backdrop_type), ctypes.sizeof(backdrop_type))
+            if res_backdrop != 0:
+                # Fallback for Windows 11 Build 22000 (21H2)
+                mica_val = ctypes.c_int(1)
+                dwmapi.DwmSetWindowAttribute(hwnd, 1029, ctypes.byref(mica_val), ctypes.sizeof(mica_val))
+
+            margins = MARGINS(-1, -1, -1, -1)
+            dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
+            caption_color = ctypes.c_int(0xFFFFFFFE)
+            dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(caption_color), ctypes.sizeof(caption_color))
     except Exception:
         pass
 
@@ -111,12 +139,19 @@ def is_system_dark_mode():
         return True
 
 def get_wizard_stylesheet(is_dark: bool) -> str:
-    colors = get_theme_colors(is_dark)
+    is_win11 = is_windows_11()
+    colors = get_theme_colors(is_dark, is_win11)
+    win_bg = colors["bg_window"]
+    font_stack = "'Segoe UI Variable Text', 'Segoe UI', sans-serif" if is_win11 else "'Segoe UI', sans-serif"
+    title_font_stack = "'Segoe UI Variable Display', 'Segoe UI', sans-serif" if is_win11 else "'Segoe UI', sans-serif"
+
     return f"""
-    QMainWindow, QWidget, QFrame, QScrollArea {{ background: transparent; }}
+    QMainWindow {{ background-color: {win_bg}; }}
+    QWidget#CentralWidget {{ background-color: {win_bg}; }}
+    QFrame, QScrollArea {{ background: transparent; }}
     QWidget {{ 
         color: {colors["text_primary"]}; 
-        font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif; 
+        font-family: {font_stack}; 
         font-size: 14px; 
     }}
     QDialog, QMessageBox, QToolTip {{ 
@@ -124,9 +159,9 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
         border: 1px solid {colors["border_card"]}; 
         border-radius: 8px;
     }}
-    #AppTitle {{ font-size: 28px; font-weight: 600; font-family: 'Segoe UI Variable Display', 'Segoe UI', sans-serif; letter-spacing: -0.5px; }}
+    #AppTitle {{ font-size: 28px; font-weight: 600; font-family: {title_font_stack}; letter-spacing: -0.5px; }}
     #AppSubtitle {{ color: {colors["text_secondary"]}; font-size: 14px; margin-top: 0px; }}
-    #SectionHeader {{ font-weight: 600; font-size: 18px; padding: 0; font-family: 'Segoe UI Variable Display', 'Segoe UI', sans-serif; }}
+    #SectionHeader {{ font-weight: 600; font-size: 18px; padding: 0; font-family: {title_font_stack}; }}
     #SectionMeta {{ color: {colors["text_muted"]}; font-size: 13px; }}
     
     #Banner, #SetupCard, #VariantCard, #EmptyState {{ 
@@ -147,14 +182,46 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
     #VariantPreview {{ color: {colors["text_primary"]}; font-size: 18px; }}
     #VariantMeta {{ color: {colors["text_muted"]}; font-size: 12px; }}
     
+    #CardChangeBtn {{
+        background-color: transparent;
+        border: 1px solid {colors["border_button"]};
+        border-radius: 4px;
+        padding: 0 8px;
+        min-height: 24px;
+        max-height: 24px;
+        font-size: 11px;
+        font-weight: 500;
+        color: {colors["text_secondary"]};
+        outline: none;
+    }}
+    #CardChangeBtn:hover {{
+        background-color: {colors["bg_button_hover"]};
+        color: {colors["text_primary"]};
+    }}
+    #CardChangeBtn:pressed {{
+        background-color: {colors["bg_button_pressed"]};
+    }}
+    #CustomBadge {{
+        background-color: {colors["accent"]};
+        color: {colors["accent_text"]};
+        border-radius: 3px;
+        padding: 1px 6px;
+        font-size: 10px;
+        font-weight: 600;
+    }}
+    
     QPushButton {{ 
         background-color: {colors["bg_button"]}; 
         border: 1px solid {colors["border_button"]}; 
         border-radius: 4px; 
-        padding: 6px 16px; 
-        min-height: 32px; 
+        padding: 0 16px; 
+        min-height: 34px; 
+        max-height: 34px; 
         font-weight: 600; 
+        font-size: 13px;
+        outline: none;
     }}
+    QPushButton:focus {{ outline: none; }}
     QPushButton:hover {{ background-color: {colors["bg_button_hover"]}; }}
     QPushButton:pressed {{ background-color: {colors["bg_button_pressed"]}; }}
     QPushButton:disabled {{ color: {colors["text_muted"]}; background-color: {colors["bg_card"]}; border-color: {colors["border_card"]}; }}
@@ -163,11 +230,31 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
         background-color: {colors["accent"]}; 
         border: 1px solid {colors["accent"]}; 
         color: {colors["accent_text"]}; 
+        outline: none;
     }}
     QPushButton[buttonRole="primary"]:hover {{ background-color: {colors["accent_hover"]}; border-color: {colors["accent_hover"]}; }}
     
-    QPushButton[buttonRole="warning"] {{ color: {colors["warning"]}; }}
-    QPushButton[buttonRole="danger"] {{ color: {colors["danger"]}; }}
+    QPushButton[buttonRole="warning"] {{ 
+        background-color: {colors["warning"]}; 
+        border: 1px solid {colors["warning"]}; 
+        color: {colors["warning_text"]}; 
+        outline: none;
+    }}
+    QPushButton[buttonRole="warning"]:hover {{ 
+        background-color: {colors["warning_hover"]}; 
+        border-color: {colors["warning_hover"]}; 
+    }}
+    
+    QPushButton[buttonRole="danger"] {{ 
+        background-color: {colors["bg_card"]}; 
+        border: 1px solid {colors["danger"]}; 
+        color: {colors["danger"]}; 
+    }}
+    QPushButton[buttonRole="danger"]:hover {{ 
+        background-color: {colors["danger"]}; 
+        border-color: {colors["danger"]}; 
+        color: {colors["danger_text"]}; 
+    }}
     QPushButton[buttonRole="secondary"] {{ 
         background-color: {colors["bg_card"]}; 
         color: {colors["text_primary"]}; 
@@ -329,12 +416,16 @@ class StatusBanner(QFrame):
         self.icon_lbl.setStyleSheet(f"color: {color};")
 
 class WeightCard(QFrame):
-    def __init__(self, weight, font_path, parent=None):
+    def __init__(self, weight, font_path, is_manual=False, is_dark=False, on_change=None, on_reset=None, parent=None):
         super().__init__(parent)
         self.setObjectName("VariantCard")
-        self.setMinimumSize(300, 110)
+        self.setMinimumSize(280, 140)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self._font_id = -1
+        self.weight = weight
+        self.on_change = on_change
+        self.on_reset = on_reset
+        colors = get_theme_colors(is_dark, is_windows_11())
         
         try:
             metadata = inspect_font(font_path)
@@ -345,38 +436,85 @@ class WeightCard(QFrame):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 14, 16, 14)
-        layout.setSpacing(6)
+        layout.setSpacing(8)
         
-        title_str = weight.replace("_", " ").title()
+        header_row = QWidget()
+        header_layout = QHBoxLayout(header_row)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(6)
+
+        title_str = weight.replace("consolas_", "Consolas ").replace("_", " ").title()
         title = QLabel(title_str)
         title.setObjectName("CardTitle")
-        title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        layout.addWidget(title)
+        title.setStyleSheet(f"color: {colors['text_primary']}; font-weight: 600; font-size: 14px;")
+        header_layout.addWidget(title, 0, Qt.AlignVCenter)
+
+        if is_manual:
+            badge = QLabel("Custom")
+            badge.setObjectName("CustomBadge")
+            header_layout.addWidget(badge, 0, Qt.AlignVCenter)
+
+        header_layout.addStretch(1)
+
+        if is_manual and on_reset:
+            reset_btn = QPushButton("Reset to Auto")
+            reset_btn.setObjectName("CardChangeBtn")
+            reset_btn.setCursor(Qt.PointingHandCursor)
+            reset_btn.setFocusPolicy(Qt.NoFocus)
+            reset_btn.clicked.connect(lambda: self.on_reset(self.weight))
+            header_layout.addWidget(reset_btn, 0, Qt.AlignVCenter)
+
+        change_btn = QPushButton("Select File")
+        change_btn.setObjectName("CardChangeBtn")
+        change_btn.setCursor(Qt.PointingHandCursor)
+        change_btn.setFocusPolicy(Qt.NoFocus)
+        if on_change:
+            change_btn.clicked.connect(lambda: self.on_change(self.weight))
+        header_layout.addWidget(change_btn, 0, Qt.AlignVCenter)
+
+        layout.addWidget(header_row)
         
-        self.preview = QLabel("The quick brown fox jumps over the lazy dog")
+        is_mono = weight.startswith("consolas_")
+        sample_text = "const font = 'Consolas'; // 12345" if is_mono else "The quick brown fox jumps over the lazy dog"
+        self.preview = QLabel(sample_text)
         self.preview.setObjectName("VariantPreview")
         self.preview.setWordWrap(True)
+        self.preview.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
         self._font_id = QFontDatabase.addApplicationFont(str(font_path))
+        font_family_name = ""
         if self._font_id >= 0:
             families = QFontDatabase.applicationFontFamilies(self._font_id)
             if families:
-                style_str = "italic" if detected_italic else "normal"
-                self.preview.setStyleSheet(f"font-family: '{families[0]}'; font-weight: {detected_weight}; font-style: {style_str};")
+                font_family_name = families[0]
+
+        style_str = "italic" if detected_italic else "normal"
+        font_family_rule = f"font-family: '{font_family_name}', monospace;" if is_mono and font_family_name else (f"font-family: '{font_family_name}', sans-serif;" if font_family_name else "")
+        self.preview.setStyleSheet(
+            f"color: {colors['text_primary']}; "
+            f"font-size: 16px; "
+            f"{font_family_rule} "
+            f"font-weight: {detected_weight}; "
+            f"font-style: {style_str};"
+        )
         layout.addWidget(self.preview)
 
-        meta = QLabel(f"Weight {detected_weight}" + (" italic" if detected_italic else ""))
+        filename_str = Path(font_path).name
+        meta_text = f"Weight {detected_weight}" + (" • Italic" if detected_italic else "") + f" • {filename_str}"
+        meta = QLabel(meta_text)
         meta.setObjectName("VariantMeta")
+        meta.setStyleSheet(f"color: {colors['text_muted']}; font-size: 11px;")
         meta.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout.addWidget(meta)
 
     def cleanup(self):
         if hasattr(self, "preview") and self.preview:
             self.preview.setStyleSheet("")
-            from PySide6.QtGui import QFont
-            self.preview.setFont(QFont())
         if self._font_id >= 0:
             QFontDatabase.removeApplicationFont(self._font_id)
             self._font_id = -1
+
+
 
 class FontWizardApp(QMainWindow):
     def __init__(self):
@@ -398,9 +536,10 @@ class FontWizardApp(QMainWindow):
         self._op_thread = None
         self._compact_layout = None
         self.is_dark = is_system_dark_mode()
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        if is_windows_11():
+            self.setAttribute(Qt.WA_TranslucentBackground)
 
-        central = QWidget()
+        central = QWidget(objectName="CentralWidget")
         self.setCentralWidget(central)
         self.main_layout = QVBoxLayout(central)
         self.main_layout.setContentsMargins(40, 36, 40, 36)
@@ -418,7 +557,6 @@ class FontWizardApp(QMainWindow):
 
         self._sync_responsive_layout()
         self._apply_theme(self.is_dark)
-        self.refresh_all()
 
     def _build_header(self):
         header = QWidget()
@@ -488,43 +626,35 @@ class FontWizardApp(QMainWindow):
 
         tc_layout.addWidget(text_container, 0, Qt.AlignVCenter)
         header_layout.addWidget(title_container)
-
         self.banner = StatusBanner()
         header_layout.addWidget(self.banner)
         self.main_layout.addWidget(header)
 
     def _build_font_setup(self):
         self.setup_card = QFrame(objectName="SetupCard")
-        self.setup_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        self.setup_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.setup_layout = QHBoxLayout(self.setup_card)
-        self.setup_layout.setContentsMargins(24, 20, 24, 20)
-        self.setup_layout.setSpacing(24)
+        self.setup_layout.setContentsMargins(20, 14, 20, 14)
+        self.setup_layout.setSpacing(16)
 
         self.font_summary = QWidget()
-        summary_layout = QHBoxLayout(self.font_summary)
+        summary_layout = QVBoxLayout(self.font_summary)
         summary_layout.setContentsMargins(0, 0, 0, 0)
-        summary_layout.setSpacing(14)
-
-        font_text = QVBoxLayout()
-        font_text.setContentsMargins(0, 0, 0, 0)
-        font_text.setSpacing(6)
+        summary_layout.setSpacing(2)
 
         title = QLabel("Interface Font")
         title.setObjectName("CardTitle")
-        font_text.addWidget(title)
+        summary_layout.addWidget(title)
 
         self.cur_font_lbl = QLabel("No font selected")
         self.cur_font_lbl.setObjectName("SelectedFont")
         self.cur_font_lbl.setWordWrap(True)
-        self.cur_font_lbl.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Minimum)
-        font_text.addWidget(self.cur_font_lbl)
-        font_text.addStretch(1)
+        summary_layout.addWidget(self.cur_font_lbl)
 
-        summary_layout.addLayout(font_text, 1)
-        self.setup_layout.addWidget(self.font_summary, 1)
+        self.setup_layout.addWidget(self.font_summary, 1, Qt.AlignVCenter)
 
         self.actions_widget = QWidget()
-        self.actions_layout = QVBoxLayout(self.actions_widget)
+        self.actions_layout = QHBoxLayout(self.actions_widget)
         self.actions_layout.setContentsMargins(0, 0, 0, 0)
         self.actions_layout.setSpacing(10)
 
@@ -534,14 +664,13 @@ class FontWizardApp(QMainWindow):
 
         for button in (self.browse_btn, self.apply_btn, self.restore_btn):
             button.setCursor(Qt.PointingHandCursor)
-            button.setMinimumHeight(40)
-            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            button.setFixedHeight(34)
+            button.setMinimumWidth(150)
+            button.setFocusPolicy(Qt.NoFocus)
+            button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             self.actions_layout.addWidget(button)
 
-        self.actions_widget.setMinimumWidth(240)
-        self.actions_widget.setMaximumWidth(280)
         self.setup_layout.addWidget(self.actions_widget, 0, Qt.AlignVCenter)
-        
         self.main_layout.addWidget(self.setup_card)
 
     def _build_variants(self):
@@ -607,11 +736,17 @@ class FontWizardApp(QMainWindow):
         self.setStyleSheet(get_wizard_stylesheet(is_dark))
         apply_native_mica(int(self.winId()), is_dark)
         self._apply_widget_theme()
+        self.refresh_all()
 
     def _sync_theme(self):
         current_dark = is_system_dark_mode()
         if current_dark != self.is_dark:
             self._apply_theme(current_dark)
+
+    def changeEvent(self, event):
+        super().changeEvent(event)
+        if event.type() in (QEvent.PaletteChange, QEvent.ThemeChange, QEvent.ActivationChange, QEvent.ApplicationPaletteChange):
+            self._sync_theme()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -622,29 +757,17 @@ class FontWizardApp(QMainWindow):
         if not hasattr(self, "setup_layout"):
             return
 
-        is_compact = self.width() < 960
+        is_compact = self.width() < 700
         if self._compact_layout == is_compact:
             return
 
         self._compact_layout = is_compact
         if is_compact:
-            self.main_layout.setContentsMargins(28, 28, 28, 28)
-            self.main_layout.setSpacing(20)
-            self.setup_layout.setDirection(QBoxLayout.TopToBottom)
-            self.setup_layout.setSpacing(18)
-            self.setup_layout.setContentsMargins(24, 20, 24, 20)
-            self.setup_layout.setAlignment(self.actions_widget, Qt.AlignTop)
-            self.actions_widget.setMinimumWidth(0)
-            self.actions_widget.setMaximumWidth(16777215)
+            self.main_layout.setContentsMargins(24, 20, 24, 20)
+            self.main_layout.setSpacing(16)
         else:
-            self.main_layout.setContentsMargins(40, 36, 40, 36)
-            self.main_layout.setSpacing(24)
-            self.setup_layout.setDirection(QBoxLayout.LeftToRight)
-            self.setup_layout.setSpacing(24)
-            self.setup_layout.setContentsMargins(24, 20, 24, 20)
-            self.setup_layout.setAlignment(self.actions_widget, Qt.AlignVCenter)
-            self.actions_widget.setMinimumWidth(240)
-            self.actions_widget.setMaximumWidth(16777215)
+            self.main_layout.setContentsMargins(36, 28, 36, 28)
+            self.main_layout.setSpacing(20)
 
         self.setup_card.updateGeometry()
         self.banner.updateGeometry()
@@ -660,7 +783,7 @@ class FontWizardApp(QMainWindow):
         viewport_width = self.weight_scroll.viewport().width()
         if viewport_width <= 0:
             viewport_width = self.weight_scroll.width()
-        content_height = self.weight_layout.heightForWidth(viewport_width)
+        content_height = self.weight_layout.heightForWidth(viewport_width) + 16
         self.weight_widget.setMinimumHeight(content_height)
         self.weight_widget.setMaximumHeight(content_height)
         self.weight_widget.updateGeometry()
@@ -752,7 +875,6 @@ class FontWizardApp(QMainWindow):
 
         if btn == self.apply_btn and result.success:
             self._selection_dirty = False
-            self._hide_applied_variants = True
 
         if result.success:
             QMessageBox.information(self, "Result", result.message)
@@ -764,6 +886,9 @@ class FontWizardApp(QMainWindow):
         self._run_operation(self.controller.apply, self.apply_btn, "Applying Changes...")
 
     def on_restore(self):
+        if getattr(self, "_restore_action", "restore") == "restart":
+            self.on_restart()
+            return
         if self._confirm(
             "Restore original fonts?",
             "Restore the original Windows interface fonts?",
@@ -785,12 +910,16 @@ class FontWizardApp(QMainWindow):
         colors = get_theme_colors(self.is_dark)
 
         is_pending = report.install_state in ("pending_reboot_apply", "pending_reboot_recovery")
-        if report.install_state == "managed":
-            self.banner.set_icon("\uE73E", colors["success"])
+        if not report.is_supported:
+            self.banner.set_icon("\uEA39", colors["danger"])
+        elif not report.is_admin:
+            self.banner.set_icon("\uE7BA", colors["warning"])
         elif is_pending:
             self.banner.set_icon("\uE777", colors["warning"])
+        elif report.install_state == "managed":
+            self.banner.set_icon("\uE73E", colors["accent"])
         elif report.issues:
-            self.banner.set_icon("\uE783", colors["danger"])
+            self.banner.set_icon("\uEA39", colors["danger"])
         else:
             self.banner.set_icon("\uE946", colors["accent"])
 
@@ -803,37 +932,43 @@ class FontWizardApp(QMainWindow):
         is_recovery_pending = report.install_state == "pending_reboot_recovery"
 
         if is_recovery_pending:
-            self._browse_action = "restart"
+            self._browse_action = "select"
             self._apply_action = "restart"
-            browse_text = "Restart Windows"
-            apply_text = "Apply Changes"
-            restore_text = "Restore Original Fonts"
-            apply_visible = False
+            self._restore_action = "restart"
+            browse_text = "Select Font"
+            apply_text = "Restart Windows"
+            restore_text = "Restart Windows"
+            apply_visible = True
             restore_visible = False
+            apply_available = True
+            restore_available = True
         elif is_apply_pending:
             self._browse_action = "select"
+            self._restore_action = "restore"
             if has_selected_font and self._selection_dirty:
                 self._apply_action = "apply"
                 apply_text = "Apply Changes"
+                apply_available = can_apply
             else:
                 self._apply_action = "restart"
                 apply_text = "Restart Windows"
-            browse_text = "Select Font"
+                apply_available = True
+            browse_text = "Change Font" if has_selected_font else "Select Font"
             restore_text = "Restore Original Fonts"
             apply_visible = True
             restore_visible = False
+            restore_available = False
         else:
             self._browse_action = "select"
             self._apply_action = "apply"
-            browse_text = "Select Font"
+            self._restore_action = "restore"
+            browse_text = "Change Font" if has_selected_font else "Select Font"
             apply_text = "Apply Changes"
             restore_text = "Restore Original Fonts"
             apply_visible = has_selected_font
-            restore_visible = not has_selected_font
-
-        action_is_restart = self._apply_action == "restart"
-        apply_available = apply_visible and (action_is_restart or can_apply)
-        restore_available = restore_visible and report.can_restore_defaults
+            restore_visible = not has_selected_font and report.install_state == "managed"
+            apply_available = apply_visible and can_apply
+            restore_available = restore_visible and report.can_restore_defaults
 
         self.browse_btn.setText(browse_text)
         self.browse_btn.setEnabled(True)
@@ -848,7 +983,7 @@ class FontWizardApp(QMainWindow):
         self.restore_btn.setVisible(restore_visible)
         self.restore_btn.setText(restore_text)
 
-        if not can_apply and not action_is_restart:
+        if not can_apply and self._apply_action != "restart":
             if not regular_font:
                 self.apply_btn.setToolTip("Select a font to apply.")
             else:
@@ -858,15 +993,18 @@ class FontWizardApp(QMainWindow):
         else:
             self.apply_btn.setToolTip("")
 
-        if not self.restore_btn.isEnabled():
+        if not self.restore_btn.isEnabled() and self._restore_action != "restart":
             self.restore_btn.setToolTip("Cannot restore fonts right now.")
         else:
             self.restore_btn.setToolTip("")
 
-        browse_role = "warning" if self._browse_action == "restart" else ("secondary" if has_selected_font else "primary")
+        browse_role = "secondary" if (has_selected_font or is_pending) else "primary"
+        apply_role = "warning" if self._apply_action == "restart" else "primary"
+        restore_role = "warning" if self._restore_action == "restart" else "danger"
+
         self._set_button_role(self.browse_btn, browse_role)
-        self._set_button_role(self.apply_btn, "warning" if action_is_restart else "primary")
-        self._set_button_role(self.restore_btn, "warning")
+        self._set_button_role(self.apply_btn, apply_role)
+        self._set_button_role(self.restore_btn, restore_role)
 
         self.cur_font_lbl.setText(Path(regular_font).name if regular_font else "No font selected")
 
@@ -878,24 +1016,52 @@ class FontWizardApp(QMainWindow):
                     widget.cleanup()
                 widget.deleteLater()
 
+        def _handle_card_change(w):
+            current_path = self.controller.selection.paths.get(w) or self.controller.selection.paths.get("regular") or "."
+            start_dir = str(Path(current_path).parent)
+            display_name = w.replace("consolas_", "Consolas ").replace("_", " ").title()
+            chosen_file, _ = QFileDialog.getOpenFileName(
+                self,
+                f"Select Font File for {display_name}",
+                start_dir,
+                "TrueType Fonts (*.ttf);;All Files (*.*)",
+            )
+            if chosen_file:
+                try:
+                    self.controller.set_card_override(w, chosen_file)
+                    self._selection_dirty = True
+                    self.refresh_all()
+                except ValueError as exc:
+                    QMessageBox.warning(self, "Invalid Font", str(exc))
+
+        def _handle_card_reset(w):
+            self.controller.reset_card_override(w)
+            self._selection_dirty = True
+            self.refresh_all()
+
         cards_added = 0
         for weight, font_path in self.controller.selection.paths.items():
             if font_path and weight != "variable":
                 try:
-                    card = WeightCard(weight, font_path)
+                    is_manual = (self.controller.selection.labels.get(weight) == "manual" and weight != "regular")
+                    card = WeightCard(
+                        weight,
+                        font_path,
+                        is_manual=is_manual,
+                        is_dark=self.is_dark,
+                        on_change=_handle_card_change,
+                        on_reset=_handle_card_reset,
+                    )
                     self.weight_layout.addWidget(card)
                     card.show()
                     cards_added += 1
                 except (ValueError, OSError):
                     pass
 
-        show_variant_section = (
-            has_selected_font
-            and not is_recovery_pending
-            and (not is_apply_pending or self._selection_dirty or not self._hide_applied_variants)
-        )
+        show_variant_section = has_selected_font and not is_recovery_pending
         has_variants = show_variant_section and cards_added > 0
         self.variant_count_lbl.setText(f"{cards_added} styles" if has_variants else "No preview")
+
         self.variants_header.setVisible(show_variant_section)
         self.empty_variants.setVisible(show_variant_section and not has_variants)
         self.weight_scroll.setVisible(has_variants)
