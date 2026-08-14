@@ -79,6 +79,10 @@ class FontWorkflow:
         try:
             self._emit(progress, 5, "Backing up original Windows system fonts...")
             backup_warnings, backed_count = backup_canonical_fonts(self, system_files)
+            if backed_count < len(system_files):
+                backup_warnings.append(
+                    f"Note: {backed_count} of {len(system_files)} original fonts were backed up."
+                )
 
             self._emit(progress, 15, "Cleaning up old pending operations...")
             pending_cleanup_warnings, _ = cleanup_orphaned_pending_ops(self)
@@ -126,7 +130,7 @@ class FontWorkflow:
             ]
             return OperationResult(
                 True,
-                "Physical replacement scheduled. Restart Windows now to finish applying the font.",
+                "Font changes scheduled. Restart Windows now to finish applying your font.",
                 warnings=all_warnings,
             )
         except Exception as exc:

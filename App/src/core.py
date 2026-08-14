@@ -57,24 +57,21 @@ class FontWizardController:
                 "Variable fonts are not supported. Choose a static .ttf file instead."
             )
 
+        resolved_path = str(Path(path).resolve())
+        self.primary_font_path = resolved_path
         system_weights = self.workflow._system_weights()
         paths = self.selection.paths
         labels = self.selection.labels
-        manual_paths = {
-            weight: font_path
-            for weight, font_path in paths.items()
-            if weight != "regular" and labels.get(weight) == "manual"
-        }
-        manual_paths["regular"] = path
-        detected = detect_weight_overrides(path, manual_paths, weights=system_weights)
 
-        paths["regular"] = path
-        labels["regular"] = "manual"
+        detected = detect_weight_overrides(resolved_path, weights=system_weights)
+
+        paths["regular"] = resolved_path
+        labels["regular"] = "primary"
         for weight in system_weights:
-            if weight == "regular" or labels.get(weight) == "manual":
+            if weight == "regular":
                 continue
             detected_path = detected.get(weight)
-            paths[weight] = detected_path or path
+            paths[weight] = detected_path or resolved_path
             labels[weight] = "auto-detected"
 
     def set_card_override(self, weight, path):
@@ -83,16 +80,33 @@ class FontWizardController:
             raise ValueError(
                 "Variable fonts are not supported. Choose a static .ttf file instead."
             )
-        self.selection.paths[weight] = str(Path(path).resolve())
+        resolved_path = str(Path(path).resolve())
+        self.selection.paths[weight] = resolved_path
         self.selection.labels[weight] = "manual"
 
+        if weight.startswith("consolas_"):
+            from settings import CONSOLAS_WEIGHTS
+            detected_mono = detect_weight_overrides(resolved_path, weights=CONSOLAS_WEIGHTS)
+            for mono_weight in CONSOLAS_WEIGHTS:
+                if mono_weight != weight and self.selection.labels.get(mono_weight) != "manual":
+                    if mono_weight in detected_mono:
+                        self.selection.paths[mono_weight] = detected_mono[mono_weight]
+                        self.selection.labels[mono_weight] = "auto-detected"
+
     def reset_card_override(self, weight):
-        if weight == "regular":
+        primary_path = getattr(self, "primary_font_path", None) or self.selection.paths.get("regular")
+        if not primary_path:
             return
-        self.selection.labels[weight] = "unset"
-        regular_path = self.selection.paths.get("regular")
-        if regular_path:
-            self.set_regular_font(regular_path)
+
+        if weight == "regular":
+            self.selection.paths["regular"] = primary_path
+            self.selection.labels["regular"] = "primary"
+            return
+
+        system_weights = self.workflow._system_weights()
+        detected = detect_weight_overrides(primary_path, weights={weight: system_weights.get(weight)})
+        self.selection.paths[weight] = detected.get(weight) or primary_path
+        self.selection.labels[weight] = "auto-detected"
 
     def apply(self, progress=None):
         return self.workflow.apply(

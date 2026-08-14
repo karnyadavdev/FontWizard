@@ -443,7 +443,11 @@ class WeightCard(QFrame):
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(6)
 
-        title_str = weight.replace("consolas_", "Consolas ").replace("_", " ").title()
+        if weight.startswith("consolas_"):
+            title_str = "Monospaced " + weight.replace("consolas_", "").replace("_", " ").title()
+        else:
+            title_str = weight.replace("_", " ").title()
+
         title = QLabel(title_str)
         title.setObjectName("CardTitle")
         title.setStyleSheet(f"color: {colors['text_primary']}; font-weight: 600; font-size: 14px;")
@@ -456,26 +460,22 @@ class WeightCard(QFrame):
 
         header_layout.addStretch(1)
 
-        if is_manual and on_reset:
-            reset_btn = QPushButton("Reset to Auto")
-            reset_btn.setObjectName("CardChangeBtn")
-            reset_btn.setCursor(Qt.PointingHandCursor)
-            reset_btn.setFocusPolicy(Qt.NoFocus)
-            reset_btn.clicked.connect(lambda: self.on_reset(self.weight))
-            header_layout.addWidget(reset_btn, 0, Qt.AlignVCenter)
-
-        change_btn = QPushButton("Select File")
-        change_btn.setObjectName("CardChangeBtn")
-        change_btn.setCursor(Qt.PointingHandCursor)
-        change_btn.setFocusPolicy(Qt.NoFocus)
-        if on_change:
-            change_btn.clicked.connect(lambda: self.on_change(self.weight))
-        header_layout.addWidget(change_btn, 0, Qt.AlignVCenter)
+        action_btn = QPushButton("Reset to Auto" if is_manual else "Select File")
+        action_btn.setObjectName("CardChangeBtn")
+        action_btn.setCursor(Qt.PointingHandCursor)
+        action_btn.setFocusPolicy(Qt.NoFocus)
+        if is_manual:
+            if on_reset:
+                action_btn.clicked.connect(lambda: on_reset(self.weight))
+        else:
+            if on_change:
+                action_btn.clicked.connect(lambda: on_change(self.weight))
+        header_layout.addWidget(action_btn, 0, Qt.AlignVCenter)
 
         layout.addWidget(header_row)
         
         is_mono = weight.startswith("consolas_")
-        sample_text = "const font = 'Consolas'; // 12345" if is_mono else "The quick brown fox jumps over the lazy dog"
+        sample_text = "The quick brown fox jumps over the lazy dog"
         self.preview = QLabel(sample_text)
         self.preview.setObjectName("VariantPreview")
         self.preview.setWordWrap(True)
@@ -1043,7 +1043,7 @@ class FontWizardApp(QMainWindow):
         for weight, font_path in self.controller.selection.paths.items():
             if font_path and weight != "variable":
                 try:
-                    is_manual = (self.controller.selection.labels.get(weight) == "manual" and weight != "regular")
+                    is_manual = (self.controller.selection.labels.get(weight) == "manual")
                     card = WeightCard(
                         weight,
                         font_path,

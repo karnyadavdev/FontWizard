@@ -119,7 +119,7 @@ def install_state(registry_targets, default_targets, state, paths=None, pending_
         if status == "clean":
             if has_pending:
                 return "pending_reboot_recovery"
-            if _is_physically_custom():
+            if _is_physically_custom(paths=paths):
                 return "managed"
             return "clean"
 
@@ -131,7 +131,7 @@ def install_state(registry_targets, default_targets, state, paths=None, pending_
         if status == "pending_reboot_recovery":
             if has_pending:
                 return "pending_reboot_recovery"
-            if _is_physically_custom():
+            if _is_physically_custom(paths=paths):
                 return "managed"
             return "clean"
 
@@ -146,7 +146,7 @@ def install_state(registry_targets, default_targets, state, paths=None, pending_
                 return "pending_reboot_recovery"
         return "pending_reboot_apply"
 
-    if _is_physically_custom():
+    if _is_physically_custom(paths=paths):
         return "managed"
 
     return "clean"
