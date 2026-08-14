@@ -1,3 +1,6 @@
+
+![Downloads](https://img.shields.io/badge/downloads-650%2B-blue?style=flat&logo=windows&logoColor=white)
+
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
