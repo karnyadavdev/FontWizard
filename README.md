@@ -33,12 +33,12 @@
 
 ## Installation & Download
 
-### Via WinGet
+### WinGet
 ```powershell
 winget install -e --id karnyadavdev.FontWizard
 ```
 
-### Manual Download
+### Download
 Download the [latest release](https://github.com/karnyadavdev/fontwizard/releases/latest) and run `FontWizard.exe`.
 
 - Supports **Windows 10 (build 10240+)** and **Windows 11**.
