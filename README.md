@@ -1,4 +1,3 @@
-<i>✔️Fixed : default font appearing in few apps</i>
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
@@ -7,7 +6,9 @@
 
 
 <p align="center">
-  Every app that asks for Segoe UI gets your font instead be it Start menu, Taskbar, Settings, Explorer, Office, Chrome, VS Code, Discord, all of them. Pick any font, apply once, restart, done.
+  <b>Truly replace your Windows’ default font system-wide. Unlike registry-based font replacers that only work in some apps.
+<br> Your font. Every app. Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome, and beyond. </b>
+
 </p>
 
 <p align="center">
