@@ -1,4 +1,4 @@
-<p align="center">
+![Downloads](https://img.shields.io/badge/downloads-800%2B-blue)<p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
 
