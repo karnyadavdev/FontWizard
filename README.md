@@ -31,20 +31,21 @@
 
 ---
 
-## Installation & Download
+## Download
 
-### WinGet
-```powershell
-winget install -e --id karnyadavdev.FontWizard
-```
 
-### Download
+
 Download the [latest release](https://github.com/karnyadavdev/fontwizard/releases/latest) and run `FontWizard.exe`.
 
 - Supports **Windows 10 (build 10240+)** and **Windows 11**.
 - Only `.ttf` fonts are supported. Variable fonts and `.otf` files are not supported currently.
 
+<br>
 
+### WinGet (Alternative method)
+```powershell
+winget install -e --id karnyadavdev.FontWizard
+```
 ---
 
 ## Build
