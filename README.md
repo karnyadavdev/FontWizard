@@ -6,8 +6,9 @@
 
 
 <p align="center">
-  <b>Truly replace your Windows’ default font system-wide. Unlike registry-based font replacers that only work in some apps.
-<br> Your font. Every app. Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome, and beyond. </b>
+  <b>
+Your font. Every app. Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome, and beyond. <br>
+  Truly replace your Windows’ default font everywhere.</b>
 
 </p>
 
