@@ -43,7 +43,7 @@ Download the [latest release](https://github.com/karnyadavdev/fontwizard/release
 - Supports **Windows 11** and **Windows 10**.
 - Only `.ttf` fonts are supported.
 - Variable fonts and `.otf` files are not supported.
->💡 If you have a font that is only available in `.otf`,  you easily convert it to `.ttf` using online font converter.
+>💡 If you have a font that is only available in `.otf`,  you easily convert it to `.ttf` using online font converters.
 
 <br>
 
