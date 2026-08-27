@@ -6,8 +6,9 @@
 
 
 <p align="center">
+  Your font. Every app.<br>
   <b>Truly replace your Windows’ default font everywhere.<br>
- Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome and beyond. <br>Your font. Every app.<br>
+ Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome and beyond. 
   </b>
 
 </p>
@@ -39,8 +40,10 @@
 
 Download the [latest release](https://github.com/karnyadavdev/fontwizard/releases/latest) and run `FontWizard.exe`.
 
-- Supports **Windows 10 (build 10240+)** and **Windows 11**.
-- Only `.ttf` fonts are supported. Variable fonts and `.otf` files are not supported currently.
+- Supports **Windows 11** and **Windows 10**.
+- Only `.ttf` fonts are supported.
+- Variable fonts and `.otf` files are not supported.
+>💡 If you have a font that is only available in `.otf`,  you easily convert it to `.ttf` using online font converter.
 
 <br>
 
@@ -50,7 +53,7 @@ winget install -e --id karnyadavdev.FontWizard
 ```
 ---
 
-## Build
+## Build from source
 
 ```bat
 .\App\build.bat
