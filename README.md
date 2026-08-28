@@ -6,9 +6,9 @@
 
 
 <p align="center">
-  <b>Your font. Every app.</b>
-  Truly replace your Windows’ default font everywhere.<br>
- Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome and beyond. 
+  <b><i>Your font. Every app.
+  Truly replace your Windows’ default font everywhere.<br></i>
+ Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome and beyond. </b>
 
 
 </p>
