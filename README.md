@@ -23,12 +23,8 @@
 
 <table>
   <tr>
-    <td><img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/></td>
-    <td><img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview"/></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>App screen</sub></td>
-    <td align="center"><sub>System after font applied</sub></td>
+    <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/>
+    <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview"/>
   </tr>
 </table>
 
