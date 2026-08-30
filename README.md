@@ -1,4 +1,4 @@
-![Downloads](https://img.shields.io/badge/downloads-1000%2B-blue)<p align="center">
+<p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
 
@@ -6,7 +6,7 @@
 
 
 <p align="center">
-  <b><i>Your font. Every app.</i>
+  <b>Your font. Every app.
   Truly replace your Windows’ default font everywhere.<br>
  Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome and beyond. </b>
 
@@ -41,8 +41,8 @@
 Download the [latest release](https://github.com/karnyadavdev/fontwizard/releases/latest) and run `FontWizard.exe`.
 
 - Supports **Windows 11** and **Windows 10**.
-- Only `.ttf` fonts are supported. Variable fonts and `.otf` files are not supported.
->💡 If you have a font that is only available in `.otf`,  you easily convert it to `.ttf` using online font converters.
+- Only `.ttf` fonts are supported. Variable and `.otf` fonts are not supported.
+> If you have a font that is only available in `.otf`,  you easily convert it to `.ttf` using online font converters.
 
 <br>
 
