@@ -245,13 +245,13 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
         background-color: transparent;
         border: none;
         border-radius: 4px;
-        padding: 0;
+        padding: 0 0 2px 0;
         min-width: 28px;
         max-width: 28px;
         min-height: 28px;
         max-height: 28px;
         font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
-        font-size: 15px;
+        font-size: 16px;
         color: {colors["accent_icon"]};
         outline: none;
     }}
@@ -261,16 +261,6 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
     }}
     #CardChangeBtn:pressed {{
         background-color: {colors["bg_button_pressed"]};
-    }}
-    #CardChangeBtn[isCustom="true"] {{
-        color: {colors["accent_icon"]};
-        border: 1px solid {colors["accent_icon"]};
-        background-color: {colors["bg_button"]};
-    }}
-    #CardChangeBtn[isCustom="true"]:hover {{
-        color: {colors["accent_hover"]};
-        border-color: {colors["accent_hover"]};
-        background-color: {colors["bg_button_hover"]};
     }}
     
     QPushButton {{ 
@@ -1125,14 +1115,10 @@ class FontWizardApp(QMainWindow):
             self.refresh_all()
 
         cards_added = 0
-        is_mono_custom_group = (self.controller.selection.labels.get("consolas_regular") == "manual")
         for weight, font_path in self.controller.selection.paths.items():
             if font_path and weight != "variable":
                 try:
-                    is_manual = (
-                        self.controller.selection.labels.get(weight) == "manual"
-                        or (weight.startswith("consolas_") and is_mono_custom_group)
-                    )
+                    is_manual = (self.controller.selection.labels.get(weight) == "manual")
                     card = WeightCard(
                         weight,
                         font_path,
