@@ -2,7 +2,7 @@
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
 
-<h1 align="center">Font Wizard</h1>
+<h2 align="center">Font Wizard : Complete Windows 11 & 10 System Font Changer</h2>
 
 
 <p align="center">
@@ -48,6 +48,18 @@ winget install -e --id karnyadavdev.FontWizard
 ```
 ---
 
+##  Comparison: FontWizard vs. Traditional Tools
+
+| Capability / Surface | Standard Registry Hacks | Winaero Tweaker | FontWizard |
+| :--- | :---: | :---: | :---: |
+| **Legacy Win32 Apps** (Control Panel, Notepad) | ✅ Yes | ✅ Yes | ✅ **Yes** |
+| **Modern WinUI 3 & Settings** | ❌ Broken / Incomplete | ⚠️ Partial | ✅ **100% Coverage** |
+| **UWP Apps & System Shell** | ❌ Ignored | ⚠️ Inconsistent | ✅ **Full Support** |
+| **Electron & Chromium Apps** (VS Code, Discord) | ❌ No | ❌ No | ✅ **Yes** |
+| **System Icon & Glyph Preservation** | ⚠️ Often breaks icons | ⚠️ Requires care | ✅ **Safe Glyph Pass-through** |
+| **1-Click Revert to Default (Segoe UI)** | ❌ Manual restore needed | ⚠️ Partial rollback | ✅ **Instant 1-Click Restore** |
+
+---
 ## Build from source
 
 ```bat
