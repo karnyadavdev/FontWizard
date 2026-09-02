@@ -6,9 +6,9 @@
 
 
 <p align="center">
-  <b>Your font. Every app.
+  Your font. Every app.
   Truly replace your Windows’ default font everywhere.<br>
- Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome and beyond. </b>
+ Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome and beyond. 
 
 
 </p>
@@ -48,7 +48,7 @@ winget install -e --id karnyadavdev.FontWizard
 ```
 ---
 
-##  Comparison: FontWizard vs. Traditional Tools
+##  Comparison: FontWizard vs. Other Tools
 
 | Capability / Surface | Standard Registry Hacks | Winaero Tweaker | FontWizard |
 | :--- | :---: | :---: | :---: |
@@ -56,7 +56,7 @@ winget install -e --id karnyadavdev.FontWizard
 | **Modern WinUI 3 & Settings** | ❌ Broken / Incomplete | ⚠️ Partial | ✅ **100% Coverage** |
 | **UWP Apps & System Shell** | ❌ Ignored | ⚠️ Inconsistent | ✅ **Full Support** |
 | **Electron & Chromium Apps** (VS Code, Discord) | ❌ No | ❌ No | ✅ **Yes** |
-| **System Icon & Glyph Preservation** | ⚠️ Often breaks icons | ⚠️ Requires care | ✅ **Safe Glyph Pass-through** |
+| **System Icon & Glyph Preservation** | ⚠️ Often breaks icons | ⚠️ Requires care | ✅ **Safe ** |
 | **1-Click Revert to Default (Segoe UI)** | ❌ Manual restore needed | ⚠️ Partial rollback | ✅ **Instant 1-Click Restore** |
 
 ---
