@@ -56,8 +56,8 @@ winget install -e --id karnyadavdev.FontWizard
 | **Modern WinUI 3 & Settings** | ❌ Broken / Incomplete | ⚠️ Partial | ✅ **100% Coverage** |
 | **UWP Apps & System Shell** | ❌ Ignored | ⚠️ Inconsistent | ✅ **Full Support** |
 | **Electron & Chromium Apps** (VS Code, Discord) | ❌ No | ❌ No | ✅ **Yes** |
-| **System Icon & Glyph Preservation** | ⚠️ Often breaks icons | ⚠️ Requires care | ✅ **Safe ** |
-| **1-Click Revert to Default (Segoe UI)** | ❌ Manual restore needed | ⚠️ Partial rollback | ✅ **Instant 1-Click Restore** |
+| **System Icon & Glyph Preservation** | ⚠️ Often breaks icons | ⚠️ Requires care | ✅ **Safe** |
+| **1-Click Revert to Default (Segoe UI)** | ❌ Manual restore needed | ⚠️ Partial rollback | ✅ **1-Click Restore** |
 
 ---
 ## Build from source
