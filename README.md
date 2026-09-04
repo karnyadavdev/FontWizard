@@ -52,11 +52,11 @@ winget install -e --id karnyadavdev.FontWizard
 Font Wizard is a complete windows 11 & 10 Font changer unlike other tools which fails at modern system components and third party apps, also font wizard is extemely safe to apply and revert fonts , as easy as one click 
 |  | Registry Hacks | Winaero Tweaker | FontWizard |
 | :--- | :---: | :---: | :---: |
-| **Legacy Win32 Apps** (Control Panel, Notepad) | ✅  | ✅  | ✅  |
-| **Modern WinUI 3 & Settings** | ❌  | ❌ | ✅  |
+| **Legacy Win32 Apps** (Control Panel, Notepad, etc) | ✅  | ✅  | ✅  |
+| **Modern WinUI 3 apps** | ❌  | ❌ | ✅  |
 | **UWP Apps & System Shell** | ❌ | ❌  | ✅  |
-| **Electron & Chromium Apps** (VS Code, Discord) | ❌ | ❌ | ✅ |
-| **System Icon & Glyph Preservation** | ⚠️  | ⚠️  | ✅ |
+| **Electron & Chromium Apps** (VS Code, Discord, chrome) | ❌ | ❌ | ✅ |
+| **System Icons & Glyph Preservation** | ⚠️  | ⚠️  | ✅ |
 | **1-Click Revert to Default (Segoe UI)** | ❌  | ⚠️  | ✅  |
 
 ---
