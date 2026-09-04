@@ -53,8 +53,8 @@ winget install -e --id karnyadavdev.FontWizard
 |  | Registry Hacks | Winaero Tweaker | FontWizard |
 | :--- | :---: | :---: | :---: |
 | **Legacy Win32 Apps** (Control Panel, Notepad) | ✅  | ✅  | ✅  |
-| **Modern WinUI 3 & Settings** | ❌  | ⚠️ | ✅  |
-| **UWP Apps & System Shell** | ❌ | ⚠️  | ✅  |
+| **Modern WinUI 3 & Settings** | ❌  | ❌ | ✅  |
+| **UWP Apps & System Shell** | ❌ | ❌  | ✅  |
 | **Electron & Chromium Apps** (VS Code, Discord) | ❌ | ❌ | ✅ |
 | **System Icon & Glyph Preservation** | ⚠️  | ⚠️  | ✅ |
 | **1-Click Revert to Default (Segoe UI)** | ❌  | ⚠️  | ✅  |
