@@ -48,7 +48,6 @@ winget install -e --id karnyadavdev.FontWizard
 ```
 ---
 
-##  Why only Font Wizard?
 Font Wizard is the only complete windows 11 & 10 Font changer unlike all other tools which fails at modern system components and third party apps, also font wizard is extemely safe to apply and revert fonts , as easy as one click 
 |  | Registry Hacks | Winaero Tweaker | FontWizard |
 | :--- | :---: | :---: | :---: |
