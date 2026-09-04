@@ -50,7 +50,7 @@ winget install -e --id karnyadavdev.FontWizard
 
 ##  Comparison with other tools
 
-| Capability / Surface | Registry Hacks | Winaero Tweaker | FontWizard |
+|  | Registry Hacks | Winaero Tweaker | FontWizard |
 | :--- | :---: | :---: | :---: |
 | **Legacy Win32 Apps** (Control Panel, Notepad) | ✅  | ✅  | ✅  |
 | **Modern WinUI 3 & Settings** | ❌  | ⚠️ | ✅  |
