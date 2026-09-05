@@ -8,10 +8,10 @@
 
 <p align="center">
   <b>Your font. Every app.
-  Truly replace your Windows’ default font everywhere.<br>
+  Truly replace your Windows’ default font everywhere.<br></b>
  Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome and beyond. 
 
-</b>
+
 </p>
 
 <p align="center">
