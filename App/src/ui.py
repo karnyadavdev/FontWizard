@@ -186,6 +186,24 @@ def is_system_dark_mode():
     except Exception:
         return True
 
+
+def _accent_signature():
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\Accent") as key:
+            palette, _ = winreg.QueryValueEx(key, "AccentPalette")
+            return bytes(bytearray(palette))
+    except Exception:
+        pass
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\DWM") as key:
+            value, _ = winreg.QueryValueEx(key, "AccentColor")
+            return int(value).to_bytes(4, "little", signed=False)
+    except Exception:
+        return b""
+
+
+_github_icon_cache = {}
+
 def get_wizard_stylesheet(is_dark: bool) -> str:
     is_win11 = is_windows_11()
     colors = get_theme_colors(is_dark, is_win11)
@@ -760,12 +778,15 @@ class FontWizardApp(QMainWindow):
         self._op_thread = None
         self._armed_button = None
         self._armed_action = None
-        self._armed_orig_text = ""
-        self._armed_orig_min = None
-        self._armed_orig_max = None
-        self._op_frozen = None
+        self._armed_face = None
+        self._arm_labels = None
+        self._op_cover = None
+        self._op_cover_btn = None
         self._armed_at = 0.0
         self._star_active = False
+        self._cards_sig = None
+        self._last_theme_sig = None
+        self._variant_geom_key = None
         self._compact_layout = None
         self.is_dark = is_system_dark_mode()
         if is_windows_11():
@@ -973,18 +994,29 @@ class FontWizardApp(QMainWindow):
             return
         if getattr(self, "_star_active", False):
             return
-        fill_color = "#FFFFFF" if self.is_dark else "#1F2328"
-        svg_path = get_asset_path("github-mark.svg")
-        if svg_path.exists():
+        if self.is_dark not in _github_icon_cache:
+            fill_color = "#FFFFFF" if self.is_dark else "#1F2328"
+            svg_path = get_asset_path("github-mark.svg")
+            pixmap = QPixmap()
             try:
-                svg_content = svg_path.read_text(encoding="utf-8").replace("#ffffff", fill_color).replace("#FFFFFF", fill_color)
+                if svg_path.exists():
+                    svg_content = svg_path.read_text(encoding="utf-8").replace("#ffffff", fill_color).replace("#FFFFFF", fill_color)
+                    if not pixmap.loadFromData(svg_content.encode("utf-8"), "SVG"):
+                        pixmap = QPixmap()
+            except Exception:
                 pixmap = QPixmap()
-                if pixmap.loadFromData(svg_content.encode("utf-8"), "SVG"):
-                    self.github_btn.setIcon(QIcon(pixmap))
-                    return
+            _github_icon_cache[self.is_dark] = pixmap
+        pixmap = _github_icon_cache[self.is_dark]
+        if not pixmap.isNull():
+            try:
+                self.github_btn.setIcon(QIcon(pixmap))
+                return
             except Exception:
                 pass
-            self.github_btn.setIcon(QIcon(str(svg_path)))
+        try:
+            self.github_btn.setIcon(QIcon(str(get_asset_path("github-mark.svg"))))
+        except Exception:
+            pass
 
     _STAR_REST_PX = 28
     _STAR_SHOW_MS = 13000
@@ -1072,8 +1104,6 @@ class FontWizardApp(QMainWindow):
         button = self.github_btn
         button.setGraphicsEffect(None)
         button.setText("")
-        button.setStyleSheet("")
-        button.setToolTip("")
         button.setAccessibleName("GitHub")
         button.setIconSize(QSize(20, 20))
         self._update_github_icon()
@@ -1096,6 +1126,10 @@ class FontWizardApp(QMainWindow):
         if getattr(self, "_is_updating_theme", False):
             return
         current_dark = is_system_dark_mode()
+        theme_sig = (current_dark, _accent_signature())
+        if theme_sig == getattr(self, "_last_theme_sig", None):
+            return
+        self._last_theme_sig = theme_sig
         self._apply_theme(current_dark)
 
     def keyPressEvent(self, event):
@@ -1105,15 +1139,17 @@ class FontWizardApp(QMainWindow):
                 event.accept()
                 return
             if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
-                if time.monotonic() - self._armed_at >= self._ARM_DELAY_S:
-                    action = self._armed_action
-                    self._disarm()
-                    action()
+                self._confirm_armed()
                 event.accept()
                 return
         super().keyPressEvent(event)
 
     def eventFilter(self, watched, event):
+        if watched is self._armed_button:
+            if event.type() == QEvent.Type.Enter:
+                self._paint_arm_halves(hover=True)
+            elif event.type() == QEvent.Type.Leave:
+                self._paint_arm_halves(hover=False)
         if (
             watched is self._armed_button
             and event.type() == QEvent.Type.MouseButtonRelease
@@ -1147,7 +1183,14 @@ class FontWizardApp(QMainWindow):
         self._sync_responsive_layout()
         self._sync_variant_layout_height()
         if self._armed_button is not None:
-            self._armed_button.setText(self._armed_spaced_text(self._armed_button))
+            self._layout_arm_halves()
+        cover = getattr(self, "_op_cover", None)
+        cover_btn = getattr(self, "_op_cover_btn", None)
+        if cover is not None and cover_btn is not None:
+            try:
+                cover.setGeometry(1, 1, max(1, cover_btn.width() - 2), max(1, cover_btn.height() - 2))
+            except RuntimeError:
+                pass
 
     def _sync_responsive_layout(self):
         if not hasattr(self, "setup_layout"):
@@ -1179,6 +1222,10 @@ class FontWizardApp(QMainWindow):
         viewport_width = self.weight_scroll.viewport().width()
         if viewport_width <= 0:
             viewport_width = self.weight_scroll.width()
+        geom_key = (viewport_width, self.weight_layout.count())
+        if geom_key == getattr(self, "_variant_geom_key", None):
+            return
+        self._variant_geom_key = geom_key
         content_height = self.weight_layout.heightForWidth(viewport_width) + 16
         self.weight_widget.setMinimumHeight(content_height)
         self.weight_widget.setMaximumHeight(content_height)
@@ -1202,10 +1249,11 @@ class FontWizardApp(QMainWindow):
 
         return super().nativeEvent(event_type, message)
 
-    _ARMED_TICK = chr(0x2713)
-    _ARMED_CROSS = chr(0xD7)
-    _ARMED_FONT_SIZE = 28
-    _ARMED_TEXT_PAD = 8
+    _ARMED_TICK = chr(0xE73E)
+    _ARMED_CROSS = chr(0xE711)
+    _ARMED_FONT_FAMILY = "Segoe MDL2 Assets"
+    _ARMED_FONT_SIZE = 24
+    _ARMED_CROSS_SIZE = 20
     _ARM_DELAY_S = 0.6
     _CONFIRM_FRACTION = 0.45
 
@@ -1228,41 +1276,82 @@ class FontWizardApp(QMainWindow):
             "restore": self._start_restore_op,
             "restart": self._do_restart,
         }[kind]
-        self._armed_orig_text = button.text()
-        self._armed_orig_min = button.minimumWidth()
-        self._armed_orig_max = button.maximumWidth()
-        button.setFixedWidth(button.width())
-        button.setText(self._armed_spaced_text(button))
-        button.setStyleSheet(
-            f"font-size: {self._ARMED_FONT_SIZE}px; padding: 0 {self._ARMED_TEXT_PAD // 2}px;"
-        )
+        colors = get_theme_colors(self.is_dark)
+        role = button.property("buttonRole") or "secondary"
+        face = {
+            "primary": ("accent", "accent_hover", "accent_text"),
+            "warning": ("accent", "accent_hover", "warning_text"),
+        }.get(role, ("bg_card", "bg_button_hover", "text_primary"))
+        self._armed_face = {"bg": colors[face[0]], "hover": colors[face[1]], "ink": colors[face[2]]}
+        yes_label = QLabel(self._ARMED_TICK, button)
+        no_label = QLabel(self._ARMED_CROSS, button)
+        self._arm_labels = (yes_label, no_label)
+        for label in self._arm_labels:
+            label.setAttribute(Qt.WA_TransparentForMouseEvents)
+            label.setAlignment(Qt.AlignCenter)
+        self._layout_arm_halves()
+        self._paint_arm_halves(hover=False)
+        for label in self._arm_labels:
+            label.show()
+        button.setAccessibleDescription("Armed. Activate the left side or press Enter to confirm, or press Escape to cancel.")
         self._armed_at = time.monotonic()
 
-    def _armed_spaced_text(self, button):
-        font = QFont(button.font())
-        font.setPointSize(self._ARMED_FONT_SIZE)
-        fm = QFontMetrics(font)
-        space_w = max(1, fm.horizontalAdvance(" "))
-        inner = max(0, button.width() - 2 * self._ARMED_TEXT_PAD)
-        gap = inner - fm.horizontalAdvance(self._ARMED_TICK) - fm.horizontalAdvance(self._ARMED_CROSS)
-        return f"{self._ARMED_TICK}{' ' * max(2, int(gap / space_w))}{self._ARMED_CROSS}"
+    def _layout_arm_halves(self):
+        button = self._armed_button
+        labels = getattr(self, "_arm_labels", None)
+        if button is None or not labels:
+            return
+        try:
+            width, height = button.width(), button.height()
+            mid = width // 2
+            labels[0].setGeometry(1, 1, max(1, mid - 1), max(1, height - 2))
+            labels[1].setGeometry(mid, 1, max(1, width - mid - 1), max(1, height - 2))
+        except RuntimeError:
+            pass
+
+    def _paint_arm_halves(self, hover):
+        labels = getattr(self, "_arm_labels", None)
+        face = getattr(self, "_armed_face", None)
+        if not labels or not face:
+            return
+        background = face["hover"] if hover else face["bg"]
+        for index, label in enumerate(labels):
+            try:
+                size = self._ARMED_CROSS_SIZE if index == 1 else self._ARMED_FONT_SIZE
+                label.setText(self._ARMED_TICK if index == 0 else self._ARMED_CROSS)
+                label.setStyleSheet(
+                    f"font-family: '{self._ARMED_FONT_FAMILY}'; "
+                    f"font-size: {size}px; "
+                    f"color: {face['ink']}; background-color: {background};"
+                )
+            except RuntimeError:
+                pass
+
+    def _confirm_armed(self):
+        if self._armed_button is None:
+            return
+        if time.monotonic() - self._armed_at >= self._ARM_DELAY_S:
+            action = self._armed_action
+            self._disarm()
+            action()
 
     def _disarm(self):
         button = self._armed_button
         self._armed_button = None
         self._armed_action = None
-        if button is not None:
+        self._armed_face = None
+        for label in (getattr(self, "_arm_labels", None) or ()):
             try:
-                button.setText(self._armed_orig_text)
-                button.setStyleSheet("")
-                button.setAccessibleDescription("")
-                if self._armed_orig_min is not None:
-                    button.setMinimumWidth(self._armed_orig_min)
-                    button.setMaximumWidth(self._armed_orig_max)
+                label.hide()
+                label.deleteLater()
             except RuntimeError:
                 pass
-        self._armed_orig_min = None
-        self._armed_orig_max = None
+        self._arm_labels = None
+        if button is not None:
+            try:
+                button.setAccessibleDescription("")
+            except RuntimeError:
+                pass
 
     def on_browse(self):
         if self._browse_action == "restart":
@@ -1297,9 +1386,17 @@ class FontWizardApp(QMainWindow):
 
         for button in self._action_buttons:
             button.setEnabled(False)
-        self._op_frozen = (btn, btn.minimumWidth(), btn.maximumWidth())
-        btn.setFixedWidth(btn.width())
-        btn.setText(text)
+        colors = get_theme_colors(self.is_dark)
+        cover = QLabel(text, btn)
+        cover.setAlignment(Qt.AlignCenter)
+        cover.setGeometry(1, 1, max(1, btn.width() - 2), max(1, btn.height() - 2))
+        cover.setStyleSheet(
+            "font-family: 'Segoe UI'; font-size: 13px; font-weight: 600; "
+            f"color: {colors['text_muted']}; background-color: {colors['bg_card']};"
+        )
+        cover.show()
+        self._op_cover = cover
+        self._op_cover_btn = btn
         self._set_button_role(btn, "primary")
         self._op_thread = OperationThread(func, self)
         self._op_thread.progress.connect(lambda v, m: self._update_progress_text(btn, v, m))
@@ -1311,14 +1408,15 @@ class FontWizardApp(QMainWindow):
         btn.setToolTip(message)
 
     def _on_operation_done(self, result, btn):
-        if self._op_frozen is not None:
-            frozen_btn, frozen_min, frozen_max = self._op_frozen
+        cover = getattr(self, "_op_cover", None)
+        self._op_cover = None
+        self._op_cover_btn = None
+        if cover is not None:
             try:
-                frozen_btn.setMinimumWidth(frozen_min)
-                frozen_btn.setMaximumWidth(frozen_max)
+                cover.hide()
+                cover.deleteLater()
             except RuntimeError:
                 pass
-            self._op_frozen = None
         self._op_thread = None
 
         if not isinstance(result, OperationResult):
@@ -1459,13 +1557,22 @@ class FontWizardApp(QMainWindow):
 
         self.cur_font_lbl.setText(Path(regular_font).name if regular_font else "No font selected")
 
-        while self.weight_layout.count():
-            item = self.weight_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                if hasattr(widget, "cleanup"):
-                    widget.cleanup()
-                widget.deleteLater()
+        cards_sig = (
+            tuple(sorted((key, str(value)) for key, value in self.controller.selection.paths.items())),
+            tuple(sorted((key, value) for key, value in self.controller.selection.labels.items())),
+            self.is_dark,
+        )
+        rebuild_cards = cards_sig != getattr(self, "_cards_sig", None)
+        if rebuild_cards:
+            self._cards_sig = cards_sig
+            self._variant_geom_key = None
+            while self.weight_layout.count():
+                item = self.weight_layout.takeAt(0)
+                widget = item.widget()
+                if widget:
+                    if hasattr(widget, "cleanup"):
+                        widget.cleanup()
+                    widget.deleteLater()
 
         def _handle_card_change(w):
             current_path = self.controller.selection.paths.get(w) or self.controller.selection.paths.get("regular") or "."
@@ -1491,23 +1598,26 @@ class FontWizardApp(QMainWindow):
             self.refresh_all()
 
         cards_added = 0
-        for weight, font_path in self.controller.selection.paths.items():
-            if font_path and weight != "variable":
-                try:
-                    is_manual = (self.controller.selection.labels.get(weight) == "manual")
-                    card = WeightCard(
-                        weight,
-                        font_path,
-                        is_manual=is_manual,
-                        is_dark=self.is_dark,
-                        on_change=_handle_card_change,
-                        on_reset=_handle_card_reset,
-                    )
-                    self.weight_layout.addWidget(card)
-                    card.show()
-                    cards_added += 1
-                except (ValueError, OSError):
-                    pass
+        if rebuild_cards:
+            for weight, font_path in self.controller.selection.paths.items():
+                if font_path and weight != "variable":
+                    try:
+                        is_manual = (self.controller.selection.labels.get(weight) == "manual")
+                        card = WeightCard(
+                            weight,
+                            font_path,
+                            is_manual=is_manual,
+                            is_dark=self.is_dark,
+                            on_change=_handle_card_change,
+                            on_reset=_handle_card_reset,
+                        )
+                        self.weight_layout.addWidget(card)
+                        card.show()
+                        cards_added += 1
+                    except (ValueError, OSError):
+                        pass
+        else:
+            cards_added = self.weight_layout.count()
 
         show_variant_section = has_selected_font and not is_recovery_pending
         has_variants = show_variant_section and cards_added > 0
