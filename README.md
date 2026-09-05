@@ -1,4 +1,4 @@
-```Note : v3.0 has been revised and all ui bugs like button transparency have been fixed, re-download v3.0``` <br> **_⭐ Star the repo if it helped you._**
+```Note : v3.0 has been revised and all ui bugs like button transparency have been fixed, re-download v3.0``` <br> **_⭐ Star the repo if it helps you._**
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
