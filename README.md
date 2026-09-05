@@ -15,7 +15,7 @@
 
 <p align="center">
   <sub>Built with Python · PySide6 · fontTools </sub> <br>
-  <sub>License: MIT &nbsp;·&nbsp; Status: Public Release v2.0</sub>
+  <sub>License: MIT &nbsp;·&nbsp; Status: Public Release v3.0</sub>
 </p>
 
 
@@ -59,6 +59,8 @@ Font Wizard is the only complete windows 11 & 10 Font changer unlike all other t
 | **1-Click Revert to Default (Segoe UI)** | ❌  | ⚠️  | ✅  |
 
 ---
+
+
 ## Build from source
 
 ```bat
