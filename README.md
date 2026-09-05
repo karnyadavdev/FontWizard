@@ -43,13 +43,14 @@ Download the [latest release](https://github.com/karnyadavdev/fontwizard/release
 
 <br>
 
-### WinGet (Alternative method)
+### WinGet (Alternative method, Just run this in cmd/terminal)
 ```powershell
 winget install -e --id karnyadavdev.FontWizard
 ```
 ---
 
-Font Wizard is the only complete windows 11 & 10 Font changer unlike all other tools which fails at modern system components and third party apps, also font wizard is extemely safe to apply and revert fonts , as easy as one click 
+
+## Why Font Wizard was made ?
 |  | Registry Hacks | Winaero Tweaker | Font Wizard |
 | :--- | :---: | :---: | :---: |
 | **Legacy Win32 Apps** (Control Panel, Notepad, etc) | ✅  | ✅  | ✅  |
