@@ -1,3 +1,4 @@
+```Note: the project is now complete and all issues and bugs are fixed. If it helped you, consider giving the repo a ⭐```
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
@@ -72,6 +73,6 @@ Build output goes to `App\dist\`.
 ---
 
 <p align="center"> 
-Built with ❤️ by <a href="https://github.com/karnyadavdev">karnyadavdev</a>, consider starring the repo ⭐ if it helped u.
+Built with ❤️ by <a href="https://github.com/karnyadavdev">karnyadavdev</a>
 </p>
 
