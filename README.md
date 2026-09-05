@@ -1,4 +1,4 @@
-```Note : v3.0 has been revised and all ui bugs like button transparency have been fixed, re-download v3.0 installer, now u dont need to click exe everytime to run app```
+```Note : v3.0 has been revised and all ui bugs like button transparency have been fixed, re-download v3.0 installer```
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
