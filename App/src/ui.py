@@ -1,17 +1,20 @@
 import ctypes
+import math
 import subprocess
 import sys
+import time
 import winreg
 from ctypes import wintypes
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThread, Signal, QSize, QPoint, QRect, QUrl, QTimer, QEvent
-from PySide6.QtGui import QDesktopServices, QFontDatabase, QIcon, QPixmap
+from PySide6.QtCore import Qt, QThread, Signal, QSize, QPoint, QPointF, QRect, QRectF, QUrl, QTimer, QEvent, QPropertyAnimation, QAbstractAnimation, QEasingCurve, QVariantAnimation
+from PySide6.QtGui import QDesktopServices, QFont, QFontDatabase, QFontMetrics, QIcon, QImage, QLinearGradient, QRadialGradient, QColor, QPainter, QPainterPath, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
     QBoxLayout,
     QFrame,
+    QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -251,7 +254,7 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
         min-height: 28px;
         max-height: 28px;
         font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
-        font-size: 16px;
+        font-size: 18px;
         color: {colors["accent_icon"]};
         outline: none;
     }}
@@ -429,6 +432,49 @@ class FlowLayout(QLayout):
         return margins.top() + content_height + margins.bottom()
 
 
+class BoldIconLabel(QLabel):
+    BANNER_ICON_PX = 20
+    BANNER_ICON_BOLD_PX = 1.0
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._ink = QColor("#FFFFFF")
+        self._icon_font = QFont("Segoe Fluent Icons")
+        self._icon_font.setPixelSize(self.BANNER_ICON_PX)
+        self.setAlignment(Qt.AlignCenter)
+
+    def set_ink(self, color):
+        self._ink = QColor(color)
+        self.update()
+
+    def sizeHint(self):
+        metrics = QFontMetrics(self._icon_font)
+        text = self.text() or " "
+        width = metrics.horizontalAdvance(text)
+        height = metrics.ascent() + metrics.descent()
+        return QSize(int(width) + 8, height + 8)
+
+    def paintEvent(self, event):
+        text = self.text()
+        if not text:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setFont(self._icon_font)
+        path = QPainterPath()
+        metrics = QFontMetrics(self._icon_font)
+        width = metrics.horizontalAdvance(text)
+        ascent = metrics.ascent()
+        descent = metrics.descent()
+        x = (self.width() - width) / 2.0
+        y = (self.height() - (ascent + descent)) / 2.0 + ascent
+        path.addText(x, y, self._icon_font, text)
+        painter.setPen(QPen(self._ink, self.BANNER_ICON_BOLD_PX, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+        painter.setBrush(self._ink)
+        painter.drawPath(path)
+        painter.end()
+
+
 class StatusBanner(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -438,7 +484,7 @@ class StatusBanner(QFrame):
         layout.setContentsMargins(18, 16, 18, 16)
         layout.setSpacing(16)
         
-        self.icon_lbl = QLabel()
+        self.icon_lbl = BoldIconLabel()
         self.icon_lbl.setObjectName("BannerIcon")
         self.icon_lbl.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         layout.addWidget(self.icon_lbl, 0, Qt.AlignVCenter)
@@ -461,10 +507,10 @@ class StatusBanner(QFrame):
     def set_content(self, title, message):
         self.title.setText(title)
         self.text.setText(message)
-        
+
     def set_icon(self, icon_char, color):
         self.icon_lbl.setText(icon_char)
-        self.icon_lbl.setStyleSheet(f"color: {color};")
+        self.icon_lbl.set_ink(QColor(color))
 
 class WeightCard(QFrame):
     def __init__(self, weight, font_path, is_manual=False, is_dark=False, on_change=None, on_reset=None, parent=None):
@@ -511,7 +557,6 @@ class WeightCard(QFrame):
         action_btn.setProperty("isCustom", "true" if is_manual else "false")
         action_btn.setCursor(Qt.PointingHandCursor)
         action_btn.setFocusPolicy(Qt.NoFocus)
-        action_btn.setToolTip("Reset to automatic font" if is_manual else "Select custom font file")
         if is_manual:
             if on_reset:
                 action_btn.clicked.connect(lambda: on_reset(self.weight))
@@ -564,6 +609,137 @@ class WeightCard(QFrame):
 
 
 
+def _star_outline_3d():
+    points = []
+    for i in range(10):
+        radius = 1.0 if i % 2 == 0 else 0.44
+        angle = math.radians(-90.0 + i * 36.0)
+        points.append((radius * math.cos(angle), radius * math.sin(angle)))
+    return points
+
+
+def _render_star3d(angle_deg, px=96):
+    theta = math.radians(angle_deg)
+    cos_t = math.cos(theta)
+    sin_t = math.sin(theta)
+    half = 0.20
+    light_len = math.sqrt(0.45 * 0.45 + 0.55 * 0.55 + 0.75 * 0.75)
+    light = (-0.45 / light_len, 0.55 / light_len, 0.75 / light_len)
+
+    def rotate_point(point):
+        x, y, z = point
+        return (x * cos_t + z * sin_t, y, -x * sin_t + z * cos_t)
+
+    def face_facing(normal):
+        nx, ny, nz = normal
+        rx = nx * cos_t + nz * sin_t
+        ry = ny
+        rz = -nx * sin_t + nz * cos_t
+        return rx * light[0] + ry * light[1] + rz * light[2]
+
+    outline = _star_outline_3d()
+    count = len(outline)
+    faces = [
+        {"pts": [(x, y, half) for x, y in outline], "normal": (0.0, 0.0, 1.0), "kind": "front"},
+        {"pts": [(x, y, -half) for x, y in outline], "normal": (0.0, 0.0, -1.0), "kind": "back"},
+    ]
+    for i in range(count):
+        x0, y0 = outline[i]
+        x1, y1 = outline[(i + 1) % count]
+        dx = x1 - x0
+        dy = y1 - y0
+        length = math.hypot(dx, dy) or 1.0
+        faces.append({
+            "pts": [(x0, y0, half), (x1, y1, half), (x1, y1, -half), (x0, y0, -half)],
+            "normal": (dy / length, -dx / length, 0.0),
+            "kind": "side",
+        })
+
+    scale = px * 0.40
+    center = px / 2.0
+
+    def to_screen(point):
+        rx, ry, rz = rotate_point(point)
+        return (center + rx * scale, center - ry * scale, rz)
+
+    layers = {"front": None, "back": None, "sides": []}
+    for face in faces:
+        shown = [to_screen(p) for p in face["pts"]]
+        depth = sum(p[2] for p in shown) / len(shown)
+        entry = (depth, face, shown)
+        if face["kind"] == "front":
+            layers["front"] = entry
+        elif face["kind"] == "back":
+            layers["back"] = entry
+        else:
+            layers["sides"].append(entry)
+    layers["sides"].sort(key=lambda item: item[0])
+    if cos_t >= 0.0:
+        ordered = [layers["back"], *layers["sides"], layers["front"]]
+    else:
+        ordered = [layers["front"], *layers["sides"], layers["back"]]
+
+    def shaded(base, facing_value):
+        brightness = 0.25 + 0.75 * max(0.0, facing_value)
+        return QColor(
+            max(0, min(255, int(base[0] * brightness))),
+            max(0, min(255, int(base[1] * brightness))),
+            max(0, min(255, int(base[2] * brightness))),
+        )
+
+    image = QImage(px, px, QImage.Format_ARGB32_Premultiplied)
+    image.fill(Qt.transparent)
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    pen = QPen(QColor(94, 66, 0))
+    pen.setWidthF(max(1.0, px * 0.022))
+    pen.setJoinStyle(Qt.RoundJoin)
+    for _, face, shown in ordered:
+        poly = QPolygonF([QPointF(sx, sy) for sx, sy, _ in shown])
+        facing_value = face_facing(face["normal"])
+        kind = face["kind"]
+        if kind == "front":
+            puff = QRadialGradient(center, center - scale * 0.30, scale * 1.15)
+            puff.setColorAt(0.0, QColor(255, 236, 158))
+            puff.setColorAt(0.55, QColor(255, 197, 61))
+            puff.setColorAt(1.0, QColor(238, 136, 0))
+            painter.setBrush(puff)
+            painter.setPen(pen)
+            painter.drawPolygon(poly)
+            painter.save()
+            clip = QPainterPath()
+            clip.addPolygon(poly)
+            painter.setClipPath(clip)
+            painter.setPen(Qt.NoPen)
+            shade_grad = QLinearGradient(0, center - scale * 0.1, 0, center + scale)
+            shade_grad.setColorAt(0.0, QColor(160, 70, 0, 0))
+            shade_grad.setColorAt(1.0, QColor(150, 62, 0, 110))
+            painter.setBrush(shade_grad)
+            painter.drawRect(center - scale, center - scale, scale * 2, scale * 2)
+            spec = QRadialGradient(
+                center - scale * 0.33, center - scale * 0.36, scale * 0.24
+            )
+            spec.setColorAt(0.0, QColor(255, 255, 255, 235))
+            spec.setColorAt(1.0, QColor(255, 255, 255, 0))
+            painter.setBrush(spec)
+            painter.drawEllipse(QRectF(
+                center - scale * 0.55, center - scale * 0.50,
+                scale * 0.44, scale * 0.28,
+            ))
+            painter.restore()
+            if facing_value < 0.85:
+                painter.setPen(Qt.NoPen)
+                painter.setBrush(QColor(0, 0, 0, int(255 * min(0.5, (0.85 - facing_value) * 0.6))))
+                painter.drawPolygon(poly)
+        else:
+            base = (110, 74, 0) if kind == "back" else (205, 145, 10)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(shaded(base, facing_value))
+            painter.drawPolygon(poly)
+    painter.end()
+    return QPixmap.fromImage(image)
+
+
 class FontWizardApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -582,6 +758,14 @@ class FontWizardApp(QMainWindow):
         self._apply_action = "apply"
         self._browse_action = "select"
         self._op_thread = None
+        self._armed_button = None
+        self._armed_action = None
+        self._armed_orig_text = ""
+        self._armed_orig_min = None
+        self._armed_orig_max = None
+        self._op_frozen = None
+        self._armed_at = 0.0
+        self._star_active = False
         self._compact_layout = None
         self.is_dark = is_system_dark_mode()
         if is_windows_11():
@@ -658,7 +842,10 @@ class FontWizardApp(QMainWindow):
         self.github_btn.setIconSize(QSize(20, 20))
         self.github_btn.setCursor(Qt.PointingHandCursor)
         self.github_btn.setAccessibleName("GitHub")
-        self.github_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(APP_GITHUB_URL)))
+        self.github_btn.clicked.connect(self._on_github_clicked)
+        self._star_timer = QTimer(self)
+        self._star_timer.setSingleShot(True)
+        self._star_timer.timeout.connect(self._restore_github_logo)
         self._update_github_icon()
         title_row_layout.addWidget(self.github_btn, 0, Qt.AlignBottom)
         text_layout.addWidget(title_row, 0, Qt.AlignLeft)
@@ -714,6 +901,7 @@ class FontWizardApp(QMainWindow):
             button.setMinimumWidth(150)
             button.setFocusPolicy(Qt.NoFocus)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            button.installEventFilter(self)
             self.actions_layout.addWidget(button)
 
         self.setup_layout.addWidget(self.actions_widget, 0, Qt.AlignVCenter)
@@ -783,6 +971,8 @@ class FontWizardApp(QMainWindow):
     def _update_github_icon(self):
         if not hasattr(self, "github_btn"):
             return
+        if getattr(self, "_star_active", False):
+            return
         fill_color = "#FFFFFF" if self.is_dark else "#1F2328"
         svg_path = get_asset_path("github-mark.svg")
         if svg_path.exists():
@@ -795,6 +985,98 @@ class FontWizardApp(QMainWindow):
             except Exception:
                 pass
             self.github_btn.setIcon(QIcon(str(svg_path)))
+
+    _STAR_REST_PX = 28
+    _STAR_SHOW_MS = 13000
+    _STAR_SPIN_DELAY_MS = 350
+
+    def _on_github_clicked(self):
+        QDesktopServices.openUrl(QUrl(APP_GITHUB_URL))
+        if getattr(self, "_star_active", False):
+            self._restore_github_logo()
+
+    def _morph_to_star(self):
+        if getattr(self, "_star_active", False):
+            self._star_timer.start(self._STAR_SHOW_MS)
+            return
+        self._star_active = True
+        self._star_timer.start(self._STAR_SHOW_MS)
+        button = self.github_btn
+        button.setAccessibleName("Star Font Wizard on GitHub")
+        effect = QGraphicsOpacityEffect(button)
+        button.setGraphicsEffect(effect)
+        fade_out = QPropertyAnimation(effect, b"opacity", self)
+        fade_out.setDuration(120)
+        fade_out.setStartValue(1.0)
+        fade_out.setEndValue(0.0)
+
+        def _swap_to_star():
+            if not self._star_active:
+                return
+            button.setIcon(QIcon(_render_star3d(0.0)))
+            button.setIconSize(QSize(12, 12))
+            button.setText("")
+            fade_in = QPropertyAnimation(effect, b"opacity", self)
+            fade_in.setDuration(160)
+            fade_in.setStartValue(0.0)
+            fade_in.setEndValue(1.0)
+            fade_in.finished.connect(lambda: button.setGraphicsEffect(None))
+            fade_in.start(QAbstractAnimation.DeleteWhenStopped)
+            pop = QPropertyAnimation(button, b"iconSize", self)
+            pop.setDuration(280)
+            pop.setStartValue(QSize(12, 12))
+            pop.setEndValue(QSize(self._STAR_REST_PX, self._STAR_REST_PX))
+            pop.setEasingCurve(QEasingCurve.OutBack)
+            pop.start(QAbstractAnimation.DeleteWhenStopped)
+            QTimer.singleShot(self._STAR_SPIN_DELAY_MS, self._start_star_spin)
+
+        fade_out.finished.connect(_swap_to_star)
+        fade_out.start(QAbstractAnimation.DeleteWhenStopped)
+
+    def _start_star_spin(self):
+        if not getattr(self, "_star_active", False):
+            return
+        spin = QVariantAnimation(self)
+        spin.setDuration(650)
+        spin.setStartValue(0.0)
+        spin.setEndValue(360.0)
+        spin.setEasingCurve(QEasingCurve.InOutQuad)
+        spin.valueChanged.connect(self._spin_star_frame)
+        spin.finished.connect(self._finish_star_spin)
+        spin.start(QAbstractAnimation.DeleteWhenStopped)
+
+    def _spin_star_frame(self, angle):
+        if not getattr(self, "_star_active", False):
+            return
+        try:
+            self.github_btn.setIcon(QIcon(_render_star3d(angle)))
+        except Exception:
+            pass
+
+    def _finish_star_spin(self):
+        if not getattr(self, "_star_active", False):
+            return
+        try:
+            self.github_btn.setIcon(QIcon(_render_star3d(0.0)))
+        except Exception:
+            pass
+
+    def _restore_github_logo(self):
+        if not getattr(self, "_star_active", False):
+            return
+        self._star_active = False
+        try:
+            self._star_timer.stop()
+        except RuntimeError:
+            pass
+        button = self.github_btn
+        button.setGraphicsEffect(None)
+        button.setText("")
+        button.setStyleSheet("")
+        button.setToolTip("")
+        button.setAccessibleName("GitHub")
+        button.setIconSize(QSize(20, 20))
+        self._update_github_icon()
 
     def _apply_theme(self, is_dark: bool):
         if getattr(self, "_is_updating_theme", False):
@@ -816,6 +1098,43 @@ class FontWizardApp(QMainWindow):
         current_dark = is_system_dark_mode()
         self._apply_theme(current_dark)
 
+    def keyPressEvent(self, event):
+        if self._armed_button is not None:
+            if event.key() == Qt.Key_Escape:
+                self._disarm()
+                event.accept()
+                return
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+                if time.monotonic() - self._armed_at >= self._ARM_DELAY_S:
+                    action = self._armed_action
+                    self._disarm()
+                    action()
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
+    def eventFilter(self, watched, event):
+        if (
+            watched is self._armed_button
+            and event.type() == QEvent.Type.MouseButtonRelease
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            try:
+                x = event.position().x()
+            except AttributeError:
+                x = event.pos().x()
+            if (
+                x < watched.width() * self._CONFIRM_FRACTION
+                and time.monotonic() - self._armed_at >= self._ARM_DELAY_S
+            ):
+                action = self._armed_action
+                self._disarm()
+                action()
+            else:
+                self._disarm()
+            return True
+        return super().eventFilter(watched, event)
+
     def changeEvent(self, event):
         super().changeEvent(event)
         if getattr(self, "_is_updating_theme", False):
@@ -827,6 +1146,8 @@ class FontWizardApp(QMainWindow):
         super().resizeEvent(event)
         self._sync_responsive_layout()
         self._sync_variant_layout_height()
+        if self._armed_button is not None:
+            self._armed_button.setText(self._armed_spaced_text(self._armed_button))
 
     def _sync_responsive_layout(self):
         if not hasattr(self, "setup_layout"):
@@ -881,18 +1202,71 @@ class FontWizardApp(QMainWindow):
 
         return super().nativeEvent(event_type, message)
 
-    def _confirm(self, title, message):
-        return QMessageBox.question(
-            self,
-            title,
-            message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        ) == QMessageBox.Yes
+    _ARMED_TICK = chr(0x2713)
+    _ARMED_CROSS = chr(0xD7)
+    _ARMED_FONT_SIZE = 28
+    _ARMED_TEXT_PAD = 8
+    _ARM_DELAY_S = 0.6
+    _CONFIRM_FRACTION = 0.45
+
+    def _arm_or_confirm(self, button, kind):
+        now = time.monotonic()
+        if self._armed_button is button:
+            if now - self._armed_at < self._ARM_DELAY_S:
+                return
+            action = self._armed_action
+            self._disarm()
+            action()
+            return
+        self._arm(button, kind)
+
+    def _arm(self, button, kind):
+        self._disarm()
+        self._armed_button = button
+        self._armed_action = {
+            "apply": self.on_apply,
+            "restore": self._start_restore_op,
+            "restart": self._do_restart,
+        }[kind]
+        self._armed_orig_text = button.text()
+        self._armed_orig_min = button.minimumWidth()
+        self._armed_orig_max = button.maximumWidth()
+        button.setFixedWidth(button.width())
+        button.setText(self._armed_spaced_text(button))
+        button.setStyleSheet(
+            f"font-size: {self._ARMED_FONT_SIZE}px; padding: 0 {self._ARMED_TEXT_PAD // 2}px;"
+        )
+        self._armed_at = time.monotonic()
+
+    def _armed_spaced_text(self, button):
+        font = QFont(button.font())
+        font.setPointSize(self._ARMED_FONT_SIZE)
+        fm = QFontMetrics(font)
+        space_w = max(1, fm.horizontalAdvance(" "))
+        inner = max(0, button.width() - 2 * self._ARMED_TEXT_PAD)
+        gap = inner - fm.horizontalAdvance(self._ARMED_TICK) - fm.horizontalAdvance(self._ARMED_CROSS)
+        return f"{self._ARMED_TICK}{' ' * max(2, int(gap / space_w))}{self._ARMED_CROSS}"
+
+    def _disarm(self):
+        button = self._armed_button
+        self._armed_button = None
+        self._armed_action = None
+        if button is not None:
+            try:
+                button.setText(self._armed_orig_text)
+                button.setStyleSheet("")
+                button.setAccessibleDescription("")
+                if self._armed_orig_min is not None:
+                    button.setMinimumWidth(self._armed_orig_min)
+                    button.setMaximumWidth(self._armed_orig_max)
+            except RuntimeError:
+                pass
+        self._armed_orig_min = None
+        self._armed_orig_max = None
 
     def on_browse(self):
         if self._browse_action == "restart":
-            self.on_restart()
+            self._arm_or_confirm(self.browse_btn, "restart")
             return
         font_path, _ = QFileDialog.getOpenFileName(
             self,
@@ -912,20 +1286,19 @@ class FontWizardApp(QMainWindow):
 
     def on_apply_action(self):
         if self._apply_action == "restart":
-            self.on_restart()
-            return
-        if self._confirm(
-            "Apply font change?",
-            "Apply this font change now? Windows may need a restart before every app uses it.",
-        ):
-            self.on_apply()
+            self._arm_or_confirm(self.apply_btn, "restart")
+        else:
+            self._arm_or_confirm(self.apply_btn, "apply")
 
     def _run_operation(self, func, btn, text):
+        self._disarm()
         if self._op_thread and self._op_thread.isRunning():
             return
 
         for button in self._action_buttons:
             button.setEnabled(False)
+        self._op_frozen = (btn, btn.minimumWidth(), btn.maximumWidth())
+        btn.setFixedWidth(btn.width())
         btn.setText(text)
         self._set_button_role(btn, "primary")
         self._op_thread = OperationThread(func, self)
@@ -935,10 +1308,17 @@ class FontWizardApp(QMainWindow):
         self._op_thread.start()
 
     def _update_progress_text(self, btn, value, message):
-        btn.setText(f"{value}%")
         btn.setToolTip(message)
 
     def _on_operation_done(self, result, btn):
+        if self._op_frozen is not None:
+            frozen_btn, frozen_min, frozen_max = self._op_frozen
+            try:
+                frozen_btn.setMinimumWidth(frozen_min)
+                frozen_btn.setMaximumWidth(frozen_max)
+            except RuntimeError:
+                pass
+            self._op_frozen = None
         self._op_thread = None
 
         if not isinstance(result, OperationResult):
@@ -951,36 +1331,32 @@ class FontWizardApp(QMainWindow):
         if btn == self.apply_btn and result.success:
             self._selection_dirty = False
 
-        if result.success:
-            QMessageBox.information(self, "Result", result.message)
-        else:
+        if not result.success:
             QMessageBox.warning(self, "Result", result.message)
         self.refresh_all()
+        if btn == self.apply_btn and result.success:
+            self._morph_to_star()
 
     def on_apply(self):
-        self._run_operation(self.controller.apply, self.apply_btn, "Applying Changes...")
+        self._run_operation(self.controller.apply, self.apply_btn, "Applying...")
 
     def on_restore(self):
         if getattr(self, "_restore_action", "restore") == "restart":
-            self.on_restart()
+            self._arm_or_confirm(self.restore_btn, "restart")
             return
-        if self._confirm(
-            "Restore original fonts?",
-            "Restore the original Windows interface fonts?",
-        ):
-            self._run_operation(self.controller.restore, self.restore_btn, "Restoring Fonts...")
+        self._arm_or_confirm(self.restore_btn, "restore")
 
-    def on_restart(self):
-        if self._confirm(
-            "Restart Windows?",
-            "Restart Windows now to finish the font change?",
-        ):
-            try:
-                subprocess.run(["shutdown", "/r", "/t", "0"], check=True)
-            except Exception as exc:
-                QMessageBox.warning(self, "Restart Failed", f"Could not initiate Windows restart: {exc}\n\nPlease restart your computer manually to finish the setup.")
+    def _start_restore_op(self):
+        self._run_operation(self.controller.restore, self.restore_btn, "Restoring...")
+
+    def _do_restart(self):
+        try:
+            subprocess.run(["shutdown", "/r", "/t", "0"], check=True)
+        except Exception as exc:
+            QMessageBox.warning(self, "Restart Failed", f"Could not initiate Windows restart: {exc}\n\nPlease restart your computer manually to finish the setup.")
 
     def refresh_all(self):
+        self._disarm()
         report = self.controller.refresh_preflight()
         colors = get_theme_colors(self.is_dark)
 

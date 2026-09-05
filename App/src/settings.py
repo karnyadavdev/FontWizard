@@ -4,7 +4,7 @@ import uuid
 import hashlib
 
 APP_NAME = "Font Wizard"
-APP_GITHUB_URL = "https://github.com/karnyadavdev/fontwizard"
+APP_GITHUB_URL = "https://github.com/karnyadavdev/FontWizard"
 SCHEMA_VERSION = 1
 
 SUPPORTED_WINDOWS_MAJOR = 10
