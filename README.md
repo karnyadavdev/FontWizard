@@ -1,4 +1,4 @@
-If it helped you, consider giving the repo a ⭐
+
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
