@@ -93,8 +93,8 @@ set "VER4=%VER_RAW:,=.%"
 set "VER4=%VER4: =%"
 for /f "tokens=1-4 delims=." %%a in ("%VER4%") do set "APP_VER=%%a.%%b.%%c"
 for /f "tokens=4 delims=." %%d in ("%VER4%") do set "APP_VER_FULL=%APP_VER%.%%d"
-if not defined APP_VER set "APP_VER=2.0.0"
-if not defined APP_VER_FULL set "APP_VER_FULL=2.0.0.0"
+if not defined APP_VER set "APP_VER=3.0.0"
+if not defined APP_VER_FULL set "APP_VER_FULL=3.0.0.0"
 echo App version: %APP_VER%
 "%ISCC_EXE%" /DMyAppVersion=%APP_VER% /DMyAppVersionFull=%APP_VER_FULL% "installer.iss"
 if errorlevel 1 (
