@@ -1,4 +1,4 @@
-```Note: the project is now complete and all issues and bugs are fixed. If it helped you, consider giving the repo a ⭐```
+```Note: the project is now complete and all issued bugs are fixed. If it helped you, consider giving the repo a ⭐```
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
 </p>
