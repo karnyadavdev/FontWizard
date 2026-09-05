@@ -1,5 +1,6 @@
 import ctypes
 import math
+import re
 import subprocess
 import sys
 import time
@@ -185,6 +186,32 @@ def is_system_dark_mode():
             return value == 0
     except Exception:
         return True
+
+
+def _solid_color(foreground, background):
+    match = re.match(
+        r"rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\)",
+        foreground,
+    )
+    if not match:
+        return foreground
+    red, green, blue, alpha = (
+        int(match.group(1)),
+        int(match.group(2)),
+        int(match.group(3)),
+        float(match.group(4)),
+    )
+    base = background.lstrip("#")
+    base_red, base_green, base_blue = (int(base[i:i + 2], 16) for i in (0, 2, 4))
+    return "#%02X%02X%02X" % (
+        round(red * alpha + base_red * (1.0 - alpha)),
+        round(green * alpha + base_green * (1.0 - alpha)),
+        round(blue * alpha + base_blue * (1.0 - alpha)),
+    )
+
+
+def _opaque_window_bg(is_dark):
+    return "#202020" if is_dark else "#F3F3F3"
 
 
 def _accent_signature():
@@ -1255,7 +1282,7 @@ class FontWizardApp(QMainWindow):
     _ARMED_FONT_SIZE = 24
     _ARMED_CROSS_SIZE = 20
     _ARM_DELAY_S = 0.6
-    _CONFIRM_FRACTION = 0.45
+    _CONFIRM_FRACTION = 0.5
 
     def _arm_or_confirm(self, button, kind):
         now = time.monotonic()
@@ -1277,12 +1304,17 @@ class FontWizardApp(QMainWindow):
             "restart": self._do_restart,
         }[kind]
         colors = get_theme_colors(self.is_dark)
+        window_bg = _opaque_window_bg(self.is_dark)
         role = button.property("buttonRole") or "secondary"
         face = {
             "primary": ("accent", "accent_hover", "accent_text"),
             "warning": ("accent", "accent_hover", "warning_text"),
         }.get(role, ("bg_card", "bg_button_hover", "text_primary"))
-        self._armed_face = {"bg": colors[face[0]], "hover": colors[face[1]], "ink": colors[face[2]]}
+        self._armed_face = {
+            "bg": _solid_color(colors[face[0]], window_bg),
+            "hover": _solid_color(colors[face[1]], window_bg),
+            "ink": colors[face[2]],
+        }
         yes_label = QLabel(self._ARMED_TICK, button)
         no_label = QLabel(self._ARMED_CROSS, button)
         self._arm_labels = (yes_label, no_label)
@@ -1318,11 +1350,12 @@ class FontWizardApp(QMainWindow):
         for index, label in enumerate(labels):
             try:
                 size = self._ARMED_CROSS_SIZE if index == 1 else self._ARMED_FONT_SIZE
+                divider = f"border-right: 1px solid {face['ink']};" if index == 0 else ""
                 label.setText(self._ARMED_TICK if index == 0 else self._ARMED_CROSS)
                 label.setStyleSheet(
                     f"font-family: '{self._ARMED_FONT_FAMILY}'; "
                     f"font-size: {size}px; "
-                    f"color: {face['ink']}; background-color: {background};"
+                    f"color: {face['ink']}; background-color: {background}; {divider}"
                 )
             except RuntimeError:
                 pass
@@ -1392,20 +1425,16 @@ class FontWizardApp(QMainWindow):
         cover.setGeometry(1, 1, max(1, btn.width() - 2), max(1, btn.height() - 2))
         cover.setStyleSheet(
             "font-family: 'Segoe UI'; font-size: 13px; font-weight: 600; "
-            f"color: {colors['text_muted']}; background-color: {colors['bg_card']};"
+            f"color: {colors['accent_text']}; background-color: {colors['accent']};"
         )
         cover.show()
         self._op_cover = cover
         self._op_cover_btn = btn
         self._set_button_role(btn, "primary")
         self._op_thread = OperationThread(func, self)
-        self._op_thread.progress.connect(lambda v, m: self._update_progress_text(btn, v, m))
         self._op_thread.done.connect(lambda r: self._on_operation_done(r, btn))
         self._op_thread.finished.connect(self._op_thread.deleteLater)
         self._op_thread.start()
-
-    def _update_progress_text(self, btn, value, message):
-        btn.setToolTip(message)
 
     def _on_operation_done(self, result, btn):
         cover = getattr(self, "_op_cover", None)
@@ -1520,8 +1549,8 @@ class FontWizardApp(QMainWindow):
             restore_available = restore_visible and report.can_restore_defaults
 
         self.browse_btn.setText(browse_text)
-        self.browse_btn.setEnabled(True)
-        self.browse_btn.setVisible(True)
+        self.browse_btn.setEnabled(not is_recovery_pending)
+        self.browse_btn.setVisible(not is_recovery_pending)
         self.browse_btn.setToolTip("")
 
         self.apply_btn.setText(apply_text)
