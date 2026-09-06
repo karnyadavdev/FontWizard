@@ -1,26 +1,31 @@
-```Note : v3.0 has been revised and all ui bugs like button transparency have been fixed, re-download v3.0``` <br> **_⭐ Star the repo if it helps you._**
+
 <p align="center">
-  <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="100"/>
+  <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
 
-<h1 align="center">Font Wizard</h1>
-
-
-<p align="center">
-  <b>Your font. Every app.
-  Truly replace your Windows’ default font everywhere.<br></b>
- Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome and beyond. 
-
-
-</p>
+<h1 align="center"> Font Wizard </h1>
 
 <p align="center">
-  <sub>Built with Python · PySide6 · fontTools </sub> <br>
-  <sub>License: MIT &nbsp;·&nbsp; Status: Public Release v3.0</sub>
+  <b> Your font. Every app. </b><br>
+  Replace Windows’ default font <b>everywhere</b> — Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome & beyond.
 </p>
 
 
-## Screenshots
+
+<p align="center">
+   <a href="https://github.com/karnyadavdev/fontwizard/stargazers"><img src="https://img.shields.io/github/stars/karnyadavdev/fontwizard?style=social" alt="GitHub stars"/></a>
+  <a href="https://github.com/karnyadavdev/fontwizard/releases"><img src="https://img.shields.io/badge/Downloads-1.2k+-green" alt="Downloads"/></a>
+  <a href="https://github.com/karnyadavdev/fontwizard/releases/latest"><img src="https://img.shields.io/github/v/release/karnyadavdev/fontwizard?label=Latest%20release&color=blue" alt="Latest release"/></a>
+</p>
+
+
+<p align="center">
+ <b> ⭐ Star the repo </b>, it helps others discover it
+</p>
+
+---
+
+## 📸 Screenshots
 
 <table>
   <tr>
@@ -31,39 +36,40 @@
 
 ---
 
-## Download
+## 📥 Download
 
 
+Download the [**latest release**](https://github.com/karnyadavdev/fontwizard/releases/latest) and run `FontWizard.exe`
 
-Download the [latest release](https://github.com/karnyadavdev/fontwizard/releases/latest)
+- Supports **Windows 11** and **Windows 10**
+- Only `.ttf` fonts are supported (Variable and `.otf` not supported)
+>  **Tip:** Have only `.otf`? Easily convert it to `.ttf` with any free online font converter — then apply with Font Wizard!
 
-- Supports **Windows 11** and **Windows 10**.
-- Only `.ttf` fonts are supported. Variable and `.otf` fonts are not supported.
-> If you have a font that is only available in `.otf`,  you easily convert it to `.ttf` using online font converters.
+### 📦 Install via WinGet
 
-<br>
 
-### WinGet (easier method, Just run this in cmd/terminal to install)
 ```powershell
 winget install -e --id karnyadavdev.FontWizard
 ```
+
 ---
 
+## Why Font Wizard was made?
 
-## Why Font Wizard was made ?
-|  | Registry Hacks | Winaero Tweaker | Font Wizard |
+|  | 🔧 Registry Hacks | 🛠️ Winaero Tweaker | ✨ Font Wizard |
 | :--- | :---: | :---: | :---: |
-| **Legacy Win32 Apps** (Control Panel, Notepad, etc) | ✅  | ✅  | ✅  |
-| **Modern WinUI 3 apps** | ❌  | ❌ | ✅  |
-| **UWP Apps & System Shell** | ❌ | ❌  | ✅  |
-| **Electron & Chromium Apps** (VS Code, Discord, chrome) | ❌ | ❌ | ✅ |
-| **System Icons & Glyph Preservation** | ⚠️  | ⚠️  | ✅ |
-| **1-Click Revert to Default (Segoe UI)** | ❌  | ⚠️  | ✅  |
+| **Legacy Win32 Apps** (Control Panel, Notepad, etc) | ✅ | ✅ | ✅ |
+| **Modern WinUI 3 apps** | ❌ | ❌ | ✅ |
+| **UWP Apps & System Shell** | ❌ | ❌ | ✅ |
+| **Electron & Chromium Apps** (VS Code, Discord, Chrome) | ❌ | ❌ | ✅ |
+| **System Icons & Glyph Preservation** | ⚠️ | ⚠️ | ✅ |
+| **1-Click Revert to Default (Segoe UI)** | ❌ | ⚠️ | ✅ |
+
 
 ---
 
+## Build from Source
 
-## Build from source
 
 ```bat
 .\App\build.bat
@@ -73,7 +79,14 @@ Build output goes to `App\dist\`.
 
 ---
 
-<p align="center"> 
-Built with ❤️ by me
-</p>
 
+If Font Wizard made your Windows feel more *you*, please consider:
+
+- ⭐ **Starring the repo** 
+- Reporting bugs or suggesting features in [Issues](https://github.com/karnyadavdev/fontwizard/issues)
+- Sharing it with friends who love customization
+
+
+<p align="center">
+  Built with ❤️ by <a href="https://github.com/karnyadavdev">karnyadavdev</a>
+</p>
