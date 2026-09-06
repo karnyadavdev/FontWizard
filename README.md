@@ -12,7 +12,7 @@
 
 
 <p align="center">
-    <a href="https://github.com/karnyadavdev/fontwizard/releases"><img src="https://img.shields.io/badge/Downloads-1.2k+-green" alt="Downloads"/></a>
+    <a href="https://github.com/karnyadavdev/fontwizard/releases"><img src="https://img.shields.io/badge/Downloads-1.4k+-green" alt="Downloads"/></a>
   
 </p>
 
