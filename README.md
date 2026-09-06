@@ -1,4 +1,3 @@
-
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
@@ -7,7 +6,7 @@
 
 <p align="center">
   <b> Your font. Every app. </b><br>
-  Replace Windows’ default font <b>everywhere</b> — Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome & beyond.
+  Replace Windows' default font <b>everywhere</b> — Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome & beyond.
 </p>
 
 
@@ -29,8 +28,14 @@
 
 <table>
   <tr>
-    <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/>
-    <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview"/>
+    <td align="center">
+      <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/>
+      <br> App UI
+    </td>
+    <td align="center">
+      <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview"/>
+      <br> System-wide look after applying
+    </td>
   </tr>
 </table>
 
@@ -56,7 +61,7 @@ winget install -e --id karnyadavdev.FontWizard
 
 ## Why Font Wizard was made?
 
-|  | 🔧 Registry Hacks | 🛠️ Winaero Tweaker | ✨ Font Wizard |
+|  |  Registry Hacks |  Winaero Tweaker |  Font Wizard |
 | :--- | :---: | :---: | :---: |
 | **Legacy Win32 Apps** (Control Panel, Notepad, etc) | ✅ | ✅ | ✅ |
 | **Modern WinUI 3 apps** | ❌ | ❌ | ✅ |
