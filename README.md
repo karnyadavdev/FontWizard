@@ -12,8 +12,7 @@
 
 
 <p align="center">
-   <a href="https://github.com/karnyadavdev/fontwizard/stargazers"><img src="https://img.shields.io/github/stars/karnyadavdev/fontwizard?style=social" alt="GitHub stars"/></a>
-  <a href="https://github.com/karnyadavdev/fontwizard/releases"><img src="https://img.shields.io/badge/Downloads-1.2k+-green" alt="Downloads"/></a>
+    <a href="https://github.com/karnyadavdev/fontwizard/releases"><img src="https://img.shields.io/badge/Downloads-1.2k+-green" alt="Downloads"/></a>
   
 </p>
 
