@@ -49,6 +49,8 @@ Download the [**latest release**](https://github.com/karnyadavdev/fontwizard/rel
 - Only `.ttf` fonts are supported (Variable and `.otf` not supported)
 >  **Tip:** Have only `.otf`? Easily convert it to `.ttf` with any free online font converter
 
+<br>
+
 ### 📦 Alternative method, Run this in Terminal 
 
 
