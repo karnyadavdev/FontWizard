@@ -81,14 +81,7 @@ winget install -e --id karnyadavdev.FontWizard
 
 Build output goes to `App\dist\`.
 
----
 
-
-If Font Wizard made your Windows feel more *you*, please consider:
-
-- ⭐ **Starring the repo** 
-- Reporting bugs or suggesting features in [Issues](https://github.com/karnyadavdev/fontwizard/issues)
-- Sharing it with friends who love customization
 
 
 <p align="center">
