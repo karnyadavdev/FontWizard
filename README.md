@@ -1,4 +1,5 @@
-> NOTE: working on new version that'll fix the issue of 1 % still showing segoe ui i.e, edge://settings , also adding support for variable font because windows 11 uses variable as well along with static weights so now u need to provide variable file as well along with static weights , not a strict requirement ,  having variable file is just better for 100% accurate look but not having it is also perfectly fine cause app handles it already
+> NOTE: New version fixes the last 1% of Segoe UI in places like `edge://settings` and adds variable file support also. Provide the variable file alongside static weights; Variable file is optional but recommended for 100% accurate weight display.
+
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
