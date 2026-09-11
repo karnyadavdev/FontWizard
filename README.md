@@ -1,4 +1,4 @@
-> NOTE: I am Working on a new version that fill fix the issue of that 1 % still showing segoe ui i.e, edge://settings , i have fixed all those issues, also adding support for variable font because windows 11 uses variable as well along with static weights so now u need to provide variable file as well along with static weights , not a strict requirement ,  having variable file is just better for 100% accurate look but not having it is also perfectly fine cause app handles it already
+> NOTE: working on new version that'll fix the issue of 1 % still showing segoe ui i.e, edge://settings , also adding support for variable font because windows 11 uses variable as well along with static weights so now u need to provide variable file as well along with static weights , not a strict requirement ,  having variable file is just better for 100% accurate look but not having it is also perfectly fine cause app handles it already
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
