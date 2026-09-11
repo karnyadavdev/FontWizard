@@ -1,4 +1,4 @@
-> NOTE: v4.0 will fix the last 1% of Segoe UI in places like `edge://settings` and adds variable file support also. Provide the variable file alongside static weights; Variable file is optional but recommended for 100% accurate weights.
+> NOTE: v4.0 will fix the last 1% of Segoe UI in places like `edge://settings` and adds variable file support also. Provide the variable file alongside static weights; Variable file is optional but recommended for 100% accurate weights.  YOU CAN REQUEST FEATURES THAT YOU WANT IN NEXT VERSION BY FILING AN ISSUE 
 
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
