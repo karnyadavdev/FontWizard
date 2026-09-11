@@ -1,3 +1,4 @@
+```NOTE: I am Working on a new version that fill fix the issue of that 0.1% still showing defaul font segoe ui for example edge://settings still shows default font , i have fixed all those issues,  i am also adding support for variable font because windows 11 uses variable as well along with static weights so now u need to have variable file as well , its not a strict requirement ,  having variable file is just better for 100% accurate look otherwise variable file uses regular weight```
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
