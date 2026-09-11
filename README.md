@@ -6,7 +6,7 @@
 <h1 align="center"> Font Wizard </h1>
 
 <p align="center">
-  <b>Customize Windows' system font completely<br> Start, Taskbar, WinUI 3, UWP, Electron, Win32, Office, Chrome, every app and system component & beyond</b>.
+  <b>Customize Windows' system font completely<br> Start, Taskbar, WinUI 3, UWP, Electron, Win32, Every app & beyond</b>.
 </p>
 
 
