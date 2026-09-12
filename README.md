@@ -1,6 +1,9 @@
 <p align="center">
     <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v3.0/FontWizard.exe"><img src="https://img.shields.io/badge/Download installer-blue" alt="Downloads"/></a>
-  
+  <p align="center">
+  Built with ❤️ <br>
+    If you are rich and want to support development, you can pay for it.
+</p>
 </p>
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
@@ -26,14 +29,19 @@
 ## 📸 Screenshots
 
 <table>
-  <tr>
-    <td align="center">
-      <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/>
-      <br> App UI
-    </td>
-    <td align="center">
+  <tr align="center">
+    <td>
       <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview"/>
-      <br> System-wide look after applying
+      <br/>
+      <strong>System-wide look after applying</strong>
+    </td>
+  </tr>
+
+  <tr align="center">
+    <td>
+      <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/>
+      <br/>
+      <strong>App UI Designed to feel native windows app</strong>
     </td>
   </tr>
 </table>
@@ -51,7 +59,7 @@ Download the [**latest release**](https://github.com/karnyadavdev/fontwizard/rel
 
 <br>
 
-### 📦 Alternative method, Run this in Terminal 
+### 📦 easier method, just Run this in Terminal 
 
 
 ```powershell
@@ -59,6 +67,8 @@ winget install -e --id karnyadavdev.FontWizard
 ```
 
 ---
+
+
 
 ## Why Font Wizard was made?
 
@@ -86,6 +96,3 @@ Build output goes to `App\dist\`.
 
 
 
-<p align="center">
-  Built with ❤️ by <a href="https://github.com/karnyadavdev">karnyadavdev</a>
-</p>
