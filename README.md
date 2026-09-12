@@ -2,7 +2,7 @@
     <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v3.0/FontWizard.exe"><img src="https://img.shields.io/badge/Download installer-blue" alt="Downloads"/></a>
 </p>
   <p align="center">
-  Built with ❤️ <br>
+  Built with ❤️, 
     if you want to support development, you can pay for it.
 </p>
 <p align="center">
