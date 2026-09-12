@@ -1,4 +1,7 @@
-
+<p align="center">
+    <a href="https://github.com/karnyadavdev/fontwizard/releases"><img src="https://img.shields.io/badge/Download installer-blue" alt="Downloads"/></a>
+  
+</p>
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
