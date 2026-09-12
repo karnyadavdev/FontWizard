@@ -3,7 +3,7 @@
 </p>
   <p align="center">
   Built with ❤️ <br>
-    If you are rich and want to support development, you can pay for it.
+    if you want to support development, you can pay for it.
 </p>
 <p align="center">
  <b> ⭐ Star the repo </b>, it helps others discover it
