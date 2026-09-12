@@ -92,8 +92,8 @@ winget install -e --id karnyadavdev.FontWizard
 Build output goes to `App\dist\`.
 
 <p align="center">
-  Built with ❤️, 
-    if you want to support development, i will add donate link if project crosses 500 stars.
+  <b>Built with ❤️<br>
+    if you want to support development, i will add it if project crosses 200 stars</b>
 </p>
 
 
