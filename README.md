@@ -11,10 +11,7 @@
 
 
 
-<p align="center">
-    <a href="https://github.com/karnyadavdev/fontwizard/releases"><img src="https://img.shields.io/badge/Downloads-1.6k+-green" alt="Downloads"/></a>
-  
-</p>
+
 
 
 <p align="center">
