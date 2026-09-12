@@ -1,13 +1,6 @@
-<p align="center">
-    <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v3.0/FontWizard.exe"><img src="https://img.shields.io/badge/Download installer-blue" alt="Downloads"/></a>
-</p>
-  <p align="center">
-  Built with ❤️, 
-    if you want to support development, you can pay for it.
-</p>
-<p align="center">
- <b> ⭐ Star the repo </b>, it helps others discover it
-</p>
+
+  
+
 
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
@@ -18,8 +11,12 @@
 <p align="center">
   <b>Customize Windows' system font completely<br> Start, Taskbar, WinUI 3, UWP, Electron, Win32, Every app & beyond</b>.
 </p>
-
-
+<p align="center">
+    <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v3.0/FontWizard.exe"><img src="https://img.shields.io/badge/Download installer-blue" alt="Downloads"/></a>
+</p>
+<p align="center">
+ <b> ⭐ Star the repo </b>, it helps others discover it
+</p>
 
 
 
@@ -94,6 +91,9 @@ winget install -e --id karnyadavdev.FontWizard
 
 Build output goes to `App\dist\`.
 
-
+<p align="center">
+  Built with ❤️, 
+    if you want to support development, i will add donate link if project crosses 500 stars.
+</p>
 
 
