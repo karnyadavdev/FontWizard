@@ -1,5 +1,5 @@
 <p align="center">
-    <a href="https://github.com/karnyadavdev/fontwizard/releases"><img src="https://img.shields.io/badge/Download installer-blue" alt="Downloads"/></a>
+    <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v3.0/FontWizard.exe"><img src="https://img.shields.io/badge/Download installer-blue" alt="Downloads"/></a>
   
 </p>
 <p align="center">
