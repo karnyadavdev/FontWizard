@@ -12,7 +12,7 @@
   <b>Customize Windows' system font completely<br> Start, Taskbar, WinUI 3, UWP, Electron, Win32, Every app & beyond</b>.
 </p>
 <p align="center">
-    <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v3.0/FontWizard.exe"><img src="https://img.shields.io/badge/Download installer-blue" alt="Downloads"/></a>
+    <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v3.0/FontWizard.exe"><img src="https://img.shields.io/badge/Download installer-green" alt="Downloads"/></a>
 </p>
 <p align="center">
  <b> ⭐ Star the repo </b>, it helps others discover it
