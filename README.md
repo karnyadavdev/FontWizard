@@ -57,7 +57,7 @@
 ## 📥 Download
 
 
-Download the [**latest release**](https://github.com/karnyadavdev/fontwizard/releases/latest) and run `FontWizard.exe`
+Download the [**latest release**](https://github.com/karnyadavdev/fontwizard/releases/latest)
 
 - Supports **Windows 11** and **Windows 10**
 - Only `.ttf` fonts are supported (`.otf` not supported)
