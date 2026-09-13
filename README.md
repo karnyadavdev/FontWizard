@@ -78,14 +78,14 @@ winget install -e --id karnyadavdev.FontWizard
 
 ## Why Font Wizard was made?
 
-|  |  Registry Hacks |  Winaero Tweaker |  Font Wizard |
+|  | Registry Hacks | Winaero Tweaker | Font Wizard |
 | :--- | :---: | :---: | :---: |
-| **Legacy Win32 Apps** (Control Panel, Notepad, etc) | ✅ | ✅ | ✅ |
-| **Modern WinUI 3 apps** | ❌ | ❌ | ✅ |
-| **UWP Apps & System Shell** | ❌ | ❌ | ✅ |
-| **Electron & Chromium Apps** (VS Code, Discord, Chrome) | ❌ | ❌ | ✅ |
-| **System Icons & Glyph Preservation** | ⚠️ | ⚠️ | ✅ |
-| **1-Click Revert to Default (Segoe UI)** | ❌ | ⚠️ | ✅ |
+| **Legacy Win32 Apps** (Control Panel, Notepad, etc) | 🟢 Yes | 🟢 Yes | 🟢 Yes |
+| **Modern WinUI 3 apps** | 🔴 No | 🔴 No | 🟢 Yes |
+| **UWP Apps & System Shell** | 🔴 No | 🔴 No | 🟢 Yes |
+| **Electron & Chromium Apps** (VS Code, Discord, Chrome) | 🔴 No | 🔴 No | 🟢 Yes |
+| **System Icons & Glyph Preservation** | 🟡 Partial | 🟡 Partial | 🟢 Yes |
+| **1-Click Revert to Default (Segoe UI)** | 🔴 No | 🟡 Partial | 🟢 Yes |
 
 
 ---
