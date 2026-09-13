@@ -19,7 +19,7 @@
   
 
 <p align="center">
- <b> ⭐ Star the repo </b>, it helps others discover it <br> <i> People don’t know this exists, they keep believing that completely changing the font in Windows isn’t possible.</i>
+ <b> ⭐ Star the repo </b>, it helps others discover it
 </p>
 
   <p align="center"><a href="https://github.com/karnyadavdev/Fonts">Download Fonts I use</a></p>
