@@ -14,18 +14,15 @@
 
 
 
-
-
+<p align="center">
+  <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v3.0/FontWizard.exe"> <img src="https://img.shields.io/badge/Download-green?style=for-the-badge" alt="Download FontWizard v3.0"/> </a> 
+</p>
 
 <p align="center">
  <b> ⭐ Star the repo </b>, it helps others discover it
 </p>
 
-<p align="center">
-    <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v3.0/FontWizard.exe">
-        <img src="https://img.shields.io/badge/Download-v3.0-green?style=for-the-badge&logo=download&logoColor=white" alt="Download FontWizard v3.0"/>
-    </a>
-</p>
+
 
 
 
