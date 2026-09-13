@@ -14,7 +14,7 @@
 
 
 <p align="center">
-  <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v3.0/FontWizard.exe"> <img src="https://img.shields.io/badge/Download-green?style=for-the-badge" alt="Download FontWizard v4.0"/> </a> 
+  <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v4.0/FontWizard.exe"> <img src="https://img.shields.io/badge/Download-green?style=for-the-badge" alt="Download FontWizard v4.0"/> </a> 
   </p>
   
 
