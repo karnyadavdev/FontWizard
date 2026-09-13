@@ -1,5 +1,4 @@
-<p><a href="https://github.com/karnyadavdev/Fonts">Download Fonts I use</a></p>
-  
+
 
 
 <p align="center">
@@ -16,11 +15,15 @@
 
 <p align="center">
   <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v3.0/FontWizard.exe"> <img src="https://img.shields.io/badge/Download-green?style=for-the-badge" alt="Download FontWizard v4.0"/> </a> 
-</p>
+  </p>
+  
 
 <p align="center">
  <b> ⭐ Star the repo </b>, it helps others discover it <br> <i> People don’t know this exists, they keep believing that completely changing the font in Windows isn’t possible.</i>
 </p>
+
+  <p align="center"><a href="https://github.com/karnyadavdev/Fonts">Download Fonts I use</a></p>
+  
 
 
 
