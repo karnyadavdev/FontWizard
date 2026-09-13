@@ -5,7 +5,7 @@
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
 
-<h1 align="center"> Font Wizard v4.0</h1>
+<h1 align="center"> Font Wizard </h1>
 
 <p align="center">
   <b>Customize Windows' system font completely<br> Start, Taskbar, WinUI 3, UWP, Electron, Win32, Every app & beyond</b>.
