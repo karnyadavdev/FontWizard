@@ -19,7 +19,7 @@ Fonts i love, https://github.com/karnyadavdev/Fonts
 </p>
 
 <p align="center">
- <b> ⭐ Star the repo </b>, it helps others discover it <br> <i>People don’t know this exists; they keep wondering why it’s not possible to completely change the font in Windows.</i>
+ <b> ⭐ Star the repo </b>, it helps others discover it <br> <i> People don’t know this exists, they keep believing that completely changing the font in Windows isn’t possible.</i>
 </p>
 
 
