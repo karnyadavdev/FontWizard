@@ -17,26 +17,40 @@ _SKIP_DIR_NAMES = {"manifests", "backup", "r"}
 _SKIP_DIR_PREFIXES = ("x86_", "wow64_", "arm64_")
 _SERVICING_RE = re.compile(r"10\.0\.\d+\.(\d+)")
 
+import sys
+
 _GENERIC_TOLERANCE = 0.1
 
+
+def _is_windows_11() -> bool:
+    try:
+        winver = sys.getwindowsversion()
+        return winver.major == 10 and winver.build >= 22000
+    except Exception:
+        return True
+
+
 EXPECTED_FAMILIES = {
-    "segoeui.ttf": ("segoe ui", "Microsoft Corporation", 4852),
-    "segoeuib.ttf": ("segoe ui", "Microsoft Corporation", 4786),
-    "segoeuii.ttf": ("segoe ui", "Microsoft Corporation", 3124),
-    "segoeuiz.ttf": ("segoe ui", "Microsoft Corporation", 3124),
-    "segoeuil.ttf": ("segoe ui", "Microsoft Corporation", 4797),
-    "segoeuisl.ttf": ("segoe ui", "Microsoft Corporation", 4740),
-    "seguisb.ttf": ("segoe ui", "Microsoft Corporation", 4787),
-    "seguibl.ttf": ("segoe ui", "Microsoft Corporation", 2198),
-    "seguibli.ttf": ("segoe ui", "Microsoft Corporation", 2289),
-    "seguili.ttf": ("segoe ui", "Microsoft Corporation", 3135),
-    "seguisbi.ttf": ("segoe ui", "Microsoft Corporation", 3135),
-    "seguisli.ttf": ("segoe ui", "Microsoft Corporation", 3135),
-    "seguivar.ttf": ("segoe ui variable", "Microsoft Corporation", 2277),
+    "segoeui.ttf": ("segoe ui", "Microsoft Corporation", (4650, 2100)),
+    "segoeuib.ttf": ("segoe ui", "Microsoft Corporation", (4650, 2100)),
+    "segoeuii.ttf": ("segoe ui", "Microsoft Corporation", (3050, 2050)),
+    "segoeuiz.ttf": ("segoe ui", "Microsoft Corporation", (3050, 2050)),
+    "segoeuil.ttf": ("segoe ui", "Microsoft Corporation", (4650, 2100)),
+    "segoeuisl.ttf": ("segoe ui", "Microsoft Corporation", (4650, 2100)),
+    "seguisb.ttf": ("segoe ui", "Microsoft Corporation", (4650, 2100)),
+    "seguibl.ttf": ("segoe ui", "Microsoft Corporation", (2150, 1500)),
+    "seguibli.ttf": ("segoe ui", "Microsoft Corporation", (2150, 1500)),
+    "seguili.ttf": ("segoe ui", "Microsoft Corporation", (3050, 2050)),
+    "seguisbi.ttf": ("segoe ui", "Microsoft Corporation", (3050, 2050)),
+    "seguisli.ttf": ("segoe ui", "Microsoft Corporation", (3050, 2050)),
+    "seguivar.ttf": ("segoe ui variable", "Microsoft Corporation", (2250, 2250)),
     "consola.ttf": ("consolas", "Microsoft Corporation", 2727),
     "consolab.ttf": ("consolas", "Microsoft Corporation", 2647),
     "consolai.ttf": ("consolas", "Microsoft Corporation", 2735),
     "consolaz.ttf": ("consolas", "Microsoft Corporation", 2655),
+    "lucon.ttf": ("lucida console", None, 650),
+    "cascadiacode.ttf": ("cascadia code", "Microsoft Corporation", 1500),
+    "cascadiamono.ttf": ("cascadia mono", "Microsoft Corporation", 1500),
 }
 
 _PROFILE_CACHE = {}
@@ -52,7 +66,11 @@ def expected_entry(system_filename: str):
     entry = EXPECTED_FAMILIES.get(Path(system_filename).name.lower())
     if not entry:
         return None
-    family, manufacturer, min_glyphs = entry
+    family, manufacturer, floors = entry
+    if isinstance(floors, tuple):
+        min_glyphs = floors[0] if _is_windows_11() else floors[1]
+    else:
+        min_glyphs = floors
     return {
         "family_label": family,
         "manufacturer": manufacturer,

@@ -585,7 +585,10 @@ class WeightCard(QFrame):
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(6)
 
-        if weight.startswith("consolas_"):
+        if weight == "variable":
+            is_var_file = getattr(metadata, "is_variable", False)
+            title_str = "Variable UI Font"
+        elif weight.startswith("consolas_"):
             title_str = "Monospaced " + weight.replace("consolas_", "").replace("_", " ").title()
         else:
             title_str = weight.replace("_", " ").title()
@@ -638,7 +641,13 @@ class WeightCard(QFrame):
         layout.addWidget(self.preview)
 
         filename_str = Path(font_path).name
-        meta_text = f"Weight {detected_weight}" + (" • Italic" if detected_italic else "") + f" • {filename_str}"
+        if weight == "variable":
+            if is_var_file:
+                meta_text = f"Variable Font • {filename_str}"
+            else:
+                meta_text = f"Static Fallback • Weight {detected_weight} • {filename_str}"
+        else:
+            meta_text = f"Weight {detected_weight}" + (" • Italic" if detected_italic else "") + f" • {filename_str}"
         meta = QLabel(meta_text)
         meta.setObjectName("VariantMeta")
         meta.setStyleSheet(f"color: {colors['text_muted']}; font-size: 11px;")
@@ -725,7 +734,7 @@ def _render_star3d(angle_deg, px=96):
         ordered = [layers["front"], *layers["sides"], layers["back"]]
 
     def shaded(base, facing_value):
-        brightness = 0.25 + 0.75 * max(0.0, facing_value)
+        brightness = 0.65 + 0.35 * max(0.0, facing_value)
         return QColor(
             max(0, min(255, int(base[0] * brightness))),
             max(0, min(255, int(base[1] * brightness))),
@@ -736,14 +745,16 @@ def _render_star3d(angle_deg, px=96):
     image.fill(Qt.transparent)
     painter = QPainter(image)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-    pen = QPen(QColor(94, 66, 0))
+    pen = QPen(QColor(136, 92, 0))
     pen.setWidthF(max(1.0, px * 0.022))
     pen.setJoinStyle(Qt.RoundJoin)
+    front_facing_camera = cos_t >= 0.0
     for _, face, shown in ordered:
         poly = QPolygonF([QPointF(sx, sy) for sx, sy, _ in shown])
         facing_value = face_facing(face["normal"])
         kind = face["kind"]
-        if kind == "front":
+        is_camera_facing_star = (kind == "front" and front_facing_camera) or (kind == "back" and not front_facing_camera)
+        if is_camera_facing_star:
             puff = QRadialGradient(center, center - scale * 0.30, scale * 1.15)
             puff.setColorAt(0.0, QColor(255, 236, 158))
             puff.setColorAt(0.55, QColor(255, 197, 61))
@@ -758,13 +769,13 @@ def _render_star3d(angle_deg, px=96):
             painter.setPen(Qt.NoPen)
             shade_grad = QLinearGradient(0, center - scale * 0.1, 0, center + scale)
             shade_grad.setColorAt(0.0, QColor(160, 70, 0, 0))
-            shade_grad.setColorAt(1.0, QColor(150, 62, 0, 110))
+            shade_grad.setColorAt(1.0, QColor(150, 62, 0, 85))
             painter.setBrush(shade_grad)
-            painter.drawRect(center - scale, center - scale, scale * 2, scale * 2)
+            painter.drawRect(int(center - scale), int(center - scale), int(scale * 2), int(scale * 2))
             spec = QRadialGradient(
                 center - scale * 0.33, center - scale * 0.36, scale * 0.24
             )
-            spec.setColorAt(0.0, QColor(255, 255, 255, 235))
+            spec.setColorAt(0.0, QColor(255, 255, 255, 240))
             spec.setColorAt(1.0, QColor(255, 255, 255, 0))
             painter.setBrush(spec)
             painter.drawEllipse(QRectF(
@@ -772,13 +783,9 @@ def _render_star3d(angle_deg, px=96):
                 scale * 0.44, scale * 0.28,
             ))
             painter.restore()
-            if facing_value < 0.85:
-                painter.setPen(Qt.NoPen)
-                painter.setBrush(QColor(0, 0, 0, int(255 * min(0.5, (0.85 - facing_value) * 0.6))))
-                painter.drawPolygon(poly)
         else:
-            base = (110, 74, 0) if kind == "back" else (205, 145, 10)
-            painter.setPen(Qt.NoPen)
+            base = (215, 155, 25) if kind in ("front", "back") else (248, 190, 32)
+            painter.setPen(pen if kind in ("front", "back") else Qt.NoPen)
             painter.setBrush(shaded(base, facing_value))
             painter.drawPolygon(poly)
     painter.end()
@@ -1096,7 +1103,7 @@ class FontWizardApp(QMainWindow):
         if not getattr(self, "_star_active", False):
             return
         spin = QVariantAnimation(self)
-        spin.setDuration(650)
+        spin.setDuration(1200)
         spin.setStartValue(0.0)
         spin.setEndValue(360.0)
         spin.setEasingCurve(QEasingCurve.InOutQuad)
@@ -1350,7 +1357,7 @@ class FontWizardApp(QMainWindow):
         for index, label in enumerate(labels):
             try:
                 size = self._ARMED_CROSS_SIZE if index == 1 else self._ARMED_FONT_SIZE
-                divider = f"border-right: 1px solid {face['ink']};" if index == 0 else ""
+                divider = "border: none;"
                 label.setText(self._ARMED_TICK if index == 0 else self._ARMED_CROSS)
                 label.setStyleSheet(
                     f"font-family: '{self._ARMED_FONT_FAMILY}'; "
@@ -1399,7 +1406,7 @@ class FontWizardApp(QMainWindow):
         if font_path:
             try:
                 self.controller.set_regular_font(font_path)
-            except (ValueError, OSError) as exc:
+            except Exception as exc:
                 QMessageBox.warning(self, "Font not supported", str(exc))
                 return
             self._selection_dirty = True
@@ -1606,7 +1613,10 @@ class FontWizardApp(QMainWindow):
         def _handle_card_change(w):
             current_path = self.controller.selection.paths.get(w) or self.controller.selection.paths.get("regular") or "."
             start_dir = str(Path(current_path).parent)
-            display_name = w.replace("consolas_", "Consolas ").replace("_", " ").title()
+            if w == "variable":
+                display_name = "Variable UI Font"
+            else:
+                display_name = w.replace("consolas_", "Consolas ").replace("_", " ").title()
             chosen_file, _ = QFileDialog.getOpenFileName(
                 self,
                 f"Select Font File for {display_name}",
@@ -1618,7 +1628,7 @@ class FontWizardApp(QMainWindow):
                     self.controller.set_card_override(w, chosen_file)
                     self._selection_dirty = True
                     self.refresh_all()
-                except ValueError as exc:
+                except Exception as exc:
                     QMessageBox.warning(self, "Invalid Font", str(exc))
 
         def _handle_card_reset(w):
@@ -1629,7 +1639,7 @@ class FontWizardApp(QMainWindow):
         cards_added = 0
         if rebuild_cards:
             for weight, font_path in self.controller.selection.paths.items():
-                if font_path and weight != "variable":
+                if font_path:
                     try:
                         is_manual = (self.controller.selection.labels.get(weight) == "manual")
                         card = WeightCard(

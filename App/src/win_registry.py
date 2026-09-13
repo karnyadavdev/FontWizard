@@ -39,6 +39,10 @@ class WindowsFontRegistry:
                 winreg.SetValueEx(key, name, 0, winreg.REG_SZ, value)
 
     def ensure_font_substitutes(self):
+        from settings import FONTS_DIR
+        has_segoe_var = (FONTS_DIR / "SegUIVar.ttf").exists()
+        var_target = "Segoe UI Variable" if has_segoe_var else "Segoe UI"
+
         with winreg.OpenKey(
             winreg.HKEY_LOCAL_MACHINE,
             r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes",
@@ -48,5 +52,27 @@ class WindowsFontRegistry:
             winreg.SetValueEx(key, "MS Shell Dlg", 0, winreg.REG_SZ, "Segoe UI")
             winreg.SetValueEx(key, "MS Shell Dlg 2", 0, winreg.REG_SZ, "Segoe UI")
             winreg.SetValueEx(key, "Segoe WPC", 0, winreg.REG_SZ, "Segoe UI")
+            winreg.SetValueEx(key, "Segoe UI Variable Text", 0, winreg.REG_SZ, var_target)
+            winreg.SetValueEx(key, "Segoe UI Variable Display", 0, winreg.REG_SZ, var_target)
+            winreg.SetValueEx(key, "Segoe UI Variable Small", 0, winreg.REG_SZ, var_target)
+
+    def remove_font_substitutes(self):
+        with winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes",
+            0,
+            winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY,
+        ) as key:
+            for name in (
+                "Segoe WPC",
+                "Segoe WPC Semibold",
+                "Segoe UI Variable Text",
+                "Segoe UI Variable Display",
+                "Segoe UI Variable Small",
+            ):
+                try:
+                    winreg.DeleteValue(key, name)
+                except FileNotFoundError:
+                    pass
 
 

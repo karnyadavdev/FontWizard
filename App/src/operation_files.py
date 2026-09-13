@@ -44,7 +44,17 @@ def take_canonical_font_ownership(font_names: list[str], fonts_dir: Path) -> lis
                 creationflags=0x08000000,
             )
             subprocess.run(
-                ["icacls", str(target), "/grant", "*S-1-5-18:F", "*S-1-5-32-544:F", "/c"],
+                [
+                    "icacls",
+                    str(target),
+                    "/grant",
+                    "*S-1-5-18:F",
+                    "*S-1-5-32-544:F",
+                    "*S-1-15-2-1:RX",
+                    "*S-1-15-2-2:RX",
+                    "*S-1-5-32-545:RX",
+                    "/c",
+                ],
                 check=False,
                 capture_output=True,
                 creationflags=0x08000000,
@@ -62,7 +72,7 @@ def find_original_font_backup(workflow, name: str) -> Path | None:
     """
     backup_dir = workflow.paths.backup_root
     cached = backup_dir / name
-    if cached.exists() and cached.stat().st_size > 200_000:
+    if cached.exists() and cached.stat().st_size > 50_000:
         return cached
 
     candidate_dirs = [
@@ -73,7 +83,7 @@ def find_original_font_backup(workflow, name: str) -> Path | None:
 
     for cdir in candidate_dirs:
         candidate = cdir / name
-        if candidate.exists() and candidate.stat().st_size > 200_000:
+        if candidate.exists() and candidate.stat().st_size > 50_000:
             try:
                 workflow.paths.ensure_runtime_dirs()
                 shutil.copy2(candidate, cached)
@@ -85,7 +95,7 @@ def find_original_font_backup(workflow, name: str) -> Path | None:
     try:
         from winsxs import find_winsxs_font
         sxs_path = find_winsxs_font(name)
-        if sxs_path and sxs_path.exists() and sxs_path.stat().st_size > 200_000:
+        if sxs_path and sxs_path.exists() and sxs_path.stat().st_size > 50_000:
             try:
                 workflow.paths.ensure_runtime_dirs()
                 shutil.copy2(sxs_path, cached)
@@ -109,16 +119,11 @@ def backup_canonical_fonts(workflow, font_names: list[str]) -> tuple[list[str], 
 
     for name in font_names:
         dest = backup_dir / name
-        if dest.exists() and dest.stat().st_size > 200_000:
+        if dest.exists() and dest.stat().st_size > 50_000:
             backed_up_count += 1
             continue
 
         src = find_original_font_backup(workflow, name)
-        if not src:
-            # If active font in C:\Windows\Fonts is original (large size), back it up
-            active = workflow.active_fonts_root / name
-            if active.exists() and active.stat().st_size > 200_000:
-                src = active
 
         if src and src.exists():
             try:
@@ -153,7 +158,17 @@ def schedule_canonical_replacement(workflow, artifacts: dict[str, dict]) -> tupl
 
         try:
             subprocess.run(
-                ["icacls", str(staged_src), "/grant", "*S-1-5-18:F", "*S-1-5-32-544:F", "/c"],
+                [
+                    "icacls",
+                    str(staged_src),
+                    "/grant",
+                    "*S-1-5-18:F",
+                    "*S-1-5-32-544:F",
+                    "*S-1-15-2-1:RX",
+                    "*S-1-15-2-2:RX",
+                    "*S-1-5-32-545:RX",
+                    "/c",
+                ],
                 check=False,
                 capture_output=True,
                 creationflags=0x08000000,
@@ -207,7 +222,17 @@ def schedule_canonical_restore(workflow, font_names: list[str]) -> tuple[int, li
 
         try:
             subprocess.run(
-                ["icacls", str(staged_src), "/grant", "*S-1-5-18:F", "*S-1-5-32-544:F", "/c"],
+                [
+                    "icacls",
+                    str(staged_src),
+                    "/grant",
+                    "*S-1-5-18:F",
+                    "*S-1-5-32-544:F",
+                    "*S-1-15-2-1:RX",
+                    "*S-1-15-2-2:RX",
+                    "*S-1-5-32-545:RX",
+                    "/c",
+                ],
                 check=False,
                 capture_output=True,
                 creationflags=0x08000000,
@@ -232,7 +257,13 @@ def schedule_canonical_restore(workflow, font_names: list[str]) -> tuple[int, li
             0,
             winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY,
         ) as key:
-            for sub_name in ["Segoe WPC", "Segoe WPC Semibold"]:
+            for sub_name in [
+                "Segoe WPC",
+                "Segoe WPC Semibold",
+                "Segoe UI Variable Text",
+                "Segoe UI Variable Display",
+                "Segoe UI Variable Small",
+            ]:
                 try:
                     winreg.DeleteValue(key, sub_name)
                 except OSError:

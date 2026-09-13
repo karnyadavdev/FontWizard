@@ -87,10 +87,10 @@ def validate_selection(selection, source_labels=None, weights=None):
                 continue
 
         metadata = metadata_cache[cache_key]
-        if metadata.is_variable:
+        if metadata.is_variable and weight != "variable":
             if cache_key not in variable_rejections:
                 summary.errors.append(
-                    "Variable fonts are not supported. Choose a static .ttf file instead."
+                    "Variable fonts can only be used for the Variable UI slot. Choose a static .ttf file for static weights."
                 )
                 variable_rejections.add(cache_key)
             continue

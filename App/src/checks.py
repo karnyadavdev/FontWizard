@@ -1,7 +1,6 @@
 import ctypes
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from settings import (
@@ -36,32 +35,6 @@ def windows_status():
     return label, is_supported
 
 
-
-def _booted_since(timestamp):
-    if not timestamp:
-        return False
-
-    try:
-        applied_at = datetime.fromisoformat(timestamp)
-    except ValueError:
-        return False
-
-    if applied_at.tzinfo is None:
-        applied_at = applied_at.replace(tzinfo=timezone.utc)
-
-    try:
-        kernel32 = ctypes.WinDLL("kernel32")
-        kernel32.GetTickCount64.restype = ctypes.c_uint64
-        uptime_ms = kernel32.GetTickCount64()
-        boot_time = datetime.now(timezone.utc) - timedelta(milliseconds=uptime_ms)
-        if boot_time > (applied_at + timedelta(seconds=2)):
-            return True
-    except Exception:
-        pass
-
-    return False
-
-
 def _has_pending_font_operations(pending_deletions):
     if not pending_deletions:
         return False
@@ -72,9 +45,6 @@ def _has_pending_font_operations(pending_deletions):
             or "staged_restore_" in lower
             or "_fontwizard" in lower
             or "_pending_replace" in lower
-            or "segoe" in lower
-            or ".old" in lower
-            or "_mod.ttf" in lower
         ):
             return True
     return False

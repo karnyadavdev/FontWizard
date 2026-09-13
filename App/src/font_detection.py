@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-from fontTools.ttLib import TTFont, TTLibError
+from fontTools.ttLib import TTFont
 
-from settings import FONT_EXTENSIONS, WEIGHTS, WEIGHT_TARGETS
+from settings import FONT_EXTENSIONS, WEIGHT_TARGETS
 
 
 @dataclass
@@ -75,12 +75,13 @@ def _inspect_font_cached(font_path_str: str) -> FontMetadata:
         raise ValueError(f"Unsupported font type: {font_path.suffix}")
     try:
         font = TTFont(font_path)
-    except TTLibError as exc:
-        raise ValueError(f"Unable to read font: {font_path.name}") from exc
+    except Exception as exc:
+        raise ValueError(f"This font file is corrupted or unreadable: {font_path.name}") from exc
 
     try:
-        if "glyf" not in font or "loca" not in font:
-            raise ValueError(f"Choose a TrueType-outline .ttf font: {font_path.name}")
+        for req in ("head", "name", "OS/2", "glyf", "loca"):
+            if req not in font:
+                raise ValueError(f"This font file is corrupted or missing standard TrueType '{req}' table: {font_path.name}")
 
         try:
             weight_class = font["OS/2"].usWeightClass
@@ -105,14 +106,30 @@ def _inspect_font_cached(font_path_str: str) -> FontMetadata:
             except Exception:
                 pass
 
-        family_name = font["name"].getBestFamilyName() or font_path.stem
-        full_name = font["name"].getBestFullName() or font_path.stem
-        subfamily_name = font["name"].getBestSubFamilyName() or ""
+        try:
+            family_name = font["name"].getBestFamilyName() or font_path.stem
+        except Exception:
+            family_name = font_path.stem
+
+        try:
+            full_name = font["name"].getBestFullName() or font_path.stem
+        except Exception:
+            full_name = font_path.stem
+
+        try:
+            subfamily_name = font["name"].getBestSubFamilyName() or ""
+        except Exception:
+            subfamily_name = ""
 
         if not is_mono:
             combined = f"{font_path.stem} {family_name} {full_name}".lower()
             if any(term in combined for term in ("mono", "code", "console", "typewriter")):
                 is_mono = True
+
+        try:
+            units_per_em = font["head"].unitsPerEm
+        except Exception:
+            units_per_em = 1000
 
         metadata = FontMetadata(
             path=font_path,
@@ -121,11 +138,15 @@ def _inspect_font_cached(font_path_str: str) -> FontMetadata:
             full_name=full_name,
             subfamily_name=subfamily_name,
             weight_class=weight_class,
-            units_per_em=font["head"].unitsPerEm,
+            units_per_em=units_per_em,
             is_italic=is_italic,
             is_variable="fvar" in font,
             is_monospace=is_mono,
         )
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError(f"This font file is corrupted or unreadable: {font_path.name}") from exc
     finally:
         font.close()
     return metadata
@@ -157,10 +178,6 @@ def infer_family_label_from_strings(*values):
 
 def _family_label(path, metadata):
     return infer_family_label_from_strings(metadata.family_name, metadata.full_name, path.stem)
-
-
-def _same_family(primary_label, candidate_label):
-    return primary_label and primary_label == candidate_label
 
 
 def _score_candidate(candidate, metadata, target_weight, target_value, target_italic, is_mono_target, primary_metadata, primary_root):
@@ -206,21 +223,44 @@ def detect_weight_overrides(primary_path, existing=None, weights=None, manual_ov
     detected = {}
 
     all_candidates = []
+    variable_candidates = []
     for candidate in folder.iterdir():
         if not candidate.is_file() or candidate.suffix.lower() not in FONT_EXTENSIONS:
             continue
         try:
             metadata = inspect_font(candidate)
-        except ValueError:
+        except Exception:
             continue
         if not metadata.is_variable:
             all_candidates.append((candidate, metadata))
+        else:
+            variable_candidates.append((candidate, metadata))
 
     if (primary, primary_metadata) not in all_candidates:
         all_candidates.append((primary, primary_metadata))
 
     for target_weight in active_weights:
         if target_weight == "variable":
+            if target_weight in manual_overrides and manual_overrides[target_weight]:
+                override_path = Path(manual_overrides[target_weight])
+                if override_path.exists():
+                    detected[target_weight] = str(override_path.resolve())
+                    continue
+            if target_weight in existing and existing[target_weight]:
+                continue
+            best_var = None
+            if variable_candidates:
+                for cand, meta in variable_candidates:
+                    cand_name = _clean_family_text(_normalized_text(meta.family_name, meta.full_name, cand.stem))
+                    if primary_root and primary_root in cand_name:
+                        best_var = cand
+                        break
+                if not best_var:
+                    best_var = variable_candidates[0][0]
+            if best_var is not None:
+                detected["variable"] = str(best_var.resolve())
+            else:
+                detected["variable"] = str(primary)
             continue
         if target_weight in manual_overrides and manual_overrides[target_weight]:
             override_path = Path(manual_overrides[target_weight])

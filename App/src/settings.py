@@ -44,6 +44,20 @@ CONSOLAS_WEIGHTS = {
     "consolas_bold_italic": "consolaz.ttf",
 }
 
+MONO_COMPANION_FILES = {
+    "lucon.ttf": "Lucida Console (TrueType)",
+    "CascadiaCode.ttf": "Cascadia Code (TrueType)",
+    "CascadiaMono.ttf": "Cascadia Mono (TrueType)",
+}
+
+def get_existing_mono_companions(fonts_dir=None):
+    target_dir = Path(fonts_dir or FONTS_DIR)
+    return {
+        fname: reg_name
+        for fname, reg_name in MONO_COMPANION_FILES.items()
+        if (target_dir / fname).exists()
+    }
+
 def get_system_weights(fonts_dir=None):
     target_dir = Path(fonts_dir or FONTS_DIR)
     weights = dict(STATIC_WEIGHTS)
@@ -115,8 +129,8 @@ WPC_REGISTRY_NAMES = {
 }
 
 
-def default_registry_targets(weights=None):
-    active_weights = weights if weights is not None else get_system_weights()
+def default_registry_targets(weights=None, fonts_dir=None):
+    active_weights = weights if weights is not None else get_system_weights(fonts_dir)
     targets = {
         REGISTRY_NAMES[weight]: filename
         for weight, filename in active_weights.items()
@@ -125,5 +139,7 @@ def default_registry_targets(weights=None):
     for weight, reg_name in WPC_REGISTRY_NAMES.items():
         if weight in active_weights:
             targets[reg_name] = active_weights[weight]
+    for fname, reg_name in get_existing_mono_companions(fonts_dir).items():
+        targets[reg_name] = fname
     return targets
 

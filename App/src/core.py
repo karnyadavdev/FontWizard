@@ -40,7 +40,11 @@ class FontWizardController:
 
         if report.install_state == "clean" and report.managed_state_valid:
             state = self.state_store.load()
-            if state and state.get("install", {}).get("status") == "pending_reboot":
+            if state and state.get("install", {}).get("status") in (
+                "pending_reboot",
+                "pending_reboot_recovery",
+                "pending_reboot_apply",
+            ):
                 state["install"]["status"] = "clean"
                 try:
                     self.state_store.save(state)
@@ -54,7 +58,7 @@ class FontWizardController:
         metadata = inspect_font(path)
         if metadata.is_variable:
             raise ValueError(
-                "Variable fonts are not supported. Choose a static .ttf file instead."
+                "Variable fonts cannot be selected as the primary static font. Select a static font (Regular) here, and assign your variable font to the Variable UI Font slot."
             )
 
         resolved_path = str(Path(path).resolve())
@@ -76,9 +80,9 @@ class FontWizardController:
 
     def set_card_override(self, weight, path):
         metadata = inspect_font(path)
-        if metadata.is_variable:
+        if metadata.is_variable and weight != "variable":
             raise ValueError(
-                "Variable fonts are not supported. Choose a static .ttf file instead."
+                "Variable fonts can only be assigned to the Variable UI slot. Choose a static .ttf file for static weights."
             )
         resolved_path = str(Path(path).resolve())
         self.selection.paths[weight] = resolved_path

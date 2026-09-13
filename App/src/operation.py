@@ -48,7 +48,13 @@ class FontWorkflow:
         return get_system_weights(self.identity_fonts_root)
 
     def _system_font_files(self):
-        return list(dict.fromkeys(self._system_weights().values()))
+        from settings import get_existing_mono_companions
+        files = list(dict.fromkeys(self._system_weights().values()))
+        target_dir = self.identity_fonts_root if self.identity_fonts_root.exists() else self.active_fonts_root
+        for companion_file in get_existing_mono_companions(target_dir):
+            if companion_file not in files:
+                files.append(companion_file)
+        return files
 
     def validate(self, selection, source_labels=None):
         return validate_selection(selection, source_labels, weights=self._system_weights())
@@ -162,13 +168,19 @@ class FontWorkflow:
             if scheduled_count == 0:
                 return OperationResult(
                     False,
-                    "Failed to schedule font restore: No authentic backup font files were found.",
+                    "No authentic backup font files were found. You can restore original Windows fonts by running 'sfc /scannow' or 'DISM /Online /Cleanup-Image /RestoreHealth' in an Administrator terminal.",
                     restore_warnings,
                 )
 
             self._emit(progress, 75, "Purging system font caches...")
             cache_warnings = purge_system_font_cache()
             refresh_windows_font_cache()
+
+            # Clean up FontSubstitutes overrides on restore
+            try:
+                self.registry.remove_font_substitutes()
+            except Exception:
+                pass
 
             self._emit(progress, 92, "Saving restore state...")
             state = self.state_store.load_or_empty()
@@ -244,6 +256,8 @@ def _verify_build_output(output_path: Path, segoe_path: Path):
 
         for key, expected_value in expected.items():
             if actual[key] != expected_value:
+                if ("fvar" in built_font or "fvar" in donor_font) and key in ("os2_version", "weight_class", "fs_selection"):
+                    continue
                 raise RuntimeError(
                     f"Built font identity check failed for {output_path.name}: "
                     f"{key} was {actual[key]!r}, expected {expected_value!r}."
@@ -257,11 +271,19 @@ def _verify_build_output(output_path: Path, segoe_path: Path):
 
 def build_artifacts(workflow, entries, stage_dir):
     artifacts = {}
+    mono_regular_entry = None
     for entry in entries:
+        if entry.weight == "consolas_regular":
+            mono_regular_entry = entry
+
         segoe_path = workflow.identity_fonts_root / entry.system_filename
         output_path = stage_dir / entry.system_filename
 
-        build_font(entry.source_path, segoe_path, output_path)
+        if entry.system_filename.lower() == "seguivar.ttf":
+            from font_generation import build_variable_font
+            build_variable_font(entry.source_path, segoe_path, output_path)
+        else:
+            build_font(entry.source_path, segoe_path, output_path)
         _verify_build_output(output_path, segoe_path)
 
         artifacts[entry.weight] = {
@@ -275,4 +297,34 @@ def build_artifacts(workflow, entries, stage_dir):
             "staged_path": str(output_path),
             "hash": hash_file(output_path),
         }
+
+    if mono_regular_entry is not None:
+        from font_detection import inspect_font
+        from settings import get_existing_mono_companions
+        try:
+            mono_meta = inspect_font(mono_regular_entry.source_path)
+            is_mono = getattr(mono_meta, "is_monospace", False) or mono_regular_entry.source_label == "manual"
+        except Exception:
+            is_mono = True
+
+        if is_mono:
+            companions = get_existing_mono_companions(workflow.identity_fonts_root)
+            for companion_file, companion_reg_name in companions.items():
+                companion_sys_path = workflow.identity_fonts_root / companion_file
+                companion_out_path = stage_dir / companion_file
+                build_font(mono_regular_entry.source_path, companion_sys_path, companion_out_path)
+                _verify_build_output(companion_out_path, companion_sys_path)
+                companion_key = f"mono_companion_{companion_file.lower().replace('.', '_')}"
+                artifacts[companion_key] = {
+                    "weight": companion_key,
+                    "registry_name": companion_reg_name,
+                    "system_filename": companion_file,
+                    "generated_filename": companion_file,
+                    "source_path": str(mono_regular_entry.source_path),
+                    "family_name": mono_regular_entry.family_name,
+                    "full_name": mono_regular_entry.full_name,
+                    "staged_path": str(companion_out_path),
+                    "hash": hash_file(companion_out_path),
+                }
+
     return artifacts
