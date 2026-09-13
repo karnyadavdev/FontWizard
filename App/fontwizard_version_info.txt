@@ -1,7 +1,7 @@
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(3, 0, 0, 0),
-    prodvers=(3, 0, 0, 0),
+    filevers=(4, 0, 0, 0),
+    prodvers=(4, 0, 0, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -16,13 +16,13 @@ VSVersionInfo(
           '040904B0',
           [
             StringStruct('CompanyName', 'karnyadavdev'),
-            StringStruct('FileDescription', 'Font Wizard - Change the system font on Windows 10 and 11'),
-            StringStruct('FileVersion', '3.0'),
+            StringStruct('FileDescription', 'Font Wizard - Change the system font completely on Windows 10 & 11'),
+            StringStruct('FileVersion', '4.0'),
             StringStruct('InternalName', 'FontWizard'),
             StringStruct('LegalCopyright', 'Copyright (c) 2026 karnyadavdev'),
             StringStruct('OriginalFilename', 'FontWizard.exe'),
             StringStruct('ProductName', 'Font Wizard'),
-            StringStruct('ProductVersion', '3.0')
+            StringStruct('ProductVersion', '4.0')
           ]
         )
       ]

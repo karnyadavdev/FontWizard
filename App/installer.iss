@@ -5,10 +5,10 @@
 #define MyAppName "Font Wizard"
 #define MyAppExeName "FontWizard.exe"
 #ifndef MyAppVersion
-#define MyAppVersion "3.0.0"
+#define MyAppVersion "4.0.0"
 #endif
 #ifndef MyAppVersionFull
-#define MyAppVersionFull "3.0.0.0"
+#define MyAppVersionFull "4.0.0.0"
 #endif
 #define MyAppPublisher "karnyadavdev"
 #define MyAppURL "https://github.com/karnyadavdev/fontwizard"

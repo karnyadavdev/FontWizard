@@ -6,17 +6,16 @@ pushd "%~dp0"
 set "PYTHON_EXE=python"
 where python >nul 2>&1
 if %errorlevel% neq 0 (
-    if exist "..\tools\python\python.exe" (
+    where py >nul 2>&1
+    if %errorlevel% equ 0 (
+        set "PYTHON_EXE=py"
+    ) else if exist "..\tools\python\python.exe" (
         set "PYTHON_EXE=..\tools\python\python.exe"
     ) else (
-        where py >nul 2>&1
-        if %errorlevel% equ 0 (
-            set "PYTHON_EXE=py"
-        ) else (
-            echo [!] Python was not found in PATH or ..\tools\python\
-            popd
-            exit /b 1
-        )
+        echo [!] Python was not found in PATH or ..\tools\python\
+        echo     Please install Python 3.10+ and check "Add Python to PATH".
+        popd
+        exit /b 1
     )
 )
 
@@ -93,8 +92,8 @@ set "VER4=%VER_RAW:,=.%"
 set "VER4=%VER4: =%"
 for /f "tokens=1-4 delims=." %%a in ("%VER4%") do set "APP_VER=%%a.%%b.%%c"
 for /f "tokens=4 delims=." %%d in ("%VER4%") do set "APP_VER_FULL=%APP_VER%.%%d"
-if not defined APP_VER set "APP_VER=3.0.0"
-if not defined APP_VER_FULL set "APP_VER_FULL=3.0.0.0"
+if not defined APP_VER set "APP_VER=4.0.0"
+if not defined APP_VER_FULL set "APP_VER_FULL=4.0.0.0"
 echo App version: %APP_VER%
 "%ISCC_EXE%" /DMyAppVersion=%APP_VER% /DMyAppVersionFull=%APP_VER_FULL% "installer.iss"
 if errorlevel 1 (
