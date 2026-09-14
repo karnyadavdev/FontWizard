@@ -58,11 +58,10 @@ Download the [**latest release**](https://github.com/karnyadavdev/fontwizard/rel
 
 - Supports **Windows 11** and **Windows 10**
 - Only `.ttf` fonts are supported (`.otf` not supported)
->  **Tip:** Have only `.otf`? Convert it to `.ttf`
 
 <br>
 
-### 📦 easier method, just Run this in Terminal 
+### 📦 Install from Microsoft servers, Run this in Terminal 
 
 
 ```powershell
