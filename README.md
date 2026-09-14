@@ -57,7 +57,7 @@
 Download and install the [**latest release**](https://github.com/karnyadavdev/fontwizard/releases/latest)
 
 - Supports **Windows 11** and **Windows 10**
-- Only `.ttf` fonts are supported by Windows
+- Only `.ttf` fonts are supported
 
 <br>
 
