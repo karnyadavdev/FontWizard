@@ -21,7 +21,7 @@
 <p align="center">
  <b> ⭐ Star the repo </b>, it helps others discover it
 </p>
-<p align="center"><a href="https://github.com/karnyadavdev/Fonts">FAQ : i use Apple's sf pro fonts, download fonts i love</a></p>
+<p align="center"><a href="https://github.com/karnyadavdev/Fonts">FAQ : download fonts i love</a></p>
 
 
 
