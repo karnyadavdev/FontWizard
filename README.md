@@ -15,7 +15,7 @@
 
 
 <p align="center">
- <b> ⭐ Star the repo </b>, it helps others discover it
+ <b> ⭐ Star the repo </b>, helps others discover it
 </p>
 
 
