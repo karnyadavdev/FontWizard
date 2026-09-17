@@ -13,16 +13,10 @@
 
 
 
-<p align="center">
-  <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v4.0/FontWizard-installer.exe"> <img src="https://img.shields.io/badge/Download-1.7K+-green?style=for-the-badge" alt="Download FontWizard v4.0"/> </a> 
-  </p>
-  
 
 <p align="center">
  <b> ⭐ Star the repo </b>, it helps others discover it
 </p>
-<p align="center"><a href="https://github.com/karnyadavdev/Fonts">FAQ : download fonts i love</a></p>
-
 
 
 
