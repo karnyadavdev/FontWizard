@@ -28,19 +28,20 @@
 <table>
   <tr align="center">
     <td>
+      <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/>
+      <br/>
+      <strong>App UI Designed to feel native windows app</strong>
+    </td>
+  </tr>
+  <tr align="center">
+    <td>
       <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview"/>
       <br/>
       <strong>System-wide look after applying</strong>
     </td>
   </tr>
 
-  <tr align="center">
-    <td>
-      <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/>
-      <br/>
-      <strong>App UI Designed to feel native windows app</strong>
-    </td>
-  </tr>
+  
 </table>
 
 ---
