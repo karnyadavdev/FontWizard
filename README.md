@@ -23,8 +23,6 @@
 
 
 
-## Why Font Wizard was made?
-
 |  | Registry Hacks | Winaero Tweaker | Font Wizard |
 | :--- | :---: | :---: | :---: |
 | **Legacy Win32 Apps** (Control Panel, Notepad, etc) | ✅ | ✅ | ✅ |
@@ -33,7 +31,6 @@
 | **Electron & Chromium Apps** (VS Code, Discord, Chrome) | ❌ | ❌ | ✅ |
 | **System Icons & Glyph Preservation** | ⚠️ | ⚠️ | ✅ |
 | **1-Click Revert to Default (Segoe UI)** | ❌ | ⚠️ | ✅ |
-
 
 
 
