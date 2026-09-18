@@ -19,10 +19,46 @@
 </p>
 
 
+---
+
+
+
+## Why Font Wizard was made?
+
+|  | Registry Hacks | Winaero Tweaker | Font Wizard |
+| :--- | :---: | :---: | :---: |
+| **Legacy Win32 Apps** (Control Panel, Notepad, etc) | ✅ | ✅ | ✅ |
+| **Modern WinUI 3 apps** | ❌ | ❌ | ✅ |
+| **UWP Apps & System Shell** | ❌ | ❌ | ✅ |
+| **Electron & Chromium Apps** (VS Code, Discord, Chrome) | ❌ | ❌ | ✅ |
+| **System Icons & Glyph Preservation** | ⚠️ | ⚠️ | ✅ |
+| **1-Click Revert to Default (Segoe UI)** | ❌ | ⚠️ | ✅ |
+
+
+
 
 
 ---
 
+
+
+## 📥 Download
+
+
+Download and install the [**latest release**](https://github.com/karnyadavdev/fontwizard/releases/latest)
+
+- Supports **Windows 11** and **Windows 10**
+- Only `.ttf` fonts are supported
+
+<br>
+
+### 📦 Install from Microsoft servers, Run this in Terminal 
+
+
+```powershell
+winget install -e --id karnyadavdev.FontWizard
+```
+---
 ## 📸 Screenshots
 
 <table>
@@ -43,41 +79,6 @@
 
   
 </table>
-
----
-
-## 📥 Download
-
-
-Download and install the [**latest release**](https://github.com/karnyadavdev/fontwizard/releases/latest)
-
-- Supports **Windows 11** and **Windows 10**
-- Only `.ttf` fonts are supported
-
-<br>
-
-### 📦 Install from Microsoft servers, Run this in Terminal 
-
-
-```powershell
-winget install -e --id karnyadavdev.FontWizard
-```
-
----
-
-
-
-## Why Font Wizard was made?
-
-|  | Registry Hacks | Winaero Tweaker | Font Wizard |
-| :--- | :---: | :---: | :---: |
-| **Legacy Win32 Apps** (Control Panel, Notepad, etc) | ✅ | ✅ | ✅ |
-| **Modern WinUI 3 apps** | ❌ | ❌ | ✅ |
-| **UWP Apps & System Shell** | ❌ | ❌ | ✅ |
-| **Electron & Chromium Apps** (VS Code, Discord, Chrome) | ❌ | ❌ | ✅ |
-| **System Icons & Glyph Preservation** | ⚠️ | ⚠️ | ✅ |
-| **1-Click Revert to Default (Segoe UI)** | ❌ | ⚠️ | ✅ |
-
 
 ---
 
