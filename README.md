@@ -39,23 +39,6 @@
 
 
 
-## 📥 Download
-
-
-Download and install the [**latest release**](https://github.com/karnyadavdev/fontwizard/releases/latest)
-
-- Supports **Windows 11** and **Windows 10**
-- Only `.ttf` fonts are supported
-
-<br>
-
-### 📦 Install from Microsoft servers, Run this in Terminal 
-
-
-```powershell
-winget install -e --id karnyadavdev.FontWizard
-```
----
 ## 📸 Screenshots
 
 <table>
@@ -77,6 +60,24 @@ winget install -e --id karnyadavdev.FontWizard
   
 </table>
 
+---
+
+## 📥 Download
+
+
+Download and install the [**latest release**](https://github.com/karnyadavdev/fontwizard/releases/latest)
+
+- Supports **Windows 11** and **Windows 10**
+- Only `.ttf` fonts are supported
+
+<br>
+
+### 📦 Install from Microsoft servers, Run this in Terminal 
+
+
+```powershell
+winget install -e --id karnyadavdev.FontWizard
+```
 ---
 
 ## Build from Source
