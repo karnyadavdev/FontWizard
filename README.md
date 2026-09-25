@@ -1,4 +1,4 @@
->Note: If you want to add some features u can do pull requests, i am too lazy to work further, <b> For me this is a complete project it has achieved 100% coverage which was not possible with any other tool <b> earlier but now this exists
+>Note: If you want to add features like auto font donwload from googlefont or something else u can do pull requests, i am too lazy to work further, <b> For me this is a complete project it has achieved 100% coverage which was not possible with any other tool <b> earlier but now this exists
 
 
 <p align="center">
