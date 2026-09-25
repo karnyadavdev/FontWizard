@@ -23,7 +23,7 @@
 
 
 
-|  | Registry Hacks | Winaero Tweaker | Font Wizard |
+|  | Registry Hacks | Winaero Tweaker & others| Font Wizard |
 | :--- | :---: | :---: | :---: |
 | **Legacy Win32 Apps** (Control Panel, Notepad, etc) | ✅ | ✅ | ✅ |
 | **Modern WinUI 3 apps** | ❌ | ❌ | ✅ |
