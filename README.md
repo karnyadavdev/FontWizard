@@ -1,5 +1,4 @@
->Note: If you want to add features like auto font donwload from googlefont or something else u can do pull requests, i am too lazy to work further, <b> For me this is a complete project now, finally 100% coverage which was not possible with any other tool <b> earlier but now this exists
-
+>Note: If you want to add features like auto font donwload from googlefont or similar, u can do pull requests, <b> For me this is a complete project now, finally 100% coverage which was not possible with any other tool <b> earlier
 
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
