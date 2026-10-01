@@ -20,7 +20,7 @@
 
 
 
-## 📸 Screenshots
+## Screenshots
 
 
 <p align="center">
@@ -47,13 +47,13 @@
 
 ---
 
-## 📥 Download
+## Download
 >Download latest installer [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
 
 <br> OR
 <br>
 
-### 📦 Install from Microsoft servers, Run this in Terminal 
+### Install from Microsoft servers, Run this in Terminal 
 
 
 ```powershell
