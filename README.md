@@ -17,20 +17,6 @@
 </p>
 
 
----
-
-
-
-|  | Registry Hacks | Winaero Tweaker & others| Font Wizard |
-| :--- | :---: | :---: | :---: |
-| **Legacy Win32 Apps** (Control Panel, Notepad, etc) | ✅ | ✅ | ✅ |
-| **Modern WinUI 3 apps** | ❌ | ❌ | ✅ |
-| **UWP Apps & System Shell** | ❌ | ❌ | ✅ |
-| **Electron & Chromium Apps** (VS Code, Discord, Chrome) | ❌ | ❌ | ✅ |
-| **System Icons & Glyph Preservation** | ⚠️ | ⚠️ | ✅ |
-| **1-Click Revert to Default (Segoe UI)** | ❌ | ⚠️ | ✅ |
-
-
 
 
 ---
@@ -40,20 +26,18 @@
 ## 📸 Screenshots
 
 <table>
+   <tr align="center">
+    <td>
+      <img src="App/src/assets/screenshots/system-wide2.png" alt="System-wide font preview"/>
+    </td>
+  </tr>
   <tr align="center">
     <td>
       <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/>
-      <br/>
-      <strong>App UI Designed to feel native windows app</strong>
     </td>
   </tr>
-  <tr align="center">
-    <td>
-      <img src="App/src/assets/screenshots/system-wide.png" alt="System-wide font preview"/>
-      <br/>
-      <strong>System-wide look after applying</strong>
-    </td>
-  </tr>
+  
+ 
 
   
 </table>
