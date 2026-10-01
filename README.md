@@ -11,10 +11,6 @@
 
 
 
-<p align="center">
-  ⭐ <b>If you find Font Wizard useful, consider starring the repository.  </b>
-</p>
-
 
 
 
