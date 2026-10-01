@@ -3,7 +3,7 @@
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
 
-<h1 align="center"> Font Wizard </h1>
+<h1 align="center"> Font Wizard 5</h1>
 
 <p align="center">
   <b>Customize Windows 11 & 10 system font completely<br> Start, Taskbar, Lockscreen, every App & Everywhere else</b>.
