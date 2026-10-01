@@ -26,37 +26,31 @@
 ## 📸 Screenshots
 
 <table>
-   <tr align="center">
-    <td>
-      <img src="App/src/assets/screenshots/system-wide2.png" alt="System-wide font preview"/>
+  <tr>
+    <td align="center">
+      <img src="App/src/assets/screenshots/system-wide2.png" alt="System-wide font preview" width="100%"/>
+    </td>
+    <td align="center">
+      <img src="App/src/assets/screenshots/screenshot (1).png" alt="Font Wizard screenshot 1" width="100%"/>
     </td>
   </tr>
-   
-   <tr align="center">
-    <td>
-      <img src="App/src/assets/screenshots/screenshot (1).png" alt="System-wide font preview"/>
+  <tr>
+    <td align="center">
+      <img src="App/src/assets/screenshots/screenshot (2).png" alt="Font Wizard screenshot 2" width="100%"/>
+    </td>
+    <td align="center">
+      <img src="App/src/assets/screenshots/screenshot (3).png" alt="Font Wizard screenshot 3" width="100%"/>
     </td>
   </tr>
-   <tr align="center">
-    <td>
-      <img src="App/src/assets/screenshots/screenshot (2).png" alt="System-wide font preview"/>
+  <tr>
+    <td colspan="2" align="center">
+      <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen" width="100%"/>
     </td>
   </tr>
-   <tr align="center">
-    <td>
-      <img src="App/src/assets/screenshots/screenshot (3).png" alt="System-wide font preview"/>
-    </td>
-  </tr>
-  <tr align="center">
-    <td>
-      <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen"/>
-    </td>
-  </tr>
-  
- 
-
-  
 </table>
+
+
+
 
 ---
 
