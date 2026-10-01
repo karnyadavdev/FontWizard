@@ -11,10 +11,11 @@
 
 
 
-
 <p align="center">
- <b> ⭐ Star the repo </b>, helps others discover it
+  ⭐ <b>If you find Font Wizard useful, consider starring the repository.  </b>
 </p>
+
+
 
 
 
