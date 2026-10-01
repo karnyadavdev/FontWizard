@@ -57,10 +57,9 @@
 ## 📥 Download
 
 
-Download and install the [**latest release**](https://github.com/karnyadavdev/fontwizard/releases/latest)
-
-- Supports **Windows 11** and **Windows 10**
-- Only `.ttf` fonts are supported
+>Download the installer [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
+<br>
+<b> or </b>
 
 <br>
 
