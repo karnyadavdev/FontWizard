@@ -50,7 +50,7 @@
 ## Download
 >Download latest installer [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
 
-<br> OR
+<br> or
 <br>
 
 ### Install from Microsoft servers, Run this in Terminal 
