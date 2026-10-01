@@ -52,12 +52,9 @@
 ---
 
 ## 📥 Download
+>Download latest installer [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
 
-
->Download the installer [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
-<br>
-<b> or </b>
-
+<br> OR
 <br>
 
 ### 📦 Install from Microsoft servers, Run this in Terminal 
