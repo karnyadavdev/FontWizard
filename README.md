@@ -47,8 +47,8 @@
 
 ---
 
-## Download
->Download latest installer [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
+## Download installer
+>Download latest installer [**exe**](https://github.com/karnyadavdev/fontwizard/releases/latest)
 
 <br> or
 <br>
