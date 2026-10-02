@@ -48,12 +48,12 @@
 ---
 
 ## Download 
-> Download & install latest [**installer**](https://github.com/karnyadavdev/fontwizard/releases/latest)
+> Download latest version [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
 
 <br> or
 <br>
 
-### Install from Microsoft servers, Run this in Terminal 
+### Install from Microsoft servers, Run this in Terminal (this currently installs v4 not v5)
 
 
 ```powershell
