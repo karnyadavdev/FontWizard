@@ -53,7 +53,7 @@
 <br> or
 <br>
 
-### Install from Microsoft servers, Run this in Terminal (this currently installs v4 not v5)
+### Install from Microsoft servers, (currently installs v4 not v5)
 
 
 ```powershell
