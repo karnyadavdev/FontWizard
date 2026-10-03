@@ -28,6 +28,13 @@
 </p>
 
 <p align="center">
+  <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen" width="100%"/>
+</p>
+<p align="center">
+  <img src="App/src/assets/screenshots/app-variants2.png" alt="Font Wizard Apply Screen" width="100%"/>
+</p>
+
+<p align="center">
   <img src="App/src/assets/screenshots/screenshot (1).png" alt="Font Wizard screenshot 1" width="100%"/>
 </p>
 
@@ -39,9 +46,7 @@
   <img src="App/src/assets/screenshots/screenshot (3).png" alt="Font Wizard screenshot 3" width="100%"/>
 </p>
 
-<p align="center">
-  <img src="App/src/assets/screenshots/app-variants.png" alt="Font Wizard Apply Screen" width="100%"/>
-</p>
+
 
 
 
