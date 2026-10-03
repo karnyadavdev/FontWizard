@@ -20,7 +20,7 @@
 
 
 
-## Screenshots
+## 📸 Screenshots
 
 
 <p align="center">
@@ -45,10 +45,20 @@
 
 
 
+
 ---
 
-## Download 
-> Download latest version [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
+||Registry Hacks|Winaero Tweaker|Font Wizard|
+|-|:-:|:-:|:-:|
+|**Legacy Win32 Apps** (Control Panel, Notepad, etc)|✅|✅|✅|
+|**Modern WinUI 3 apps**|❌|❌|✅|
+|**UWP Apps \& System Shell**|❌|❌|✅|
+|**Electron \& Chromium Apps** (VS Code, Discord, Chrome)|❌|❌|✅|
+|**System Icons \& Glyph Preservation**|⚠️|⚠️|✅|
+|**1-Click Revert to Default (Segoe UI)**|❌|⚠️|✅|
+---
+## 📥 Download 
+> Download latest release [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
 
 <br> or
 <br>
@@ -59,6 +69,8 @@
 ```powershell
 winget install -e --id karnyadavdev.FontWizard
 ```
+
+
 ---
 
 ## Build from Source
