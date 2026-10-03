@@ -12,8 +12,9 @@
 
 
 
-
-
+<p align="center"> <b>
+⭐ Star the repo, if its useful to you </b>
+</p>
 
 
 ---
