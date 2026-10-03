@@ -48,14 +48,14 @@
 
 ---
 
-||Registry Hacks|Winaero Tweaker|Font Wizard|
+|Category|Registry Hacks|Winaero Tweaker|Font Wizard|
 |-|:-:|:-:|:-:|
-|**Legacy Win32 Apps** (Control Panel, Notepad, etc)|✅|✅|✅|
-|**Modern WinUI 3 apps**|❌|❌|✅|
-|**UWP Apps \& System Shell**|❌|❌|✅|
-|**Electron \& Chromium Apps** (VS Code, Discord, Chrome)|❌|❌|✅|
+|**Old Win32 Apps** (Control Panel, etc)|✅|✅|✅|
+|**Modern apps (WPF, WinUI, UWP)**|❌|❌|✅|
+|**System Shell, settings, explorer, etc**|❌|❌|✅|
+|**Electron \& Chromium Apps** (VS Code, Whatsapp, Discord, etc)|❌|❌|✅|
 |**System Icons \& Glyph Preservation**|⚠️|⚠️|✅|
-|**1-Click Revert to Default (Segoe UI)**|❌|⚠️|✅|
+|**1-Click Revert to Original fonts (Segoe UI)**|❌|⚠️|✅|
 ---
 ## 📥 Download 
 > Download latest release [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
