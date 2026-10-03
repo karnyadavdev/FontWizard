@@ -69,8 +69,7 @@
 <br> or
 <br>
 
-### Install from Microsoft servers, (currently installs v4 not v5)
-
+### Install from Microsoft servers, run in terminal
 
 ```powershell
 winget install -e --id karnyadavdev.FontWizard
