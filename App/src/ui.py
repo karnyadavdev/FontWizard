@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QProgressBar,
     QScrollArea,
     QSizePolicy,
     QVBoxLayout,
@@ -28,7 +29,7 @@ from PySide6.QtWidgets import (
     QLayout,
 )
 
-from settings import APP_GITHUB_URL, APP_NAME, WEIGHT_TARGETS
+from settings import APP_GITHUB_URL, APP_NAME, WEIGHT_TARGETS, GITHUB_FONTS_REPO, GITHUB_FONTS_BRANCH, GITHUB_FONTS_URL
 from core import FontWizardController
 from font_detection import inspect_font
 from operation import OperationResult
@@ -98,6 +99,7 @@ def get_theme_colors(is_dark: bool, is_win11: bool = True) -> dict[str, str]:
             "bg_button_pressed": "rgba(255, 255, 255, 0.03)" if is_win11 else "#242424",
             "border_card": "rgba(255, 255, 255, 0.08)" if is_win11 else "#383838",
             "border_button": "rgba(255, 255, 255, 0.08)" if is_win11 else "#383838",
+
             "text_primary": "#FFFFFF",
             "text_secondary": "rgba(255, 255, 255, 0.78)" if is_win11 else "#CCCCCC",
             "text_muted": "rgba(255, 255, 255, 0.55)" if is_win11 else "#888888",
@@ -118,12 +120,13 @@ def get_theme_colors(is_dark: bool, is_win11: bool = True) -> dict[str, str]:
     return {
         "bg_window": "transparent" if is_win11 else "#F3F3F3",
         "bg_card": "rgba(255, 255, 255, 0.7)" if is_win11 else "#FFFFFF",
-        "bg_card_hover": "rgba(255, 255, 255, 0.85)" if is_win11 else "#F9F9F9",
+        "bg_card_hover": "rgba(0, 0, 0, 0.05)" if is_win11 else "#F0F0F0",
         "bg_button": "rgba(255, 255, 255, 0.7)" if is_win11 else "#E5E5E5",
-        "bg_button_hover": "rgba(255, 255, 255, 0.85)" if is_win11 else "#DEDEDE",
-        "bg_button_pressed": "rgba(255, 255, 255, 0.5)" if is_win11 else "#CCCCCC",
+        "bg_button_hover": "rgba(0, 0, 0, 0.07)" if is_win11 else "#D8D8D8",
+        "bg_button_pressed": "rgba(0, 0, 0, 0.13)" if is_win11 else "#C4C4C4",
         "border_card": "rgba(0, 0, 0, 0.06)" if is_win11 else "#E0E0E0",
         "border_button": "rgba(0, 0, 0, 0.06)" if is_win11 else "#D0D0D0",
+
         "text_primary": "rgba(0, 0, 0, 0.9)" if is_win11 else "#1A1A1A",
         "text_secondary": "rgba(0, 0, 0, 0.6)" if is_win11 else "#555555",
         "text_muted": "rgba(0, 0, 0, 0.45)" if is_win11 else "#777777",
@@ -300,6 +303,7 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
         max-height: 28px;
         font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
         font-size: 18px;
+        font-weight: 400;
         color: {colors["accent_icon"]};
         outline: none;
     }}
@@ -323,6 +327,53 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
         outline: none;
     }}
     QPushButton:focus {{ outline: none; }}
+    #ActionButton {{
+        background-color: {colors["bg_button"]};
+        border: 1px solid {colors["border_button"]};
+        border-radius: 4px;
+    }}
+    #ActionButton[buttonRole="primary"] {{
+        background-color: {colors["accent"]};
+        border: 1px solid {colors["accent"]};
+    }}
+    #ActionButton:hover {{
+        background-color: {colors["bg_button_hover"]};
+    }}
+    #ActionButton[buttonRole="primary"]:hover {{
+        background-color: {colors["accent_hover"]};
+        border-color: {colors["accent_hover"]};
+    }}
+    #ActionButton[pressed="true"] {{
+        background-color: {colors["bg_button_pressed"]};
+    }}
+    #ActionButton:disabled {{
+        background-color: {colors["bg_card"]};
+        border-color: {colors["border_card"]};
+    }}
+    #ActionButton #ActionIconLocal {{
+        color: {colors["accent_icon"]};
+        background: transparent;
+        border: none;
+        font-family: 'Segoe MDL2 Assets';
+        font-size: 18px;
+        font-weight: 400;
+    }}
+    #ActionButton #ActionIconFetch {{
+        color: {colors["accent_icon"]};
+        background: transparent;
+        border: none;
+        font-family: 'Segoe MDL2 Assets';
+        font-size: 24px;
+        font-weight: 400;
+    }}
+    #ActionButton #ActionText {{
+        color: {colors["text_primary"]};
+        background: transparent;
+        border: none;
+        font-family: 'Segoe UI';
+        font-size: 13px;
+        font-weight: 700;
+    }}
     QPushButton:hover {{ background-color: {colors["bg_button_hover"]}; }}
     QPushButton:pressed {{ background-color: {colors["bg_button_pressed"]}; }}
     QPushButton:disabled {{ color: {colors["text_muted"]}; background-color: {colors["bg_card"]}; border-color: {colors["border_card"]}; }}
@@ -360,6 +411,15 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
         color: {colors["text_primary"]}; 
     }}
     QPushButton[buttonRole="secondary"]:hover {{ background-color: {colors["bg_button_hover"]}; }}
+    QPushButton:disabled,
+    QPushButton[buttonRole="primary"]:disabled,
+    QPushButton[buttonRole="warning"]:disabled,
+    QPushButton[buttonRole="danger"]:disabled,
+    QPushButton[buttonRole="secondary"]:disabled {{ 
+        color: {colors["text_muted"]}; 
+        background-color: {colors["bg_card"]}; 
+        border-color: {colors["border_card"]}; 
+    }}
     #HeaderIconButton {{
         background-color: transparent;
         border: none;
@@ -382,6 +442,124 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
     QScrollBar::handle:vertical:hover {{ background: {colors["text_secondary"]}; }}
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ border: none; background: none; height: 0px; }}
     QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none; }}
+    #CloudPanel {{
+        background-color: {colors["bg_card"]};
+        border: 1px solid {colors["border_card"]};
+        border-radius: 8px;
+    }}
+    #CloudPanel #CloudTitle {{
+        font-weight: 600;
+        font-size: 14px;
+        color: {colors["text_primary"]};
+    }}
+    #CloudPanel #CloudMeta {{
+        color: {colors["text_muted"]};
+        font-size: 12px;
+    }}
+    #CloudPanel QPushButton {{
+        background-color: {colors["bg_button"]};
+        border: 1px solid {colors["border_button"]};
+        border-radius: 4px;
+        color: {colors["text_primary"]};
+        font-family: 'Segoe UI';
+        font-size: 13px;
+        font-weight: 600;
+        padding: 6px 12px;
+    }}
+    #CloudPanel QPushButton:hover {{
+        background-color: {colors["bg_button_hover"]};
+    }}
+    #CloudPanel QPushButton:disabled {{
+        color: {colors["text_muted"]};
+        background-color: {colors["bg_card"]};
+        border-color: {colors["border_card"]};
+    }}
+    #CloudPanel #IconBtn {{
+        font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
+        font-size: 10px;
+        font-weight: 400;
+        color: {colors["accent_icon"]};
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        min-width: 28px;
+        max-width: 28px;
+        min-height: 28px;
+        max-height: 28px;
+    }}
+    #CloudPanel #IconBtn:hover {{
+        background-color: {colors["bg_button_hover"]};
+    }}
+    #CloudPanel #IconBtn:disabled {{
+        color: {colors["text_muted"]};
+        background-color: {colors["bg_card"]};
+        border-color: {colors["border_card"]};
+    }}
+    #CloudPanel #IconBtnRefresh {{
+        font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
+        font-size: 13px;
+        font-weight: 400;
+        color: {colors["accent_icon"]};
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        min-width: 28px;
+        max-width: 28px;
+        min-height: 28px;
+        max-height: 28px;
+    }}
+    #CloudPanel #IconBtnRefresh:hover {{
+        background-color: {colors["bg_button_hover"]};
+    }}
+    #CloudPanel #IconBtnRefresh:disabled {{
+        color: {colors["text_muted"]};
+        background-color: {colors["bg_card"]};
+        border-color: {colors["border_card"]};
+    }}
+    #CloudFolderRow {{
+        background-color: {colors["bg_button"]};
+        border: 1px solid {colors["border_button"]};
+        border-radius: 6px;
+        text-align: left;
+        padding: 0px;
+    }}
+    #CloudFolderRow:hover {{
+        background-color: {colors["bg_button_hover"]};
+        border-color: {colors["accent"]};
+    }}
+    #CloudFolderRow:disabled {{
+        background-color: {colors["bg_card"]};
+        border-color: {colors["border_card"]};
+    }}
+    #CloudFolderName {{
+        color: {colors["text_secondary"]};
+        font-family: 'Segoe UI';
+        font-size: 13px;
+        font-weight: 600;
+        background: transparent;
+    }}
+    #CloudFolderRow:hover #CloudFolderName {{
+        color: {colors["text_primary"]};
+    }}
+    #CloudFolderRow:disabled #CloudFolderName {{
+        color: {colors["text_muted"]};
+    }}
+    #CloudFolderPreview {{
+        color: {colors["text_primary"]};
+        font-size: 22px;
+        font-weight: 400;
+        background: transparent;
+    }}
+    #CloudFolderRow:disabled #CloudFolderPreview {{
+        color: {colors["text_muted"]};
+    }}
+    #CloudScroll {{
+        border: none;
+        background: transparent;
+    }}
+    #CloudScroll::viewport {{
+        background: transparent;
+    }}
     """
 
 class OperationThread(QThread):
@@ -479,7 +657,6 @@ class FlowLayout(QLayout):
 
 class BoldIconLabel(QLabel):
     BANNER_ICON_PX = 20
-    BANNER_ICON_BOLD_PX = 1.0
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -500,23 +677,17 @@ class BoldIconLabel(QLabel):
         return QSize(int(width) + 8, height + 8)
 
     def paintEvent(self, event):
+        # Plain glyph rendering (no outline stroke), matching the weight of
+        # the other chrome icons in the app.
         text = self.text()
         if not text:
             return
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
         painter.setFont(self._icon_font)
-        path = QPainterPath()
-        metrics = QFontMetrics(self._icon_font)
-        width = metrics.horizontalAdvance(text)
-        ascent = metrics.ascent()
-        descent = metrics.descent()
-        x = (self.width() - width) / 2.0
-        y = (self.height() - (ascent + descent)) / 2.0 + ascent
-        path.addText(x, y, self._icon_font, text)
-        painter.setPen(QPen(self._ink, self.BANNER_ICON_BOLD_PX, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
-        painter.setBrush(self._ink)
-        painter.drawPath(path)
+        painter.setPen(self._ink)
+        painter.drawText(self.rect(), Qt.AlignCenter, text)
         painter.end()
 
 
@@ -545,6 +716,7 @@ class StatusBanner(QFrame):
         self.text.setObjectName("BannerText")
         self.text.setWordWrap(True)
         self.text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.text.hide()
         text_layout.addWidget(self.title)
         text_layout.addWidget(self.text)
         layout.addLayout(text_layout, 1)
@@ -552,6 +724,7 @@ class StatusBanner(QFrame):
     def set_content(self, title, message):
         self.title.setText(title)
         self.text.setText(message)
+        self.text.hide()
 
     def set_icon(self, icon_char, color):
         self.icon_lbl.setText(icon_char)
@@ -662,6 +835,828 @@ class WeightCard(QFrame):
             self._font_id = -1
 
 
+class _FetchFoldersThread(QThread):
+    finished_ok = Signal(list)
+    finished_err = Signal(str)
+
+    def __init__(self, repo, branch, parent=None):
+        super().__init__(parent)
+        self._repo = repo
+        self._branch = branch
+
+    def run(self):
+        try:
+            from github_fonts import list_remote_folders
+
+            folders = list_remote_folders(repo=self._repo, branch=self._branch)
+            self.finished_ok.emit(folders)
+        except Exception as exc:
+            self.finished_err.emit(str(exc))
+
+
+class _DownloadFolderThread(QThread):
+    progress = Signal(int, str)
+    finished_ok = Signal(list)
+    finished_err = Signal(str)
+
+    def __init__(self, folder, parent=None):
+        super().__init__(parent)
+        self._folder = folder
+
+    def run(self):
+        try:
+            from github_fonts import download_folder
+
+            local_paths = download_folder(self._folder, progress=self.progress.emit)
+            self.finished_ok.emit([str(p) for p in local_paths])
+        except Exception as exc:
+            self.finished_err.emit(str(exc))
+
+
+class _LoadPreviewsThread(QThread):
+    preview_ready = Signal(str, str)
+
+    def __init__(self, folders, parent=None):
+        super().__init__(parent)
+        self._folders = folders
+
+    def run(self):
+        try:
+            from github_fonts import pick_regular_remote, download_remote_font
+            for folder in self._folders:
+                if self.isInterruptionRequested():
+                    break
+                try:
+                    reg = pick_regular_remote(folder.fonts)
+                    path = download_remote_font(reg)
+                    if self.isInterruptionRequested():
+                        break
+                    self.preview_ready.emit(folder.name, str(path))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+
+class CloudFolderRow(QPushButton):
+    """Button representing a font folder with folder name and live font preview."""
+
+    def __init__(self, folder, parent=None):
+        super().__init__(parent)
+        self.folder = folder
+        self._family_name = ""
+        self.setObjectName("CloudFolderRow")
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.TabFocus)
+        self.setFixedHeight(58)
+
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(16, 0, 16, 0)
+        lay.setSpacing(20)
+
+        self.name_label = QLabel(folder.name)
+        self.name_label.setObjectName("CloudFolderName")
+        self.name_label.setFixedWidth(175)
+        self.name_label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        lay.addWidget(self.name_label)
+
+        self.preview_label = QLabel("The quick brown fox jumps over the lazy dog")
+        self.preview_label.setObjectName("CloudFolderPreview")
+        self.preview_label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.preview_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+        lay.addWidget(self.preview_label, 1)
+
+        self.refresh_theme()
+
+    def refresh_theme(self):
+        window = self.window()
+        is_dark = getattr(window, "is_dark", None)
+        if is_dark is None:
+            is_dark = is_system_dark_mode()
+        colors = get_theme_colors(is_dark, is_windows_11())
+        text_color = colors["text_primary"] if self.isEnabled() else colors["text_muted"]
+        self.name_label.setStyleSheet(
+            f"color: {text_color}; font-size: 13px; font-weight: 600; font-family: 'Segoe UI', sans-serif; background: transparent;"
+        )
+        fam = f"font-family: '{self._family_name}', sans-serif;" if self._family_name else "font-family: 'Segoe UI', sans-serif;"
+        self.preview_label.setStyleSheet(
+            f"color: {text_color}; {fam} font-size: 22px; background: transparent;"
+        )
+
+    def set_font_family(self, family_name: str):
+        if not family_name:
+            return
+        self._family_name = family_name
+        self.refresh_theme()
+
+    def setEnabled(self, enabled):
+        super().setEnabled(enabled)
+        self.refresh_theme()
+
+
+class LocalFontsGuide(QWidget):
+    """Informational guide displayed in the empty space when no font is selected and cloud panel is closed."""
+
+    POINTS = (
+        "Keep all .ttf files in a folder and select Regular file, all other weights including mono will be auto detected",
+        "If your font lacks some weights like black italic or variable, closest suited weights will be selected for them",
+        "You have full control over weights detection, you can override all selected weights with your choice",
+    )
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("LocalFontsGuideContainer")
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        outer_lay = QVBoxLayout(self)
+        outer_lay.setContentsMargins(0, 0, 0, 0)
+        outer_lay.addStretch(1)
+
+        h_center = QHBoxLayout()
+        h_center.setContentsMargins(0, 0, 0, 0)
+        h_center.addStretch(1)
+
+        self._inner = QWidget()
+        inner_lay = QVBoxLayout(self._inner)
+        inner_lay.setContentsMargins(0, 0, 0, 0)
+        inner_lay.setSpacing(14)
+
+        self._title_lbl = QLabel("Guide to Applying Local Fonts")
+        self._title_lbl.setAlignment(Qt.AlignCenter)
+        self._title_lbl.setStyleSheet("font-size: 15px; font-weight: 600; font-family: 'Segoe UI';")
+        inner_lay.addWidget(self._title_lbl)
+
+        points_lay = QVBoxLayout()
+        points_lay.setSpacing(10)
+
+        self._labels = []
+
+        for html_text in self.POINTS:
+            lbl = QLabel()
+            lbl.setTextFormat(Qt.RichText)
+            lbl.setText(html_text)
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setWordWrap(False)
+            points_lay.addWidget(lbl, 0, Qt.AlignCenter)
+            self._labels.append(lbl)
+
+        inner_lay.addLayout(points_lay)
+        h_center.addWidget(self._inner)
+        h_center.addStretch(1)
+
+        outer_lay.addLayout(h_center)
+        outer_lay.addStretch(1)
+
+    def refresh_theme(self, is_dark: bool):
+        colors = get_theme_colors(is_dark, is_windows_11())
+        self._title_lbl.setStyleSheet(
+            f"color: {colors['text_muted']}; font-size: 14px; font-weight: 600; font-family: 'Segoe UI';"
+        )
+        for lbl in self._labels:
+            lbl.setStyleSheet(f"color: {colors['text_muted']}; font-size: 13px; font-family: 'Segoe UI';")
+
+
+class IconActionButton(QFrame):
+    """Standalone action button with an MDL2 glyph icon and a text label.
+
+    Styling matches the old split-button halves exactly: per-icon glyph
+    size at regular weight with accent ink, plus a bold Segoe UI caption.
+    Unlike the old split control, the whole button is clickable.
+    """
+
+    clicked = Signal()
+
+    _LEFT_PAD = 12
+    _ICON_GAP = 8
+    _RIGHT_PAD = 16
+
+    def __init__(self, icon_char, icon_px, icon_object_name, text, parent=None):
+        super().__init__(parent)
+        self.setObjectName("ActionButton")
+        # 36px total so the frame lines up exactly with real QPushButtons
+        # (34px QSS content height + 1px border on each side).
+        self.setFixedHeight(36)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setCursor(Qt.ArrowCursor)
+        self.setFocusPolicy(Qt.NoFocus)
+        self.setMouseTracking(True)
+        self.setAccessibleName(text)
+        self._enabled = True
+        self._hover = False
+        self._pressed = False
+        self.setProperty("pressed", False)
+        self._icon_px = icon_px
+        self._icon_label = QLabel(icon_char, self)
+        self._icon_label.setObjectName(icon_object_name)
+        self._icon_label.setAlignment(Qt.AlignCenter)
+        self._icon_label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self._text_label = QLabel(text, self)
+        self._text_label.setObjectName("ActionText")
+        self._text_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+        self._text_label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self._icon_label.raise_()
+        self._text_label.raise_()
+        self._sync_width()
+        self.refresh_action_style()
+
+    def text(self):
+        try:
+            return self._text_label.text()
+        except RuntimeError:
+            return ""
+
+    def _sync_width(self):
+        # Frame width follows the caption: pad + icon + gap + text + pad.
+        try:
+            metrics = QFontMetrics(self._text_label.font())
+            text_w = int(metrics.horizontalAdvance(self.text()))
+        except RuntimeError:
+            text_w = 90
+        icon_w = self._icon_px + 12
+        total = self._LEFT_PAD + icon_w + self._ICON_GAP + text_w + self._RIGHT_PAD
+        try:
+            self.setFixedWidth(max(110, int(total)))
+        except RuntimeError:
+            pass
+        self._layout_content()
+
+    def _layout_content(self):
+        try:
+            width, height = self.width(), self.height()
+        except RuntimeError:
+            return
+        icon_w = self._icon_px + 12
+        try:
+            self._icon_label.setGeometry(self._LEFT_PAD, 1, icon_w, max(1, height - 2))
+            tx = self._LEFT_PAD + icon_w + self._ICON_GAP
+            self._text_label.setGeometry(
+                tx, 1, max(1, width - tx - self._RIGHT_PAD + 4), max(1, height - 2))
+        except RuntimeError:
+            pass
+
+    def setEnabled(self, enabled):
+        super().setEnabled(enabled)
+        self._enabled = bool(enabled)
+        if not enabled:
+            self._hover = False
+            self._pressed = False
+        self._paint_pressed(False)
+        self.refresh_action_style()
+
+    def hideEvent(self, event):
+        self._hover = False
+        self._pressed = False
+        self._paint_pressed(False)
+        super().hideEvent(event)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._layout_content()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        # QSS font resolves on polish: re-measure once it is real.
+        self._sync_width()
+
+    def refresh_action_style(self):
+        """Caption/icon ink follows state/role (set in code, not QSS).
+
+        Qt mis-applies ancestor pseudo-state selectors (e.g. a disabled
+        parent greying labels out like disabled controls), so the ink is
+        set here instead of in QSS.
+        """
+        window = self.window()
+        is_dark = getattr(window, "is_dark", None)
+        if is_dark is None:
+            is_dark = is_system_dark_mode()
+        colors = get_theme_colors(is_dark)
+        role = self.property("buttonRole") or "secondary"
+        if not self._enabled:
+            icon_ink = colors["text_muted"]
+            text_ink = colors["text_muted"]
+        elif role in ("primary", "warning"):
+            icon_ink = colors["accent_text"]
+            text_ink = colors["accent_text"]
+        else:
+            icon_ink = colors["accent_icon"]
+            text_ink = colors["text_primary"]
+        try:
+            self._icon_label.setStyleSheet(f"color: {icon_ink};")
+            self._text_label.setStyleSheet(f"color: {text_ink};")
+        except RuntimeError:
+            pass
+
+    def _paint_pressed(self, pressed):
+        # QFrame gets no :pressed pseudo-state, so the press fill is
+        # driven by a dynamic property + QSS. Never an inline
+        # stylesheet: an inline background on the frame cascades onto
+        # the transparent icon/caption labels and double-darkens them
+        # in patches (grey boxes behind icon and text on click).
+        if not self._enabled:
+            pressed = False
+        try:
+            if bool(self.property("pressed")) != bool(pressed):
+                self.setProperty("pressed", bool(pressed))
+                self.style().unpolish(self)
+                self.style().polish(self)
+                self.update()
+        except RuntimeError:
+            pass
+
+    def mouseMoveEvent(self, event):
+        if self._enabled:
+            try:
+                inside = self.rect().contains(
+                    int(event.position().x()), int(event.position().y()))
+            except (AttributeError, RuntimeError):
+                inside = True
+            self._hover = bool(inside)
+            self.setCursor(Qt.PointingHandCursor if inside else Qt.ArrowCursor)
+        super().mouseMoveEvent(event)
+
+    def enterEvent(self, event):
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self._hover = False
+        self._pressed = False
+        self.setCursor(Qt.ArrowCursor)
+        self._paint_pressed(False)
+        super().leaveEvent(event)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton and self._enabled:
+            self._pressed = True
+            self._paint_pressed(True)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            pressed = self._pressed
+            self._pressed = False
+            self._paint_pressed(False)
+            if pressed and self._enabled and self.rect().contains(int(event.position().x()), int(event.position().y())):
+                event.accept()
+                self.clicked.emit()
+                return
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+
+class CloudFolderPanel(QFrame):
+    """Inline (non-popup) dropdown listing the folders of the GitHub fonts repo."""
+
+    downloaded = Signal(list)
+    closed = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("CloudPanel")
+        self.hide()
+        self._folders = []
+        self._fetch_thread = None
+        self._dl_thread = None
+        self._preview_thread = None
+        self._preview_font_ids = []
+        self._row_map = {}
+        self._is_hiding = False
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setSpacing(12)
+
+        header = QHBoxLayout()
+        header.setSpacing(8)
+        title = QLabel("Download fonts to apply")
+        title.setObjectName("CloudTitle")
+        header.addWidget(title)
+        header.addStretch(1)
+        refresh_btn = QPushButton(chr(0xE7AD))
+        refresh_btn.setObjectName("IconBtnRefresh")
+        refresh_btn.setCursor(Qt.PointingHandCursor)
+        refresh_btn.setToolTip("Refresh folder list")
+        refresh_btn.setAccessibleName("Refresh folder list")
+        refresh_btn.clicked.connect(lambda: self.start_fetch(force=True))
+        header.addWidget(refresh_btn)
+        close_btn = QPushButton(chr(0xE8BB))
+        close_btn.setObjectName("IconBtn")
+        close_btn.setCursor(Qt.PointingHandCursor)
+        close_btn.setToolTip("Close")
+        close_btn.setAccessibleName("Close cloud panel")
+        close_btn.clicked.connect(self._on_close)
+        header.addWidget(close_btn)
+        layout.addLayout(header)
+
+        self.status_lbl = QLabel("Loading folder list…")
+        self.status_lbl.setObjectName("CloudMeta")
+        self.status_lbl.setWordWrap(True)
+        layout.addWidget(self.status_lbl)
+
+        self.scroll = QScrollArea()
+        self.scroll.setObjectName("CloudScroll")
+        # The scroll area itself otherwise paints an opaque palette.Window
+        # fill, which shows as window-colored stripes in the row gaps.
+        self.scroll.setAutoFillBackground(False)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.NoFrame)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        # The viewport otherwise paints an opaque palette background, which
+        # turns the translucent row colors opaque (white rows in dark mode).
+        self.scroll.viewport().setAutoFillBackground(False)
+        self._scroll_geom_key = None
+        self._rows_container = QWidget()
+        self._rows_container.setAutoFillBackground(False)
+        self._rows_layout = QVBoxLayout(self._rows_container)
+        self._rows_layout.setContentsMargins(0, 0, 0, 0)
+        self._rows_layout.setSpacing(8)
+        self._rows_layout.addStretch(1)
+        self.scroll.setWidget(self._rows_container)
+        # setWidget() re-enables auto-fill on the widget: switch it back
+        # off or the palette.Window fill shows in the row gaps.
+        self._rows_container.setAutoFillBackground(False)
+        layout.addWidget(self.scroll)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        # The page layout may have shifted (e.g. preview cards appearing),
+        # so re-measure after this show settles.
+        QTimer.singleShot(0, self.sync_height)
+
+    def sync_height(self, window_height=None):
+        try:
+            lay = self._rows_container.layout()
+            heights = []
+            spacing = 0
+            margins = 0
+            if lay is not None:
+                spacing = int(lay.spacing())
+                try:
+                    cm = lay.contentsMargins()
+                    margins = int(cm.top()) + int(cm.bottom())
+                except RuntimeError:
+                    margins = 0
+                for i in range(lay.count()):
+                    item = lay.itemAt(i)
+                    if item is None:
+                        continue
+                    widget = item.widget()
+                    if widget is None:
+                        continue
+                    try:
+                        # Polish first: an unpolished row reports its unstyled
+                        # sizeHint (~25px) instead of the real QSS height (~48px),
+                        # which used to pin the viewport far too small.
+                        widget.ensurePolished()
+                        heights.append(max(0, int(widget.sizeHint().height())))
+                    except RuntimeError:
+                        continue
+            content = sum(heights)
+            if len(heights) > 1:
+                content += spacing * (len(heights) - 1)
+            # The layout margins are real pixels the container needs; leaving
+            # them out pinned the viewport 1px short and produced a scrollbar
+            # with a ~1px range that moved nothing.
+            content += margins
+            if heights:
+                content += 6
+            # Show up to 5 rows; anything beyond that scrolls inside the list.
+            shown = heights[:5]
+            target = sum(shown)
+            if len(shown) > 1:
+                target += spacing * (len(shown) - 1)
+            if shown:
+                target += margins + 6
+        except RuntimeError:
+            content = 0
+            target = 0
+        if window_height is None:
+            try:
+                win = self.window()
+                window_height = win.height() if win is not None else 650
+            except RuntimeError:
+                window_height = 650
+        try:
+            cap = max(60, min(560, int(round(float(window_height) * 0.45))))
+        except (TypeError, ValueError):
+            cap = 360
+        # Never let the panel overflow the window: measure what the visible
+        # siblings (banner, setup card, variant cards…) already occupy and
+        # cap the list to what is actually left.
+        try:
+            win_h = int(round(float(window_height)))
+            parent = self.parentWidget()
+            play = parent.layout() if parent is not None else None
+            if play is not None and win_h > 0:
+                used = 0
+                sibs = 0
+                for j in range(play.count()):
+                    sub = play.itemAt(j)
+                    sib = sub.widget() if sub is not None else None
+                    if sib is None or sib is self or not sib.isVisibleTo(parent):
+                        continue
+                    used += max(0, int(sib.height()))
+                    sibs += 1
+                try:
+                    pm = play.contentsMargins()
+                    used += int(pm.top()) + int(pm.bottom())
+                except RuntimeError:
+                    pass
+                try:
+                    used += int(play.spacing()) * max(0, sibs)
+                except RuntimeError:
+                    pass
+                if used > 0:
+                    avail = win_h - used - 16
+                    panel_chrome = 0
+                    lay_self = self.layout()
+                    if lay_self is not None:
+                        cm_self = lay_self.contentsMargins()
+                        panel_chrome += int(cm_self.top()) + int(cm_self.bottom())
+                        spacing_self = int(lay_self.spacing())
+                        for k in range(lay_self.count()):
+                            item_self = lay_self.itemAt(k)
+                            w_self = item_self.widget() if item_self is not None else None
+                            if w_self is not None and w_self is not self.scroll:
+                                if w_self.isVisible() and (not isinstance(w_self, QLabel) or w_self.text()):
+                                    panel_chrome += max(0, int(w_self.sizeHint().height())) + spacing_self
+                            elif item_self is not None and item_self.layout() is not None:
+                                panel_chrome += max(0, int(item_self.layout().sizeHint().height())) + spacing_self
+                    avail_for_scroll = max(60, avail - panel_chrome)
+                    cap = min(cap, avail_for_scroll)
+        except (RuntimeError, TypeError, ValueError):
+            pass
+        content = max(0, int(content))
+        target = max(0, int(target))
+        # Pin the container to at least the measured row stack. If the
+        # layout ever goes stale-short, rows overflow the container and the
+        # scrollbar maximum strands users above the last row (first-row
+        # sliver on top, cut last row at max scroll). A minimum height equal
+        # to the real content makes scroll-end exact by construction; when
+        # healthy it equals the layout height, i.e. a no-op.
+        try:
+            self._rows_container.setMinimumHeight(content)
+        except RuntimeError:
+            pass
+        if getattr(self, "_scroll_geom_key", None) == (cap, content):
+            return
+        self._scroll_geom_key = (cap, content)
+        height = min(target, cap)
+        try:
+            self.scroll.setMinimumHeight(height)
+            self.scroll.setMaximumHeight(height)
+            # One full row pitch per wheel notch; the default step stops
+            # mid-row and feels stuck.
+            self.scroll.verticalScrollBar().setSingleStep(66)
+            self.scroll.updateGeometry()
+        except RuntimeError:
+            pass
+        try:
+            win = self.window()
+            if win is not None and win.layout() is not None:
+                win.layout().activate()
+        except RuntimeError:
+            pass
+
+    def start_fetch(self, force=False):
+        if self._fetch_thread and self._fetch_thread.isRunning():
+            return
+        if not force and self._folders and self._rows_layout.count() > 1:
+            self.sync_height()
+            return
+        if not self._folders or self._rows_layout.count() <= 1:
+            self._clear_rows()
+            self._set_status("Loading fonts…")
+        else:
+            self._set_status("Refreshing fonts…")
+        self._fetch_thread = _FetchFoldersThread(GITHUB_FONTS_REPO, GITHUB_FONTS_BRANCH, self)
+        self._fetch_thread.finished_ok.connect(self._on_fetch_ok)
+        self._fetch_thread.finished_err.connect(self._on_fetch_err)
+        self._fetch_thread.finished.connect(self._fetch_thread.deleteLater)
+        self._fetch_thread.start()
+
+    def _on_fetch_ok(self, folders):
+        self._fetch_thread = None
+        self._folders = folders
+        self._clear_rows()
+        if not folders:
+            self._set_status("Fonts couldn't be loaded.")
+            return
+        self._row_map = {}
+        for folder in folders:
+            row = CloudFolderRow(folder)
+            row.clicked.connect(lambda _checked=False, f=folder: self._on_folder_clicked(f))
+            self._rows_layout.insertWidget(self._rows_layout.count() - 1, row)
+            self._row_map[folder.name] = row
+        self._set_status("")
+        self.sync_height()
+        # Re-measure once the event loop has polished and laid out the new
+        # rows (folder list arriving while preview cards shift the page).
+        QTimer.singleShot(0, self.sync_height)
+        self._start_preview_loading(folders)
+
+    def _start_preview_loading(self, folders):
+        uncached_folders = []
+        try:
+            from github_fonts import get_cache_dir, _safe_folder_name, pick_regular_remote
+            cache_root = get_cache_dir()
+            for folder in folders:
+                try:
+                    reg = pick_regular_remote(folder.fonts)
+                    target = cache_root / _safe_folder_name(folder.folder) / reg.name
+                    if target.exists() and reg.size and target.stat().st_size == reg.size:
+                        self._apply_preview_font(folder.name, str(target))
+                    else:
+                        uncached_folders.append(folder)
+                except Exception:
+                    uncached_folders.append(folder)
+        except Exception:
+            uncached_folders = list(folders)
+
+        if uncached_folders:
+            if self._preview_thread and self._preview_thread.isRunning():
+                try:
+                    self._preview_thread.requestInterruption()
+                    self._preview_thread.quit()
+                    self._preview_thread.wait(300)
+                except Exception:
+                    pass
+            self._preview_thread = _LoadPreviewsThread(uncached_folders, self)
+            self._preview_thread.preview_ready.connect(self._apply_preview_font)
+            self._preview_thread.finished.connect(self._preview_thread.deleteLater)
+            self._preview_thread.start()
+
+    def _apply_preview_font(self, folder_name: str, path_str: str):
+        row = self._row_map.get(folder_name)
+        if not row:
+            return
+        try:
+            font_id = QFontDatabase.addApplicationFont(path_str)
+            if font_id >= 0:
+                self._preview_font_ids.append(font_id)
+                families = QFontDatabase.applicationFontFamilies(font_id)
+                if families:
+                    row.set_font_family(families[0])
+        except Exception:
+            pass
+
+    def _set_status(self, text):
+        # An empty status takes no space, keeping the first entry tight
+        # under the header instead of leaving a dead gap.
+        self.status_lbl.setText(text or "")
+        self.status_lbl.setVisible(bool(text))
+
+    def _on_fetch_err(self, message):
+        self._fetch_thread = None
+        text = str(message or "")
+        if "403" in text or "rate limit" in text.lower():
+            self._set_status("Fonts couldn't be loaded. Please try again in an hour.")
+        else:
+            self._set_status("Fonts couldn't be loaded. Check your internet connection.")
+
+    def _row_text(self, folder):
+        return folder.name.replace("&", "&&")
+
+    def _clear_rows(self):
+        self._row_map.clear()
+        while self._rows_layout.count() > 1:
+            item = self._rows_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+        self.sync_height()
+
+    def _set_rows_enabled(self, enabled):
+        for i in range(self._rows_layout.count() - 1):
+            widget = self._rows_layout.itemAt(i).widget()
+            if widget is not None:
+                widget.setEnabled(enabled)
+
+    def _on_folder_clicked(self, folder):
+        if self._dl_thread and self._dl_thread.isRunning():
+            return
+        self._set_rows_enabled(False)
+        self._set_status("Downloading…")
+        self._dl_thread = _DownloadFolderThread(folder, self)
+        self._dl_thread.progress.connect(self._on_dl_progress)
+        self._dl_thread.finished_ok.connect(self._on_dl_ok)
+        self._dl_thread.finished_err.connect(self._on_dl_err)
+        self._dl_thread.finished.connect(self._dl_thread.deleteLater)
+        self._dl_thread.start()
+
+    def _on_dl_progress(self, pct, name):
+        self._set_status(f"Downloading… {int(pct)}%")
+
+    def _on_dl_ok(self, local_paths):
+        self._dl_thread = None
+        self._set_rows_enabled(True)
+        self._set_status("")
+        self.downloaded.emit(local_paths)
+        QTimer.singleShot(0, self.sync_height)
+
+    def _on_dl_err(self, message):
+        self._dl_thread = None
+        self._set_rows_enabled(True)
+        # Never surface file names, counts, or errnos: tell the user what
+        # to do instead. Throttling backs off on its own; anything else is
+        # almost always the connection.
+        lowered = (message or "").lower()
+        if "403" in lowered or "429" in lowered or "rate limit" in lowered:
+            self._set_status("Too many downloads right now. Try again in an hour.")
+        else:
+            self._set_status("Download failed. Check your internet and try again.")
+
+    def refresh_theme(self):
+        for i in range(self._rows_layout.count() - 1):
+            widget = self._rows_layout.itemAt(i).widget()
+            if isinstance(widget, CloudFolderRow):
+                widget.refresh_theme()
+
+    def _on_close(self):
+        self.animate_hide()
+
+    def reset(self):
+        if self._dl_thread and self._dl_thread.isRunning():
+            return False
+        self._kill_anim()
+        self._is_hiding = False
+        self.setMaximumHeight(16777215)
+        self.setEnabled(True)
+        self._set_status("")
+        self.hide()
+        return True
+
+    def _kill_anim(self):
+        anim = getattr(self, "_height_anim", None)
+        if anim is not None:
+            try:
+                anim.stop()
+            except RuntimeError:
+                pass
+            self._height_anim = None
+
+    def animate_show(self, window_height=None):
+        """Expand the panel smoothly with a slide-down animation."""
+        if self._dl_thread and self._dl_thread.isRunning():
+            return False
+        self._kill_anim()
+        self._is_hiding = False
+        self.setEnabled(True)
+        self._set_status("")
+        self.sync_height(window_height)
+        target = max(60, self.sizeHint().height())
+        self.setMaximumHeight(0)
+        self.show()
+        self.raise_()
+        anim = QPropertyAnimation(self, b"maximumHeight", self)
+        anim.setStartValue(0)
+        anim.setEndValue(target)
+        anim.setDuration(200)
+        anim.setEasingCurve(QEasingCurve.OutCubic)
+
+        def _on_show_done():
+            self._height_anim = None
+            self.setMaximumHeight(16777215)
+            self.sync_height()
+
+        anim.finished.connect(_on_show_done)
+        self._height_anim = anim
+        anim.start()
+        return True
+
+    def animate_hide(self):
+        """Collapse the panel with a short animation. Refuses (False) while
+        a download is running, so the list can't be yanked away mid-fetch."""
+        if self._dl_thread and self._dl_thread.isRunning():
+            return False
+        if not self.isVisible():
+            return True
+        self._kill_anim()
+        self._is_hiding = True
+        self.setEnabled(False)
+        start = max(1, self.height())
+        self.setMaximumHeight(start)
+        anim = QPropertyAnimation(self, b"maximumHeight", self)
+        anim.setStartValue(start)
+        anim.setEndValue(0)
+        anim.setDuration(180)
+        anim.setEasingCurve(QEasingCurve.InCubic)
+        anim.finished.connect(self._on_hide_anim_done)
+        self._height_anim = anim
+        anim.start()
+        return True
+
+    def _on_hide_anim_done(self):
+        self._is_hiding = False
+        self._height_anim = None
+        self.setMaximumHeight(16777215)
+        self.setEnabled(True)
+        self._set_status("")
+        self.hide()
+        self.closed.emit()
+
 
 def _star_outline_3d():
     points = []
@@ -672,7 +1667,59 @@ def _star_outline_3d():
     return points
 
 
-def _render_star3d(angle_deg, px=96):
+def _render_star_satin(px=96, palette=None):
+    """Option 1 Clean Satin Star in accent theme color.
+    Smooth vertical gradient, zero white glare in middle, no dark outline stroke.
+    """
+    image = QImage(px, px, QImage.Format_ARGB32_Premultiplied)
+    image.fill(Qt.transparent)
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    center = px / 2.0
+    scale = px * 0.42
+    outline = _star_outline_3d()
+    pts = [QPointF(center + x * scale, center - y * scale) for x, y in outline]
+    poly = QPolygonF(pts)
+
+    grad = QLinearGradient(center, center - scale, center, center + scale)
+    hi = (palette.get("hi") if isinstance(palette, dict) else None) or "#60CDFF"
+    mid = (palette.get("mid") if isinstance(palette, dict) else None) or "#0078D4"
+    grad.setColorAt(0.0, QColor(hi))
+    grad.setColorAt(1.0, QColor(mid))
+
+    painter.setPen(Qt.NoPen)
+    painter.setBrush(grad)
+    painter.drawPolygon(poly)
+    painter.end()
+    return QPixmap.fromImage(image)
+
+
+def _render_star_flat(angle_deg=0.0, px=96):
+    return _render_star3d(angle_deg, px=px)
+
+
+def _render_star3d(angle_deg, px=96, palette=None):
+    if palette is None:
+        colors = get_theme_colors(True)
+        base = QColor(colors.get("accent", "#0078D4"))
+        hi = QColor(colors.get("accent_icon", colors.get("accent", "#60CDFF")))
+        if hi == base:
+            hi = base.lighter(135)
+        pal = {
+            "hi": hi,
+            "mid": base,
+            "deep": base.darker(135),
+            "edge": base.darker(165),
+            "side": base.lighter(110),
+        }
+    else:
+        pal = {
+            "hi": QColor(palette["hi"]),
+            "mid": QColor(palette["mid"]),
+            "deep": QColor(palette["deep"]),
+            "edge": QColor(palette["edge"]),
+            "side": QColor(palette["side"]),
+        }
     theta = math.radians(angle_deg)
     cos_t = math.cos(theta)
     sin_t = math.sin(theta)
@@ -733,19 +1780,20 @@ def _render_star3d(angle_deg, px=96):
     else:
         ordered = [layers["front"], *layers["sides"], layers["back"]]
 
-    def shaded(base, facing_value):
+    def shaded(color, facing_value):
+        c = QColor(color)
         brightness = 0.65 + 0.35 * max(0.0, facing_value)
         return QColor(
-            max(0, min(255, int(base[0] * brightness))),
-            max(0, min(255, int(base[1] * brightness))),
-            max(0, min(255, int(base[2] * brightness))),
+            max(0, min(255, int(c.red() * brightness))),
+            max(0, min(255, int(c.green() * brightness))),
+            max(0, min(255, int(c.blue() * brightness))),
         )
 
     image = QImage(px, px, QImage.Format_ARGB32_Premultiplied)
     image.fill(Qt.transparent)
     painter = QPainter(image)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-    pen = QPen(QColor(136, 92, 0))
+    pen = QPen(pal["edge"])
     pen.setWidthF(max(1.0, px * 0.022))
     pen.setJoinStyle(Qt.RoundJoin)
     front_facing_camera = cos_t >= 0.0
@@ -756,9 +1804,9 @@ def _render_star3d(angle_deg, px=96):
         is_camera_facing_star = (kind == "front" and front_facing_camera) or (kind == "back" and not front_facing_camera)
         if is_camera_facing_star:
             puff = QRadialGradient(center, center - scale * 0.30, scale * 1.15)
-            puff.setColorAt(0.0, QColor(255, 236, 158))
-            puff.setColorAt(0.55, QColor(255, 197, 61))
-            puff.setColorAt(1.0, QColor(238, 136, 0))
+            puff.setColorAt(0.0, pal["hi"])
+            puff.setColorAt(0.55, pal["mid"])
+            puff.setColorAt(1.0, pal["deep"])
             painter.setBrush(puff)
             painter.setPen(pen)
             painter.drawPolygon(poly)
@@ -768,23 +1816,19 @@ def _render_star3d(angle_deg, px=96):
             painter.setClipPath(clip)
             painter.setPen(Qt.NoPen)
             shade_grad = QLinearGradient(0, center - scale * 0.1, 0, center + scale)
-            shade_grad.setColorAt(0.0, QColor(160, 70, 0, 0))
-            shade_grad.setColorAt(1.0, QColor(150, 62, 0, 85))
+            shade_grad.setColorAt(0.0, QColor(pal["deep"].red(), pal["deep"].green(), pal["deep"].blue(), 0))
+            shade_grad.setColorAt(1.0, QColor(pal["deep"].red(), pal["deep"].green(), pal["deep"].blue(), 85))
             painter.setBrush(shade_grad)
             painter.drawRect(int(center - scale), int(center - scale), int(scale * 2), int(scale * 2))
-            spec = QRadialGradient(
-                center - scale * 0.33, center - scale * 0.36, scale * 0.24
-            )
-            spec.setColorAt(0.0, QColor(255, 255, 255, 240))
+            spec = QRadialGradient(center - scale * 0.22, center - scale * 0.32, scale * 0.65)
+            spec.setColorAt(0.0, QColor(255, 255, 255, 120))
+            spec.setColorAt(0.45, QColor(255, 255, 255, 35))
             spec.setColorAt(1.0, QColor(255, 255, 255, 0))
             painter.setBrush(spec)
-            painter.drawEllipse(QRectF(
-                center - scale * 0.55, center - scale * 0.50,
-                scale * 0.44, scale * 0.28,
-            ))
+            painter.drawRect(int(center - scale), int(center - scale), int(scale * 2), int(scale * 2))
             painter.restore()
         else:
-            base = (215, 155, 25) if kind in ("front", "back") else (248, 190, 32)
+            base = pal["mid"] if kind in ("front", "back") else pal["side"]
             painter.setPen(pen if kind in ("front", "back") else Qt.NoPen)
             painter.setBrush(shaded(base, facing_value))
             painter.drawPolygon(poly)
@@ -803,8 +1847,8 @@ class FontWizardApp(QMainWindow):
             self.setWindowIcon(QIcon(str(icon_path)))
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(f"fontwizard.{APP_NAME}.1")
 
-        self.setMinimumSize(600, 500)
-        self.resize(920, 720)
+        self.setMinimumSize(980, 600)
+        self.resize(1050, 650)
         self._selection_dirty = False
         self._hide_applied_variants = True
         self._apply_action = "apply"
@@ -818,6 +1862,7 @@ class FontWizardApp(QMainWindow):
         self._op_cover_btn = None
         self._armed_at = 0.0
         self._star_active = False
+        self._cloud_open = False
         self._cards_sig = None
         self._last_theme_sig = None
         self._variant_geom_key = None
@@ -836,9 +1881,12 @@ class FontWizardApp(QMainWindow):
         self._build_font_setup()
         self._build_variants()
         self.main_layout.addStretch(1)
-        self._action_buttons = (self.browse_btn, self.apply_btn, self.restore_btn)
+        self._action_buttons = (self.local_btn, self.fetch_btn, self.apply_btn, self.restore_btn)
 
-        self.browse_btn.clicked.connect(self.on_browse)
+        self.local_btn.clicked.connect(self._on_local_pick)
+        self.fetch_btn.clicked.connect(self._on_cloud_toggle)
+        self.cloud_panel.downloaded.connect(self._on_cloud_downloaded)
+        self.cloud_panel.closed.connect(self._on_cloud_closed)
         self.apply_btn.clicked.connect(self.on_apply_action)
         self.restore_btn.clicked.connect(self.on_restore)
 
@@ -905,7 +1953,7 @@ class FontWizardApp(QMainWindow):
         title_row_layout.addWidget(self.github_btn, 0, Qt.AlignBottom)
         text_layout.addWidget(title_row, 0, Qt.AlignLeft)
 
-        subtitle = QLabel("Customize your system font")
+        subtitle = QLabel("Customize your system fonts")
         subtitle.setObjectName("AppSubtitle")
         subtitle.setFixedHeight(20)
         subtitle.setAlignment(Qt.AlignLeft | Qt.AlignTop)
@@ -946,21 +1994,28 @@ class FontWizardApp(QMainWindow):
         self.actions_layout.setContentsMargins(0, 0, 0, 0)
         self.actions_layout.setSpacing(10)
 
-        self.browse_btn = QPushButton("Select Font")
+        self.local_btn = IconActionButton(chr(0xE8E5), 18, "ActionIconLocal", "Local Fonts")
+        self.fetch_btn = IconActionButton(chr(0xE753), 24, "ActionIconFetch", "Fetch Fonts")
         self.apply_btn = QPushButton("Apply Changes")
         self.restore_btn = QPushButton("Restore Original Fonts")
 
-        for button in (self.browse_btn, self.apply_btn, self.restore_btn):
-            button.setCursor(Qt.PointingHandCursor)
+        self.local_btn.setToolTip("From this PC")
+        self.fetch_btn.setToolTip("From cloud")
+        for button in (self.apply_btn, self.restore_btn):
             button.setFixedHeight(34)
             button.setMinimumWidth(150)
+        for button in (self.local_btn, self.fetch_btn, self.apply_btn, self.restore_btn):
+            button.setCursor(Qt.PointingHandCursor)
             button.setFocusPolicy(Qt.NoFocus)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.installEventFilter(self)
-            self.actions_layout.addWidget(button)
+            self.actions_layout.addWidget(button, 0, Qt.AlignVCenter)
 
         self.setup_layout.addWidget(self.actions_widget, 0, Qt.AlignVCenter)
         self.main_layout.addWidget(self.setup_card)
+
+        self.cloud_panel = CloudFolderPanel()
+        self.main_layout.addWidget(self.cloud_panel)
 
     def _build_variants(self):
         self.variants_header = QWidget()
@@ -993,6 +2048,8 @@ class FontWizardApp(QMainWindow):
         self.main_layout.addWidget(self.empty_variants, 1000)
 
         self.weight_scroll = QScrollArea(objectName="WeightScrollArea")
+        # Same opaque-fill hazard as the cloud list: keep it transparent.
+        self.weight_scroll.setAutoFillBackground(False)
         self.weight_scroll.setWidgetResizable(True)
         self.weight_scroll.setFrameShape(QFrame.NoFrame)
         self.weight_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -1000,14 +2057,19 @@ class FontWizardApp(QMainWindow):
         self.weight_scroll.hide()
 
         self.weight_widget = QWidget(objectName="WeightContainer")
-        self.weight_widget.setAttribute(Qt.WA_TranslucentBackground, True)
         self.weight_widget.setAutoFillBackground(False)
         self.weight_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.weight_layout = FlowLayout(self.weight_widget, margin=0, spacing=16)
         self.weight_layout.setContentsMargins(0, 0, 0, 0)
 
         self.weight_scroll.setWidget(self.weight_widget)
+        # setWidget() re-enables auto-fill on the widget (see cloud list).
+        self.weight_widget.setAutoFillBackground(False)
+        self.weight_scroll.viewport().installEventFilter(self)
         self.main_layout.addWidget(self.weight_scroll, 1000)
+
+        self.local_fonts_guide = LocalFontsGuide()
+        self.main_layout.addWidget(self.local_fonts_guide, 1000)
 
     def _set_button_role(self, button, role):
         if button.property("buttonRole") == role:
@@ -1016,12 +2078,22 @@ class FontWizardApp(QMainWindow):
         button.style().unpolish(button)
         button.style().polish(button)
         button.update()
+        refresh = getattr(button, "refresh_action_style", None)
+        if refresh:
+            refresh()
 
     def _apply_widget_theme(self):
         for button in self._action_buttons:
             button.style().unpolish(button)
             button.style().polish(button)
             button.update()
+            refresh = getattr(button, "refresh_action_style", None)
+            if refresh:
+                refresh()
+        if hasattr(self, "cloud_panel"):
+            self.cloud_panel.refresh_theme()
+        if hasattr(self, "local_fonts_guide"):
+            self.local_fonts_guide.refresh_theme(self.is_dark)
 
     def _update_github_icon(self):
         if not hasattr(self, "github_btn"):
@@ -1040,8 +2112,8 @@ class FontWizardApp(QMainWindow):
             except Exception:
                 pixmap = QPixmap()
             _github_icon_cache[self.is_dark] = pixmap
-        pixmap = _github_icon_cache[self.is_dark]
-        if not pixmap.isNull():
+        pixmap = _github_icon_cache.get(self.is_dark)
+        if pixmap and not pixmap.isNull():
             try:
                 self.github_btn.setIcon(QIcon(pixmap))
                 return
@@ -1056,10 +2128,44 @@ class FontWizardApp(QMainWindow):
     _STAR_SHOW_MS = 13000
     _STAR_SPIN_DELAY_MS = 350
 
+    def _star_palette(self):
+        """Accent-derived palette for the 3D coin-flip star (theme-dynamic)."""
+        colors = get_theme_colors(self.is_dark)
+        base = QColor(colors["accent"])
+        hi = QColor(colors.get("accent_icon", colors["accent"]))
+        if hi == base:
+            hi = base.lighter(135)
+        return {
+            "hi": hi,
+            "mid": base,
+            "deep": base.darker(135),
+            "edge": base.darker(165),
+            "side": base.lighter(110),
+        }
+
     def _on_github_clicked(self):
         QDesktopServices.openUrl(QUrl(APP_GITHUB_URL))
         if getattr(self, "_star_active", False):
             self._restore_github_logo()
+
+    def _stop_star_anim(self):
+        try:
+            self._star_timer.stop()
+        except (RuntimeError, AttributeError):
+            pass
+        spin = getattr(self, "_star_spin_anim", None)
+        if spin is not None:
+            try:
+                spin.stop()
+            except RuntimeError:
+                pass
+            self._star_spin_anim = None
+        button = getattr(self, "github_btn", None)
+        if button is not None:
+            try:
+                button.setGraphicsEffect(None)
+            except RuntimeError:
+                pass
 
     def _morph_to_star(self):
         if getattr(self, "_star_active", False):
@@ -1079,7 +2185,8 @@ class FontWizardApp(QMainWindow):
         def _swap_to_star():
             if not self._star_active:
                 return
-            button.setIcon(QIcon(_render_star3d(0.0)))
+            button.setIcon(QIcon(_render_star3d(0.0, palette=self._star_palette())))
+            self._star_angle = 0.0
             button.setIconSize(QSize(12, 12))
             button.setText("")
             fade_in = QPropertyAnimation(effect, b"opacity", self)
@@ -1109,21 +2216,25 @@ class FontWizardApp(QMainWindow):
         spin.setEasingCurve(QEasingCurve.InOutQuad)
         spin.valueChanged.connect(self._spin_star_frame)
         spin.finished.connect(self._finish_star_spin)
+        self._star_spin_anim = spin
         spin.start(QAbstractAnimation.DeleteWhenStopped)
 
     def _spin_star_frame(self, angle):
         if not getattr(self, "_star_active", False):
             return
         try:
-            self.github_btn.setIcon(QIcon(_render_star3d(angle)))
+            self._star_angle = float(angle)
+            self.github_btn.setIcon(QIcon(_render_star3d(angle, palette=self._star_palette())))
         except Exception:
             pass
 
     def _finish_star_spin(self):
+        self._star_spin_anim = None
         if not getattr(self, "_star_active", False):
             return
         try:
-            self.github_btn.setIcon(QIcon(_render_star3d(0.0)))
+            self._star_angle = 0.0
+            self.github_btn.setIcon(QIcon(_render_star3d(0.0, palette=self._star_palette())))
         except Exception:
             pass
 
@@ -1141,6 +2252,23 @@ class FontWizardApp(QMainWindow):
         button.setAccessibleName("GitHub")
         button.setIconSize(QSize(20, 20))
         self._update_github_icon()
+        # Instant swap, then fade the logo back in (mirrors the 160ms
+        # fade-in the star uses on the way out).
+        try:
+            effect = QGraphicsOpacityEffect(button)
+            effect.setOpacity(0.0)
+            button.setGraphicsEffect(effect)
+            fade_in = QPropertyAnimation(effect, b"opacity", self)
+            fade_in.setDuration(160)
+            fade_in.setStartValue(0.0)
+            fade_in.setEndValue(1.0)
+            fade_in.finished.connect(lambda: button.setGraphicsEffect(None))
+            fade_in.start(QAbstractAnimation.DeleteWhenStopped)
+        except (RuntimeError, AttributeError):
+            try:
+                button.setGraphicsEffect(None)
+            except RuntimeError:
+                pass
 
     def _apply_theme(self, is_dark: bool):
         if getattr(self, "_is_updating_theme", False):
@@ -1153,6 +2281,11 @@ class FontWizardApp(QMainWindow):
             self._update_github_icon()
             self._apply_widget_theme()
             self.refresh_all()
+            if getattr(self, "_star_active", False):
+                try:
+                    self.github_btn.setIcon(QIcon(_render_star3d(getattr(self, "_star_angle", 0.0), palette=self._star_palette())))
+                except Exception:
+                    pass
         finally:
             self._is_updating_theme = False
 
@@ -1179,27 +2312,60 @@ class FontWizardApp(QMainWindow):
         super().keyPressEvent(event)
 
     def eventFilter(self, watched, event):
+        try:
+            weight_vp = (
+                self.weight_scroll.viewport()
+                if getattr(self, "weight_scroll", None) is not None
+                else None
+            )
+        except RuntimeError:
+            # Widget already destroyed during teardown; never touch it.
+            weight_vp = None
+        if (
+            weight_vp is not None
+            and watched is weight_vp
+            and event.type() == QEvent.Type.Resize
+        ):
+            # A scrollbar showing/hiding re-wraps the flow into a different
+            # row count; re-pin the container after Qt settles so the pinned
+            # height can never drift from the real layup.
+            QTimer.singleShot(0, self._resync_variant_height)
         if watched is self._armed_button:
-            if event.type() == QEvent.Type.Enter:
-                self._paint_arm_halves(hover=True)
-            elif event.type() == QEvent.Type.Leave:
-                self._paint_arm_halves(hover=False)
+            etype = event.type()
+            if etype in (QEvent.Type.Enter, QEvent.Type.MouseMove):
+                try:
+                    x = event.position().x()
+                except AttributeError:
+                    x = event.pos().x()
+                half = self._arm_half_at(x, watched.width())
+                if getattr(self, "_armed_hover_half", None) != half:
+                    self._armed_hover_half = half
+                    self._paint_arm_halves(half)
+            elif etype == QEvent.Type.Leave:
+                if getattr(self, "_armed_hover_half", None) is not None:
+                    self._armed_hover_half = None
+                    self._paint_arm_halves(None)
         if (
             watched is self._armed_button
             and event.type() == QEvent.Type.MouseButtonRelease
             and event.button() == Qt.MouseButton.LeftButton
         ):
             try:
-                x = event.position().x()
+                pos = event.position()
+                x, y = pos.x(), pos.y()
             except AttributeError:
-                x = event.pos().x()
-            if (
-                x < watched.width() * self._CONFIRM_FRACTION
-                and time.monotonic() - self._armed_at >= self._ARM_DELAY_S
-            ):
+                x, y = event.pos().x(), event.pos().y()
+            inside = watched.rect().contains(int(x), int(y))
+            left_half = x < watched.width() * self._CONFIRM_FRACTION
+            ready = time.monotonic() - self._armed_at >= self._ARM_DELAY_S
+            if inside and left_half and ready:
                 action = self._armed_action
                 self._disarm()
                 action()
+            elif inside and left_half:
+                # Early left-half click: ignore and stay armed, so a fast
+                # double-click reads as "confirm" rather than "cancel".
+                pass
             else:
                 self._disarm()
             return True
@@ -1216,6 +2382,12 @@ class FontWizardApp(QMainWindow):
         super().resizeEvent(event)
         self._sync_responsive_layout()
         self._sync_variant_layout_height()
+        panel = getattr(self, "cloud_panel", None)
+        if panel is not None:
+            try:
+                panel.sync_height(self.height())
+            except RuntimeError:
+                pass
         if self._armed_button is not None:
             self._layout_arm_halves()
         cover = getattr(self, "_op_cover", None)
@@ -1251,19 +2423,58 @@ class FontWizardApp(QMainWindow):
         if not self.weight_scroll.isVisible() or self.weight_layout.count() == 0:
             self.weight_widget.setMinimumHeight(0)
             self.weight_widget.setMaximumHeight(16777215)
+            # Forget the key while hidden: the next show must re-pin.
+            # Keeping it let a later sync early-return while the container
+            # was unpinned (collapsed to the viewport), which made the list
+            # scroll through dead space past the last card.
+            self._variant_geom_key = None
             return
 
-        viewport_width = self.weight_scroll.viewport().width()
-        if viewport_width <= 0:
-            viewport_width = self.weight_scroll.width()
-        geom_key = (viewport_width, self.weight_layout.count())
+        # Pin to the height the cards ACTUALLY occupy. A separate
+        # heightForWidth() pass can disagree with the real layup (stale
+        # viewport width, different column count after a scrollbar toggles,
+        # unpolished cards), and any leftover shows up as empty rows past
+        # the last card plus extra scroll range.
+        content_height = 0
+        for i in range(self.weight_layout.count()):
+            item = self.weight_layout.itemAt(i)
+            card = item.widget() if item is not None else None
+            if card is None:
+                continue
+            try:
+                g = card.geometry()
+            except RuntimeError:
+                continue
+            content_height = max(content_height, g.y() + g.height())
+        if content_height <= 0:
+            # Cards not laid out yet (first build): estimate from the flow.
+            viewport_width = self.weight_scroll.viewport().width()
+            if viewport_width <= 0:
+                viewport_width = self.weight_scroll.width()
+            content_height = max(
+                0, int(self.weight_layout.heightForWidth(max(0, viewport_width)))
+            )
+
+        geom_key = (self.weight_layout.count(), content_height)
         if geom_key == getattr(self, "_variant_geom_key", None):
             return
         self._variant_geom_key = geom_key
-        content_height = self.weight_layout.heightForWidth(viewport_width) + 16
-        self.weight_widget.setMinimumHeight(content_height)
-        self.weight_widget.setMaximumHeight(content_height)
+        try:
+            self.weight_widget.setMinimumHeight(content_height)
+            self.weight_widget.setMaximumHeight(content_height)
+        except RuntimeError:
+            return
         self.weight_widget.updateGeometry()
+
+    def _resync_variant_height(self):
+        try:
+            if not hasattr(self, "weight_scroll"):
+                return
+            if self.weight_scroll.isVisible() and self.weight_layout.count():
+                self.weight_layout.activate()
+            self._sync_variant_layout_height()
+        except RuntimeError:
+            pass
 
     def nativeEvent(self, event_type, message):
         if event_type != b"windows_generic_MSG":
@@ -1288,7 +2499,7 @@ class FontWizardApp(QMainWindow):
     _ARMED_FONT_FAMILY = "Segoe MDL2 Assets"
     _ARMED_FONT_SIZE = 24
     _ARMED_CROSS_SIZE = 20
-    _ARM_DELAY_S = 0.6
+    _ARM_DELAY_S = 0.3
     _CONFIRM_FRACTION = 0.5
 
     def _arm_or_confirm(self, button, kind):
@@ -1328,8 +2539,13 @@ class FontWizardApp(QMainWindow):
         for label in self._arm_labels:
             label.setAttribute(Qt.WA_TransparentForMouseEvents)
             label.setAlignment(Qt.AlignCenter)
+        self._armed_hover_half = None
+        try:
+            button.setMouseTracking(True)
+        except RuntimeError:
+            pass
         self._layout_arm_halves()
-        self._paint_arm_halves(hover=False)
+        self._paint_arm_halves(None)
         for label in self._arm_labels:
             label.show()
         button.setAccessibleDescription("Armed. Activate the left side or press Enter to confirm, or press Escape to cancel.")
@@ -1343,26 +2559,37 @@ class FontWizardApp(QMainWindow):
         try:
             width, height = button.width(), button.height()
             mid = width // 2
-            labels[0].setGeometry(1, 1, max(1, mid - 1), max(1, height - 2))
-            labels[1].setGeometry(mid, 1, max(1, width - mid - 1), max(1, height - 2))
+            labels[0].setGeometry(0, 0, mid, height)
+            labels[1].setGeometry(mid, 0, width - mid, height)
         except RuntimeError:
             pass
 
-    def _paint_arm_halves(self, hover):
+    def _arm_half_at(self, x, width):
+        try:
+            return 0 if float(x) < float(width) * self._CONFIRM_FRACTION else 1
+        except (TypeError, ValueError):
+            return 0
+
+    def _paint_arm_halves(self, half):
         labels = getattr(self, "_arm_labels", None)
         face = getattr(self, "_armed_face", None)
         if not labels or not face:
             return
-        background = face["hover"] if hover else face["bg"]
         for index, label in enumerate(labels):
+            background = face["hover"] if index == half else face["bg"]
             try:
                 size = self._ARMED_CROSS_SIZE if index == 1 else self._ARMED_FONT_SIZE
                 divider = "border: none;"
+                radius_css = (
+                    "border-top-left-radius: 4px; border-bottom-left-radius: 4px; border-top-right-radius: 0px; border-bottom-right-radius: 0px;"
+                    if index == 0
+                    else "border-top-right-radius: 4px; border-bottom-right-radius: 4px; border-top-left-radius: 0px; border-bottom-left-radius: 0px;"
+                )
                 label.setText(self._ARMED_TICK if index == 0 else self._ARMED_CROSS)
                 label.setStyleSheet(
                     f"font-family: '{self._ARMED_FONT_FAMILY}'; "
                     f"font-size: {size}px; "
-                    f"color: {face['ink']}; background-color: {background}; {divider}"
+                    f"color: {face['ink']}; background-color: {background}; {divider} {radius_css}"
                 )
             except RuntimeError:
                 pass
@@ -1380,6 +2607,7 @@ class FontWizardApp(QMainWindow):
         self._armed_button = None
         self._armed_action = None
         self._armed_face = None
+        self._armed_hover_half = None
         for label in (getattr(self, "_arm_labels", None) or ()):
             try:
                 label.hide()
@@ -1392,26 +2620,70 @@ class FontWizardApp(QMainWindow):
                 button.setAccessibleDescription("")
             except RuntimeError:
                 pass
+            try:
+                button.setMouseTracking(False)
+            except RuntimeError:
+                pass
 
-    def on_browse(self):
-        if self._browse_action == "restart":
-            self._arm_or_confirm(self.browse_btn, "restart")
-            return
+    def _on_local_pick(self):
         font_path, _ = QFileDialog.getOpenFileName(
             self,
             "Select Static TrueType Font",
             "",
             "Static TrueType fonts (*.ttf)",
         )
-        if font_path:
-            try:
-                self.controller.set_regular_font(font_path)
-            except Exception as exc:
-                QMessageBox.warning(self, "Font not supported", str(exc))
-                return
-            self._selection_dirty = True
-            self._hide_applied_variants = False
-            self.refresh_all()
+        if not font_path:
+            return
+        # A local pick replaces the cloud list — hide it (unless a cloud
+        # download is actively running, in which case animate_hide() refuses).
+        self._set_cloud_closed()
+        self.cloud_panel.animate_hide()
+        self._select_regular(font_path)
+
+    def _select_regular(self, font_path):
+        try:
+            self.controller.set_regular_font(font_path)
+        except Exception as exc:
+            QMessageBox.warning(self, "Font not supported", str(exc))
+            return False
+        self._selection_dirty = True
+        self._hide_applied_variants = False
+        self.refresh_all()
+        return True
+
+    def _on_cloud_toggle(self):
+        # The fetch button only ever shows the panel; hiding is the close
+        # button's job, so a second click must not toggle it away.
+        if self.cloud_panel.isVisible() and not getattr(self.cloud_panel, "_is_hiding", False):
+            return
+        # Preview cards step aside while the cloud list is open; the
+        # panel's height cap reads sibling sizes, so it grows into the
+        # freed space on its own.
+        self._cloud_open = True
+        self.refresh_all()
+        self.cloud_panel.sync_height(self.height())
+        self.cloud_panel.animate_show(self.height())
+        self.cloud_panel.start_fetch(force=False)
+
+    def _set_cloud_closed(self):
+        self._cloud_open = False
+        self.refresh_all()
+
+    def _on_cloud_closed(self):
+        self._set_cloud_closed()
+
+    def _on_cloud_downloaded(self, local_paths):
+        if not local_paths:
+            return
+        try:
+            from github_fonts import pick_regular
+
+            primary = pick_regular([Path(p) for p in local_paths])
+        except Exception:
+            primary = Path(local_paths[0])
+        self._set_cloud_closed()
+        if self._select_regular(str(primary)):
+            self.cloud_panel.animate_hide()
 
     def on_apply_action(self):
         if self._apply_action == "restart":
@@ -1429,10 +2701,11 @@ class FontWizardApp(QMainWindow):
         colors = get_theme_colors(self.is_dark)
         cover = QLabel(text, btn)
         cover.setAlignment(Qt.AlignCenter)
-        cover.setGeometry(1, 1, max(1, btn.width() - 2), max(1, btn.height() - 2))
+        cover.setGeometry(0, 0, btn.width(), btn.height())
         cover.setStyleSheet(
             "font-family: 'Segoe UI'; font-size: 13px; font-weight: 600; "
-            f"color: {colors['accent_text']}; background-color: {colors['accent']};"
+            f"color: {colors['accent_text']}; background-color: {colors['accent']}; "
+            f"border: 1px solid {colors['accent']}; border-radius: 4px;"
         )
         cover.show()
         self._op_cover = cover
@@ -1496,17 +2769,19 @@ class FontWizardApp(QMainWindow):
 
         is_pending = report.install_state in ("pending_reboot_apply", "pending_reboot_recovery")
         if not report.is_supported:
-            self.banner.set_icon("\uEA39", colors["accent"])
+            self.banner.set_icon("\uEA39", colors["accent_icon"])
         elif not report.is_admin:
-            self.banner.set_icon("\uE7BA", colors["accent"])
+            self.banner.set_icon("\uE83D", colors["accent_icon"])
         elif is_pending:
-            self.banner.set_icon("\uE777", colors["accent"])
+            self.banner.set_icon("\uE895", colors["accent_icon"])
         elif report.install_state == "managed":
-            self.banner.set_icon("\uE73E", colors["accent"])
+            self.banner.set_icon("\uE930", colors["accent_icon"])
+        elif report.install_state == "partial":
+            self.banner.set_icon("\uEA39", colors["accent_icon"])
         elif report.issues:
-            self.banner.set_icon("\uEA39", colors["accent"])
+            self.banner.set_icon("\uEA39", colors["accent_icon"])
         else:
-            self.banner.set_icon("\uE946", colors["accent"])
+            self.banner.set_icon("\uE930", colors["accent_icon"])
 
         self.banner.set_content(report.headline, report.summary)
 
@@ -1520,7 +2795,6 @@ class FontWizardApp(QMainWindow):
             self._browse_action = "select"
             self._apply_action = "restart"
             self._restore_action = "restart"
-            browse_text = "Select Font"
             apply_text = "Restart Windows"
             restore_text = "Restart Windows"
             apply_visible = True
@@ -1538,7 +2812,6 @@ class FontWizardApp(QMainWindow):
                 self._apply_action = "restart"
                 apply_text = "Restart Windows"
                 apply_available = True
-            browse_text = "Change Font" if has_selected_font else "Select Font"
             restore_text = "Restore Original Fonts"
             apply_visible = True
             restore_visible = False
@@ -1547,18 +2820,18 @@ class FontWizardApp(QMainWindow):
             self._browse_action = "select"
             self._apply_action = "apply"
             self._restore_action = "restore"
-            browse_text = "Change Font" if has_selected_font else "Select Font"
             apply_text = "Apply Changes"
+            apply_available = can_apply
             restore_text = "Restore Original Fonts"
             apply_visible = has_selected_font
-            restore_visible = not has_selected_font and report.install_state == "managed"
+            restore_visible = report.install_state in ("managed", "partial")
             apply_available = apply_visible and can_apply
             restore_available = restore_visible and report.can_restore_defaults
 
-        self.browse_btn.setText(browse_text)
-        self.browse_btn.setEnabled(not is_recovery_pending)
-        self.browse_btn.setVisible(not is_recovery_pending)
-        self.browse_btn.setToolTip("")
+        self.local_btn.setEnabled(not is_recovery_pending)
+        self.local_btn.setVisible(not is_recovery_pending)
+        self.fetch_btn.setEnabled(not is_recovery_pending)
+        self.fetch_btn.setVisible(not is_recovery_pending)
 
         self.apply_btn.setText(apply_text)
         self.apply_btn.setEnabled(apply_available)
@@ -1583,11 +2856,12 @@ class FontWizardApp(QMainWindow):
         else:
             self.restore_btn.setToolTip("")
 
-        browse_role = "secondary" if (has_selected_font or is_pending) else "primary"
+        fetch_role = "secondary" if (has_selected_font or is_pending) else "primary"
         apply_role = "primary"
         restore_role = "secondary"
 
-        self._set_button_role(self.browse_btn, browse_role)
+        self._set_button_role(self.local_btn, "secondary")
+        self._set_button_role(self.fetch_btn, fetch_role)
         self._set_button_role(self.apply_btn, apply_role)
         self._set_button_role(self.restore_btn, restore_role)
 
@@ -1658,21 +2932,73 @@ class FontWizardApp(QMainWindow):
         else:
             cards_added = self.weight_layout.count()
 
-        show_variant_section = has_selected_font and not is_recovery_pending
+        show_variant_section = (
+            has_selected_font
+            and not is_recovery_pending
+            and not getattr(self, "_cloud_open", False)
+        )
         has_variants = show_variant_section and cards_added > 0
         self.variant_count_lbl.setText(f"{cards_added} styles" if has_variants else "No preview")
 
         self.variants_header.setVisible(show_variant_section)
         self.empty_variants.setVisible(show_variant_section and not has_variants)
         self.weight_scroll.setVisible(has_variants)
+        if hasattr(self, "local_fonts_guide"):
+            show_guide = (
+                not has_selected_font
+                and not is_recovery_pending
+                and not getattr(self, "_cloud_open", False)
+            )
+            self.local_fonts_guide.setVisible(show_guide)
         if has_variants:
             self.weight_widget.show()
-        self._sync_variant_layout_height()
+        # Lay the cards first, then pin to their real geometry: syncing
+        # before activate() measured a stale or estimated layup.
         self.weight_layout.activate()
+        self._sync_variant_layout_height()
         self.weight_widget.update()
+
+    def closeEvent(self, event):
+        op_thread = getattr(self, "_op_thread", None)
+        if op_thread is not None and op_thread.isRunning():
+            event.ignore()
+            return
+        try:
+            self._stop_star_anim()
+        except Exception:
+            pass
+        try:
+            panel = getattr(self, "cloud_panel", None)
+            if panel is not None:
+                panel._kill_anim()
+                preview_thread = getattr(panel, "_preview_thread", None)
+                if preview_thread is not None and preview_thread.isRunning():
+                    try:
+                        preview_thread.requestInterruption()
+                        preview_thread.wait(200)
+                    except Exception:
+                        pass
+                fetch_thread = getattr(panel, "_fetch_thread", None)
+                if fetch_thread is not None and fetch_thread.isRunning():
+                    try:
+                        fetch_thread.wait(200)
+                    except Exception:
+                        pass
+                dl_thread = getattr(panel, "_dl_thread", None)
+                if dl_thread is not None and dl_thread.isRunning():
+                    try:
+                        dl_thread.wait(200)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        event.accept()
 
     def run(self):
         self.show()
+        # Re-assert the default size once native: creating the native
+        # window during __init__ (mica/winId) eats ~20px of height.
+        self.resize(1050, 650)
         return QApplication.instance().exec()
 
 if __name__ == "__main__":

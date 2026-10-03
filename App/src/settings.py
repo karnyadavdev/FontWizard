@@ -7,6 +7,13 @@ APP_NAME = "Font Wizard"
 APP_GITHUB_URL = "https://github.com/karnyadavdev/FontWizard"
 SCHEMA_VERSION = 1
 
+# Optional GitHub repo to fetch curated .ttf fonts from.
+# Default points at the user's own collection: https://github.com/karnyadavdev/Fonts
+# Override with env vars FONTWIZARD_FONTS_REPO / FONTWIZARD_FONTS_BRANCH if needed.
+GITHUB_FONTS_REPO = os.environ.get("FONTWIZARD_FONTS_REPO", "karnyadavdev/Fonts")
+GITHUB_FONTS_BRANCH = os.environ.get("FONTWIZARD_FONTS_BRANCH", "main")
+GITHUB_FONTS_URL = f"https://github.com/{GITHUB_FONTS_REPO}"
+
 SUPPORTED_WINDOWS_MAJOR = 10
 WINDOWS_10_MIN_BUILD = 10240
 WINDOWS_11_BUILD = 22000

@@ -276,7 +276,11 @@ def build_artifacts(workflow, entries, stage_dir):
         if entry.weight == "consolas_regular":
             mono_regular_entry = entry
 
-        segoe_path = workflow.identity_fonts_root / entry.system_filename
+        backup_segoe = workflow.paths.backup_root / entry.system_filename
+        if backup_segoe.exists() and backup_segoe.stat().st_size > 50_000:
+            segoe_path = backup_segoe
+        else:
+            segoe_path = workflow.identity_fonts_root / entry.system_filename
         output_path = stage_dir / entry.system_filename
 
         if entry.system_filename.lower() == "seguivar.ttf":
@@ -310,7 +314,11 @@ def build_artifacts(workflow, entries, stage_dir):
         if is_mono:
             companions = get_existing_mono_companions(workflow.identity_fonts_root)
             for companion_file, companion_reg_name in companions.items():
-                companion_sys_path = workflow.identity_fonts_root / companion_file
+                backup_comp = workflow.paths.backup_root / companion_file
+                if backup_comp.exists() and backup_comp.stat().st_size > 50_000:
+                    companion_sys_path = backup_comp
+                else:
+                    companion_sys_path = workflow.identity_fonts_root / companion_file
                 companion_out_path = stage_dir / companion_file
                 build_font(mono_regular_entry.source_path, companion_sys_path, companion_out_path)
                 _verify_build_output(companion_out_path, companion_sys_path)

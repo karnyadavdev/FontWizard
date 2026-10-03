@@ -38,19 +38,32 @@ class FontWizardController:
     def refresh_preflight(self):
         report = self.preflight.collect()
 
-        if report.install_state == "clean" and report.managed_state_valid:
+        if report.managed_state_valid:
             state = self.state_store.load()
-            if state and state.get("install", {}).get("status") in (
-                "pending_reboot",
-                "pending_reboot_recovery",
-                "pending_reboot_apply",
-            ):
-                state["install"]["status"] = "clean"
-                try:
-                    self.state_store.save(state)
-                except OSError as exc:
-                    import logging
-                    logging.getLogger(__name__).warning("Failed to save state during preflight refresh: %s", exc)
+            if state:
+                status = state.get("install", {}).get("status")
+                if report.install_state == "clean" and status in (
+                    "pending_reboot",
+                    "pending_reboot_recovery",
+                    "pending_reboot_apply",
+                ):
+                    state["install"]["status"] = "clean"
+                    try:
+                        self.state_store.save(state)
+                    except OSError:
+                        pass
+                elif report.install_state == "managed" and status == "pending_reboot_apply":
+                    state["install"]["status"] = "managed"
+                    try:
+                        self.state_store.save(state)
+                    except OSError:
+                        pass
+                elif report.install_state == "partial" and status != "partial":
+                    state["install"]["status"] = "partial"
+                    try:
+                        self.state_store.save(state)
+                    except OSError:
+                        pass
 
         return report
 

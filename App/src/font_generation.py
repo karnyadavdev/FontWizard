@@ -21,6 +21,11 @@ def read_segoe_identity(segoe_path):
         except AttributeError:
             identity["os2_panose"] = None
 
+        if hasattr(font["OS/2"], "usLowerOpticalPointSize"):
+            identity["usLowerOpticalPointSize"] = font["OS/2"].usLowerOpticalPointSize
+        if hasattr(font["OS/2"], "usUpperOpticalPointSize"):
+            identity["usUpperOpticalPointSize"] = font["OS/2"].usUpperOpticalPointSize
+
         for record in font["name"].names:
             try:
                 identity["name_records"].append(
@@ -95,9 +100,9 @@ def apply_identity(font, identity):
 
     if target_os2_version >= 5:
         if not hasattr(os2, "usLowerOpticalPointSize"):
-            os2.usLowerOpticalPointSize = 0
+            os2.usLowerOpticalPointSize = identity.get("usLowerOpticalPointSize", 0)
         if not hasattr(os2, "usUpperOpticalPointSize"):
-            os2.usUpperOpticalPointSize = 0xFFFF / 20
+            os2.usUpperOpticalPointSize = identity.get("usUpperOpticalPointSize", 0xFFFF // 20)
 
     os2.version = target_os2_version
     os2.usWeightClass = identity["os2_weight"]
