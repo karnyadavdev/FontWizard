@@ -31,10 +31,9 @@
 ## 📥 Download 
 > Download latest release [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
 
-<br> or
-<br>
 
-### Install from Microsoft servers, run in terminal
+
+### Install from Microsoft servers
 
 ```powershell
 winget install -e --id karnyadavdev.FontWizard
