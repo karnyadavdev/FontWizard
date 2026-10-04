@@ -57,7 +57,7 @@
 |Category|Registry Hacks|Winaero Tweaker|Font Wizard|
 |-|:-:|:-:|:-:|
 |**Old Win32 Apps** (Control Panel, etc)|✅|✅|✅|
-|**Modern apps (WPF, WinUI, UWP)**|❌|❌|✅|
+|**Modern apps (WinUI, UWP)**|❌|❌|✅|
 |**System Shell, settings, explorer, etc**|❌|❌|✅|
 |**Electron \& Chromium Apps** (VS Code, Whatsapp, Discord, etc)|❌|❌|✅|
 |**System Icons \& Glyph Preservation**|⚠️|⚠️|✅|
