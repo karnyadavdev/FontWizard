@@ -3,7 +3,7 @@
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
 
-<h1 align="center"> Font Wizard 5</h1>
+<h1 align="center"> Font Wizard </h1>
 
 <p align="center">
   <b>Change Windows 11 & 10 system font Everywhere</b>.
@@ -18,6 +18,28 @@
 
 
 ---
+
+|Category|Registry Hacks|Winaero Tweaker|Font Wizard|
+|-|:-:|:-:|:-:|
+|**Old Win32 Apps** (Control Panel, etc)|✅|✅|✅|
+|**Modern apps (WinUI, UWP)**|❌|❌|✅|
+|**System Shell, settings, explorer, etc**|❌|❌|✅|
+|**Electron \& Chromium Apps** (VS Code, Whatsapp, Discord, etc)|❌|❌|✅|
+|**System Icons \& Glyph Preservation**|⚠️|⚠️|✅|
+|**1-Click Revert to Original fonts (Segoe UI)**|❌|⚠️|✅|
+---
+## 📥 Download 
+> Download latest release [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
+
+<br> or
+<br>
+
+### Install from Microsoft servers, run in terminal
+
+```powershell
+winget install -e --id karnyadavdev.FontWizard
+```
+
 
 
 
@@ -53,28 +75,6 @@
 
 
 ---
-
-|Category|Registry Hacks|Winaero Tweaker|Font Wizard|
-|-|:-:|:-:|:-:|
-|**Old Win32 Apps** (Control Panel, etc)|✅|✅|✅|
-|**Modern apps (WinUI, UWP)**|❌|❌|✅|
-|**System Shell, settings, explorer, etc**|❌|❌|✅|
-|**Electron \& Chromium Apps** (VS Code, Whatsapp, Discord, etc)|❌|❌|✅|
-|**System Icons \& Glyph Preservation**|⚠️|⚠️|✅|
-|**1-Click Revert to Original fonts (Segoe UI)**|❌|⚠️|✅|
----
-## 📥 Download 
-> Download latest release [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
-
-<br> or
-<br>
-
-### Install from Microsoft servers, run in terminal
-
-```powershell
-winget install -e --id karnyadavdev.FontWizard
-```
-
 
 ---
 
