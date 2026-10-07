@@ -6,7 +6,7 @@
 <h1 align="center"> Font Wizard 5</h1>
 
 <p align="center">
-  <b>Change Windows 11 & 10 system font Everywhere</b>. <br> <b> Start, Taskbar, Lockscreen, Context Menu, Old apps, New UWP & WinUI apps and all third party apps built on any framework</b>
+  <b>Change Windows 11 & 10 system font Everywhere</b>. <br>  Start, Taskbar, Lockscreen, Context Menu, Old apps, New UWP & WinUI apps <br> and all third party apps built on any framework
 </p>
 
 ---
@@ -36,14 +36,21 @@ winget install -e --id karnyadavdev.FontWizard
 
 
 ---
+<b>
+> Font Wizard does not mess with Windows font rendering or font's height or width or spacing or anything visual related <br> 
+So you get most accurate look as fonts designers intended them to look
+</b> 
 
-|Category|Registry Hacks|Winaero Tweaker|Font Wizard|
+<br>
+<br>
+
+|Category|Registry Hacks|Winaero Tweaker & Others|Font Wizard|
 |-|:-:|:-:|:-:|
 |**Old Win32 Apps** (Control Panel, etc)|✅|✅|✅|
 |**Modern apps (WinUI, UWP)**|❌|❌|✅|
 |**System Shell, settings, explorer, etc**|❌|❌|✅|
-|**Electron \& Chromium Apps** (VS Code, Whatsapp, Discord, etc)|❌|❌|✅|
-|**1-click Apply & 1-click Restore back Default fonts**|❌|⚠️|✅|
+|**Electron apps** (VS Code, Whatsapp, Discord, etc)|❌|❌|✅|
+|**1-click Apply & 1-click Restore Default fonts**|❌|⚠️|✅|
 
 
 
