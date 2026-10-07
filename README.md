@@ -12,14 +12,14 @@
 ---
 <table>
 <tr>
-<td width="50%" valign="top">
+<td width="50%" align="center" valign="top">
 
 ## 📥 Download
 
 > Download latest release [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
 
 </td>
-<td width="50%" valign="top">
+<td width="50%" align="center" valign="top">
 
 ### Install from Microsoft servers
 
