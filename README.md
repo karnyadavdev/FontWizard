@@ -21,7 +21,7 @@
 </td>
 <td width="50%" align="center" valign="top">
 
-### Install from Microsoft servers
+### Install from Microsoft servers via Terminal
 
 ```powershell
 winget install -e --id karnyadavdev.FontWizard
