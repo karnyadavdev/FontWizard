@@ -47,7 +47,7 @@ winget install -e --id karnyadavdev.FontWizard
 |-|:-:|:-:|:-:|
 |**Old Win32 Apps** (Control Panel, etc)|✅|✅|✅|
 |**Modern apps (WinUI, UWP)**|❌|❌|✅|
-|**System Shell, settings, explorer, etc**|❌|❌|✅|
+|**System Shell, settings, context menu, etc**|❌|❌|✅|
 |**Electron apps** (VS Code, Whatsapp, Discord, etc)|❌|❌|✅|
 |**1-click Apply & 1-click Restore Default fonts**|❌|⚠️|✅|
 
