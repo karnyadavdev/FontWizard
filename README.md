@@ -43,7 +43,7 @@ winget install -e --id karnyadavdev.FontWizard
 <br>
 <br>
 
-|Category|Registry Hacks|Winaero Tweaker & Others|Font Wizard|
+|Examples|Registry Hacks|Winaero Tweaker & Others|Font Wizard|
 |-|:-:|:-:|:-:|
 |**Old Win32 Apps** (Control Panel, etc)|✅|✅|✅|
 |**Modern apps (WinUI, UWP)**|❌|❌|✅|
