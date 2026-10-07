@@ -9,7 +9,27 @@
   <b>Change Windows 11 & 10 system font Everywhere</b>. <br> <b> Start, Taskbar, Lockscreen, Context Menu, old apps, New UWP & WinUI apps, all third party apps built on any framework</b>
 </p>
 
+---
+<table>
+<tr>
+<td width="50%" valign="top">
 
+## 📥 Download
+
+> Download latest release [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
+
+</td>
+<td width="50%" valign="top">
+
+### Install from Microsoft servers
+
+```powershell
+winget install -e --id karnyadavdev.FontWizard
+```
+
+</td>
+</tr>
+</table>
 
 
 
@@ -23,19 +43,7 @@
 |**Modern apps (WinUI, UWP)**|❌|❌|✅|
 |**System Shell, settings, explorer, etc**|❌|❌|✅|
 |**Electron \& Chromium Apps** (VS Code, Whatsapp, Discord, etc)|❌|❌|✅|
-|**System Icons \& Glyph Preservation**|⚠️|⚠️|✅|
-|**1-Click Revert to Original fonts (Segoe UI)**|❌|⚠️|✅|
----
-## 📥 Download 
-> Download latest release [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
-
-
-
-### Install from Microsoft servers
-
-```powershell
-winget install -e --id karnyadavdev.FontWizard
-```
+|**1-Click apply & Restore back Default fonts**|❌|⚠️|✅|
 
 
 
