@@ -35,23 +35,6 @@ winget install -e --id karnyadavdev.FontWizard
 
 
 
----
-
-> Note: Font Wizard don't touch Windows font rendering or font's height or width or spacing or anything visual related, So you get most accurate look as font's designers intended
-
-
-<br>
-<br>
-
-|Examples|Registry Hacks|Winaero Tweaker & Others|Font Wizard|
-|-|:-:|:-:|:-:|
-|**Old Win32 Apps** (Control Panel, etc)|✅|✅|✅|
-|**Modern apps (WinUI, UWP)**|❌|❌|✅|
-|**System Shell, settings, context menu, etc**|❌|❌|✅|
-|**Electron apps** (VS Code, Whatsapp, Discord, etc)|❌|❌|✅|
-|**1-click Apply & 1-click Restore Default fonts**|❌|⚠️|✅|
-
-
 
 
 ## 📸 Screenshots
