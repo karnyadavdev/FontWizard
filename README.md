@@ -12,9 +12,6 @@
   <img src="https://img.shields.io/badge/Downloads-2.5K%2B-brightgreen?style=for-the-badge&logo=github&labelColor=555">
   
  
-  <a href="https://github.com/karnyadavdev/FontWizard/stargazers">
-    <img src="https://img.shields.io/github/stars/karnyadavdev/FontWizard?style=for-the-badge&logo=github&label=Stars" alt="Stars">
-  </a>
 </p>
 
 ---
