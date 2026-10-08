@@ -10,26 +10,6 @@
 </p>
 
 ---
-<table>
-<tr>
-<td width="50%" align="center" valign="top">
-
-## 📥 Download
-
-> Download latest release [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
-
-</td>
-<td width="50%" align="center" valign="top">
-
-### Install from Microsoft servers via Terminal
-
-```powershell
-winget install -e --id karnyadavdev.FontWizard
-```
-
-</td>
-</tr>
-</table>
 
 
 
@@ -37,7 +17,7 @@ winget install -e --id karnyadavdev.FontWizard
 
 
 
-## 📸 Screenshots
+ <h1 align="center">📸 Screenshots</h1>
 
 
 <p align="center">
@@ -63,7 +43,26 @@ winget install -e --id karnyadavdev.FontWizard
 
 
 ---
+<table>
+<tr>
+<td width="50%" align="center" valign="top">
 
+## 📥 Download
+
+> Download latest release [**here**](https://github.com/karnyadavdev/fontwizard/releases/latest)
+
+</td>
+<td width="50%" align="center" valign="top">
+
+### Install from Microsoft servers via Terminal
+
+```powershell
+winget install -e --id karnyadavdev.FontWizard
+```
+
+</td>
+</tr>
+</table>
 ## Build from Source
 
 
