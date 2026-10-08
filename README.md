@@ -37,7 +37,7 @@ winget install -e --id karnyadavdev.FontWizard
 
 ---
 
-> Note: Font Wizard don't touch Windows font rendering or font's height or width or spacing or anything visual related, So you get most accurate look as fonts designers intended
+> Note: Font Wizard don't touch Windows font rendering or font's height or width or spacing or anything visual related, So you get most accurate look as font's designers intended
 
 
 <br>
