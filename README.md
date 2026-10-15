@@ -62,6 +62,7 @@ winget install -e --id karnyadavdev.FontWizard
 </td>
 </tr>
 </table>
+
 ## Build from Source
 
 
