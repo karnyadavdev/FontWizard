@@ -44,7 +44,7 @@
 
 ---
 
-### Install from Microsoft servers via Terminal
+### If you wish to install via terminal
 
 ```powershell
 winget install -e --id karnyadavdev.FontWizard
