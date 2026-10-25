@@ -6,7 +6,7 @@
 <h1 align="center"> Font Wizard 5</h1>
 
 <p align="center">
-  <b>Change Windows 11 & 10 system font Everywhere</b>. <br>  Start, Taskbar, Lockscreen, Old Apps, New UWP & WinUI apps, everywhere <br><br> ⭐ New Version will release on reaching 200 stars 
+  <b>Change Windows 11 & 10 system font Everywhere</b>. <br>  Start, Taskbar, Lockscreen, Old Apps, New UWP & WinUI apps, everywhere <br>
   
 
 
