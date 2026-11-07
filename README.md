@@ -1,4 +1,5 @@
->v5.5 with support for chinese,korean,japanese,etc users is ready and will be released on nov 9, it will also fix the issue of english fonts not changing in chinese apps for users who use english but stay in china or other other countries 
+>Note: v6 is ready and will be released on November 9, bringing support for Chinese, Korean, Japanese, and users of other languages.
+It will also fix an issue where English fonts fail to change in apps that use Chinese or other non-English languages. This particularly affects users who prefer English but live in China or other countries where different languages are commonly used.
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
