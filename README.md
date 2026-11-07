@@ -1,4 +1,6 @@
->Note: Version 6 is ready for release on November 9, adding support for Chinese, Korean, Japanese, and other languages. It also fixes an issue where English text in non-English apps continued to use Segoe UI, affecting users who have set their device language to English but use apps designed for other languages.
+>Note: Version 6 is ready for release on November 9, bringing support for Chinese, Korean, Japanese, and other languages.<br><br>
+It also fixes an issue where English text continued to use Segoe UI in non-English apps, affecting users who have set their device language to English but live in countries where apps are primarily designed for other languages.<br><br>
+Additionally, excessive empty spacing above and below text in fonts not designed primarily for UI use has now been fixed. Previously, some fonts like Google Sans (designed for the web use only) could introduce extra vertical space, making UI elements and containers unnecessarily tall. You can now use these fonts without affecting the UI layout.
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
