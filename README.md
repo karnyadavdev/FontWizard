@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
+  <img src="App/src/assets/svg-code-2048x2048.png" alt="Font Wizard" width="110"/>
 </p>
 
 <h1 align="center"> Font Wizard 6</h1>
