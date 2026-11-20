@@ -1,4 +1,4 @@
->Note: Font sizing & clipping issues and also Font not changing in some old apps and asian websites have been fixed too
+>Note: <br>Font sizing & clipping issues have been fixed, now all fonts work <br>Font not changing in some old apps and asian websites have been fixed too
 
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
