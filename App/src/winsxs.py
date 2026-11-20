@@ -13,9 +13,42 @@ WINSXS_ROOT = Path(
     )
 )
 
+import platform
+import ctypes
+from ctypes import wintypes
+
 _SKIP_DIR_NAMES = {"manifests", "backup", "r"}
-_SKIP_DIR_PREFIXES = ("x86_", "wow64_", "arm64_")
-_SERVICING_RE = re.compile(r"10\.0\.\d+\.(\d+)")
+
+def _is_arm64_host() -> bool:
+    try:
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        if hasattr(k32, "IsWow64Process2"):
+            k32.GetCurrentProcess.restype = wintypes.HANDLE
+            k32.IsWow64Process2.argtypes = [
+                wintypes.HANDLE,
+                ctypes.POINTER(wintypes.USHORT),
+                ctypes.POINTER(wintypes.USHORT),
+            ]
+            proc, native = wintypes.USHORT(), wintypes.USHORT()
+            if k32.IsWow64Process2(k32.GetCurrentProcess(), ctypes.byref(proc), ctypes.byref(native)):
+                if native.value == 0xAA64:
+                    return True
+    except (AttributeError, OSError):
+        pass
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0") as key:
+            identifier, _ = winreg.QueryValueEx(key, "Identifier")
+            if identifier.upper().startswith("ARM"):
+                return True
+    except Exception:
+        pass
+    if platform.machine().lower() in ("arm64", "aarch64"):
+        return True
+    return False
+
+_SKIP_DIR_PREFIXES = ("x86_", "wow64_") if _is_arm64_host() else ("x86_", "wow64_", "arm64_")
+_SERVICING_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)\.(\d+)")
 
 import sys
 
@@ -49,8 +82,24 @@ EXPECTED_FAMILIES = {
     "consolai.ttf": ("consolas", "Microsoft Corporation", 2735),
     "consolaz.ttf": ("consolas", "Microsoft Corporation", 2655),
     "lucon.ttf": ("lucida console", None, 650),
-    "cascadiacode.ttf": ("cascadia code", "Microsoft Corporation", 1500),
-    "cascadiamono.ttf": ("cascadia mono", "Microsoft Corporation", 1500),
+    "tahoma.ttf": ("tahoma", "Microsoft Corporation", 3000),
+    "tahomabd.ttf": ("tahoma", "Microsoft Corporation", 3000),
+    "micross.ttf": ("microsoft sans serif", "Microsoft Corporation", 3000),
+    "cascadiacode.ttf": ("cascadia code", ("Saja Typeworks", "Microsoft Corporation", "Microsoft", "Aaron Bell"), 1400),
+    "cascadiamono.ttf": ("cascadia mono", ("Saja Typeworks", "Microsoft Corporation", "Microsoft", "Aaron Bell"), 1400),
+    "msyh.ttc": ("microsoft ya hei", "Microsoft Corporation", 20000),
+    "msyhbd.ttc": ("microsoft ya hei", "Microsoft Corporation", 20000),
+    "msyhl.ttc": ("microsoft ya hei", "Microsoft Corporation", 20000),
+    "msjh.ttc": ("microsoft jheng hei", "Microsoft Corporation", 20000),
+    "msjhbd.ttc": ("microsoft jheng hei", "Microsoft Corporation", 20000),
+    "msjhl.ttc": ("microsoft jheng hei", "Microsoft Corporation", 20000),
+    "yugothr.ttc": ("yu gothic", ("JIYUKOBO Ltd.", "Microsoft Corporation"), 20000),
+    "yugothb.ttc": ("yu gothic", ("JIYUKOBO Ltd.", "Microsoft Corporation"), 20000),
+    "yugothm.ttc": ("yu gothic", ("JIYUKOBO Ltd.", "Microsoft Corporation"), 20000),
+    "yugothl.ttc": ("yu gothic", ("JIYUKOBO Ltd.", "Microsoft Corporation"), 20000),
+    "malgun.ttf": ("malgun gothic", "Microsoft Corporation", 20000),
+    "malgunbd.ttf": ("malgun gothic", "Microsoft Corporation", 20000),
+    "malgunsl.ttf": ("malgun gothic", "Microsoft Corporation", 10000),
 }
 
 _PROFILE_CACHE = {}
@@ -92,7 +141,7 @@ def _profile(path: Path):
         return cached
 
     try:
-        font = TTFont(path)
+        font = TTFont(path, fontNumber=0 if path.suffix.lower() == ".ttc" else -1)
     except (TTLibError, OSError, ValueError):
         _PROFILE_CACHE[resolved] = None
         return None
@@ -110,6 +159,15 @@ def _profile(path: Path):
         glyph_count = _glyph_count(font)
         manufacturer = font["name"].getName(8, 3, 1, 0x409)
         manufacturer = manufacturer.toUnicode() if manufacturer else None
+        if not manufacturer:
+            try:
+                manufacturer = (
+                    font["name"].getDebugName(8)
+                    or font["name"].getDebugName(9)
+                    or font["name"].getDebugName(0)
+                )
+            except Exception:
+                manufacturer = None
         profile = {
             "family_label": infer_family_label_from_strings(
                 family_name, full_name, path.stem
@@ -142,15 +200,24 @@ def is_authentic_font(path, reference_metadata) -> bool:
         return False
 
     expected_family = _normalized(reference_metadata.get("family_label"))
-    if expected_family and expected_family != _normalized(profile["family_label"]):
+    if expected_family and expected_family != _normalized(profile.get("family_label")):
         return False
 
-    expected_manufacturer = _normalized(reference_metadata.get("manufacturer"))
-    if (
-        expected_manufacturer
-        and expected_manufacturer != _normalized(profile["manufacturer"])
-    ):
-        return False
+    expected_manufacturer = reference_metadata.get("manufacturer")
+    if expected_manufacturer:
+        actual_mfg = _normalized(profile.get("manufacturer"))
+        if not actual_mfg:
+            return False
+        if isinstance(expected_manufacturer, (tuple, list, set)):
+            if not any(
+                _normalized(m) and (_normalized(m) in actual_mfg or actual_mfg in _normalized(m))
+                for m in expected_manufacturer
+            ):
+                return False
+        else:
+            norm_exp = _normalized(expected_manufacturer)
+            if norm_exp not in actual_mfg and actual_mfg not in norm_exp:
+                return False
 
     if reference_metadata.get("is_italic") is not None and bool(
         reference_metadata["is_italic"]
@@ -182,11 +249,11 @@ def _skip_dir(name: str) -> bool:
     return lower.startswith(_SKIP_DIR_PREFIXES)
 
 
-def _servicing_build(package_dir_name: str) -> int:
+def _servicing_build(package_dir_name: str) -> tuple[int, int, int, int]:
     match = _SERVICING_RE.search(package_dir_name)
     if not match:
-        return 0
-    return int(match.group(1))
+        return (0, 0, 0, 0)
+    return (int(match.group(1)), int(match.group(2)), int(match.group(3)), int(match.group(4)))
 
 
 def _scan_winsxs(target_names) -> None:
@@ -233,3 +300,30 @@ def find_winsxs_font(system_filename) -> Path | None:
     if lower not in _CACHE:
         _scan_winsxs(set(EXPECTED_FAMILIES) | {lower})
     return _CACHE.get(lower)
+
+
+def find_terminal_font(name: str) -> Path | None:
+    """Finds authentic Cascadia font shipped inside Windows Terminal package."""
+    target_name = name.lower()
+    search_roots = [
+        Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "WindowsApps",
+        Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "WindowsApps",
+    ]
+    for root in search_roots:
+        if not root.exists():
+            continue
+        try:
+            for term_dir in sorted(root.glob("Microsoft.WindowsTerminal_*"), reverse=True):
+                if not term_dir.is_dir():
+                    continue
+                try:
+                    for f in term_dir.glob("*.ttf"):
+                        if f.name.lower() == target_name:
+                            if f.stat().st_size > 50_000:
+                                return f
+                except (OSError, PermissionError):
+                    continue
+        except (OSError, PermissionError):
+            continue
+    return None
+

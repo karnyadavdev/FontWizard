@@ -1,5 +1,6 @@
 import ctypes
 import hashlib
+import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -11,6 +12,9 @@ from settings import (
     WINDOWS_11_BUILD,
     default_registry_targets,
     FONTS_DIR,
+    PREFLIGHT_MIN_DISK_CORE_MB,
+    PREFLIGHT_MIN_DISK_CJK_MB,
+    PREFLIGHT_MIN_DISK_RESTORE_MB,
 )
 from app_state import validate_state
 
@@ -56,23 +60,47 @@ def _is_physically_custom(paths=None):
     if not active_segoe.exists():
         return False
 
-    if paths and hasattr(paths, "backup_root") and paths.backup_root.exists():
-        backup_segoe = paths.backup_root / "segoeui.ttf"
-        if backup_segoe.exists():
-            try:
-                if _sha256_file(active_segoe) != _sha256_file(backup_segoe):
-                    return True
-                return False
-            except OSError:
-                pass
+    backup_root = getattr(paths, "backup_root", None) if paths else None
+    backup_root = Path(backup_root) if backup_root else None
+
+    candidate_fonts = (
+        "segoeui.ttf", "segoeuib.ttf", "segoeuii.ttf", "segoeuiz.ttf",
+        "segoeuil.ttf", "segoeuisl.ttf", "seguisb.ttf", "SegUIVar.ttf",
+        "consola.ttf", "consolab.ttf", "consolai.ttf", "consolaz.ttf",
+        "lucon.ttf", "tahoma.ttf", "tahomabd.ttf", "micross.ttf",
+        "CascadiaCode.ttf", "CascadiaMono.ttf",
+    )
 
     try:
         from winsxs import expected_entry, is_authentic_font
-        entry = expected_entry("segoeui.ttf")
-        if entry and not is_authentic_font(active_segoe, entry):
-            return True
-    except Exception:
-        pass
+    except ImportError:
+        expected_entry, is_authentic_font = None, None
+
+    for name in candidate_fonts:
+        active = FONTS_DIR / name
+        if not active.is_file():
+            continue
+
+        # 1. Compare against local backup if available
+        if backup_root is not None:
+            backup = backup_root / name
+            if backup.is_file():
+                try:
+                    if _sha256_file(active) != _sha256_file(backup):
+                        return True
+                    # This font matches its backup; keep checking remaining fonts
+                    continue
+                except OSError:
+                    pass
+
+        # 2. If no backup exists or hash comparison was skipped, check authenticity
+        if expected_entry and is_authentic_font:
+            try:
+                entry = expected_entry(name)
+                if entry and not is_authentic_font(active, entry):
+                    return True
+            except Exception:
+                pass
 
     return False
 
@@ -196,6 +224,17 @@ def install_state(registry_targets, default_targets, state, paths=None, pending_
             verified = _verify_managed_install(install, paths)
             return verified if verified is not None else "managed"
 
+        if status == "partial":
+            if has_pending:
+                for item in pending_deletions:
+                    if "staged_restore_" in str(item).lower():
+                        return "pending_reboot_recovery"
+                return "pending_reboot_apply"
+            verified = _verify_managed_install(install, paths)
+            if verified is not None:
+                return verified
+            return "partial"
+
     if has_pending:
         for item in pending_deletions:
             if "staged_restore_" in str(item).lower():
@@ -209,7 +248,7 @@ def install_state(registry_targets, default_targets, state, paths=None, pending_
 
 
 
-def experience_state(is_supported, is_admin, install_state):
+def experience_state(is_supported, is_admin, install_state, issues=None):
     if not is_supported:
         return (
             "unsupported",
@@ -223,6 +262,29 @@ def experience_state(is_supported, is_admin, install_state):
             "Administrator access required",
             "Font Wizard needs to run as Administrator to change system fonts.",
             "Close Font Wizard and reopen it \u2014 accept the security prompt when asked.",
+        )
+    if issues:
+        first_issue = issues[0]
+        if "disk space" in first_issue.lower():
+            import re
+            m = re.search(r"At least ([\d\.]+\s*(?:MB|GB))", first_issue)
+            req = m.group(1) if m else "space"
+            drive_m = re.search(r"on\s+([A-Za-z]:)", first_issue)
+            drive = drive_m.group(1) if drive_m else "C:"
+            headline = f"Free up at least {req} on {drive} to continue"
+            return (
+                "low_disk_space",
+                headline,
+                first_issue,
+                f"Free up at least {req} on {drive}, then try again.",
+            )
+        clean_first = first_issue.split(".")[0].strip()
+        headline = clean_first if len(clean_first) <= 60 else "System issue detected — resolve before continuing"
+        return (
+            "issue",
+            headline,
+            first_issue,
+            "Resolve the issue before applying font changes.",
         )
     if install_state == "pending_reboot_apply":
         return (
@@ -241,7 +303,7 @@ def experience_state(is_supported, is_admin, install_state):
     if install_state == "partial":
         return (
             "partial",
-            "Windows update restored some fonts you need to apply again",
+            "Windows update restored some fonts, you need to apply again",
             "A Windows update or another app put some original Windows fonts back. Apply your font again to finish, or restore all the original fonts.",
             "Select your font and choose Apply Changes to finish, or restore the original Windows fonts.",
         )
@@ -300,13 +362,38 @@ class PreflightReport:
     warnings: list[str] = field(default_factory=list)
 
 
+def _has_regional_fonts_installed(state_store) -> bool:
+    """Safely inspects state store to see if any regional fonts are recorded.
+    If the state file is unreadable or malformed, falls back to True (conservative 400 MB requirement).
+    """
+    if not state_store:
+        return False
+    try:
+        data = state_store.load_or_empty()
+        if not isinstance(data, dict):
+            return True
+        install = data.get("install")
+        if install is None:
+            return False
+        if not isinstance(install, dict):
+            return True
+        fonts = install.get("fonts")
+        if fonts is None:
+            return False
+        if not isinstance(fonts, dict):
+            return True
+        return any(isinstance(k, str) and k.startswith("regional_") for k in fonts)
+    except Exception:
+        return True
+
+
 class PreflightService:
     def __init__(self, paths, registry, state_store):
         self.paths = paths
         self.registry = registry
         self.state_store = state_store
 
-    def collect(self):
+    def collect(self, *, include_regional: bool = True, is_restore: bool = False):
         from operation_files import _read_pending_rename_sources
 
         default_targets = default_registry_targets()
@@ -328,6 +415,38 @@ class PreflightService:
         issues = []
         if not is_supported:
             issues.append("This version of Font Wizard supports Windows 10 (build 10240+) and Windows 11.")
+
+        # Disk Space Preflight: Dynamic threshold (180 MB core, 180/400 MB restore, 1.2 GB CJK compilation)
+        has_restore_space = True
+        try:
+            target_drive = Path(FONTS_DIR).anchor or "C:\\"
+            free_bytes = shutil.disk_usage(target_drive).free
+            has_reg = _has_regional_fonts_installed(self.state_store)
+
+            restore_min_mb = PREFLIGHT_MIN_DISK_RESTORE_MB if has_reg else PREFLIGHT_MIN_DISK_CORE_MB
+            has_restore_space = free_bytes >= int(restore_min_mb * 1024 * 1024)
+
+            if is_restore:
+                min_mb = restore_min_mb
+            else:
+                if include_regional:
+                    min_mb = PREFLIGHT_MIN_DISK_CJK_MB
+                elif has_reg:
+                    min_mb = PREFLIGHT_MIN_DISK_RESTORE_MB
+                else:
+                    min_mb = PREFLIGHT_MIN_DISK_CORE_MB
+
+            min_required = int(min_mb * 1024 * 1024)
+            if free_bytes < min_required:
+                free_mb = free_bytes // (1024 * 1024)
+                req_str = f"{min_mb} MB" if is_restore or not include_regional else "1.2 GB"
+                issues.append(
+                    f"Insufficient free disk space on {target_drive} ({free_mb} MB available). "
+                    f"At least {req_str} free space is required to safely stage font backups and replacements."
+                )
+        except Exception:
+            pass
+
         warnings = []
 
 
@@ -335,9 +454,17 @@ class PreflightService:
             is_supported=is_supported,
             is_admin=admin,
             install_state=install,
+            issues=issues,
         )
-        can_apply_changes = is_supported and admin and install != "pending_reboot_recovery"
-        can_restore_defaults = is_supported and admin
+        non_disk_issues = [issue for issue in issues if "disk space" not in issue.lower()]
+        can_apply_changes = is_supported and admin and install != "pending_reboot_recovery" and not issues
+        can_restore_defaults = (
+            is_supported
+            and admin
+            and install != "pending_reboot_recovery"
+            and not non_disk_issues
+            and has_restore_space
+        )
         messages = build_messages(
             install_state=install,
             is_supported=is_supported,
@@ -363,3 +490,25 @@ class PreflightService:
             issues=issues,
             warnings=warnings,
         )
+
+
+def check_disk_space_only(*, include_regional: bool = True, is_restore: bool = False, has_regional_installed: bool = False) -> tuple[bool, str | None]:
+    if is_restore:
+        min_mb = PREFLIGHT_MIN_DISK_RESTORE_MB if has_regional_installed else PREFLIGHT_MIN_DISK_CORE_MB
+    else:
+        if include_regional:
+            min_mb = PREFLIGHT_MIN_DISK_CJK_MB
+        elif has_regional_installed:
+            min_mb = PREFLIGHT_MIN_DISK_RESTORE_MB
+        else:
+            min_mb = PREFLIGHT_MIN_DISK_CORE_MB
+    try:
+        target_drive = Path(FONTS_DIR).anchor or "C:\\"
+        usage = shutil.disk_usage(target_drive)
+        free_mb = usage.free // (1024 * 1024)
+        if free_mb < min_mb:
+            req_str = "1.2 GB" if (include_regional and not is_restore) else f"{min_mb} MB"
+            return False, f"Low disk space: {free_mb} MB available on {target_drive}, requires {req_str}."
+        return True, None
+    except Exception:
+        return True, None

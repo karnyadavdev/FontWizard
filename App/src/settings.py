@@ -4,8 +4,15 @@ import uuid
 import hashlib
 
 APP_NAME = "Font Wizard"
+APP_VERSION = "6.0.0"
 APP_GITHUB_URL = "https://github.com/karnyadavdev/FontWizard"
+APP_USER_MODEL_ID = "karnyadavdev.FontWizard"
 SCHEMA_VERSION = 1
+
+DEFAULT_INCLUDE_REGIONAL = True
+PREFLIGHT_MIN_DISK_CORE_MB = 180
+PREFLIGHT_MIN_DISK_CJK_MB = 1200
+PREFLIGHT_MIN_DISK_RESTORE_MB = 400
 
 # Optional GitHub repo to fetch curated .ttf fonts from.
 # Default points at the user's own collection: https://github.com/karnyadavdev/Fonts
@@ -53,15 +60,72 @@ CONSOLAS_WEIGHTS = {
 
 MONO_COMPANION_FILES = {
     "lucon.ttf": "Lucida Console (TrueType)",
-    "CascadiaCode.ttf": "Cascadia Code (TrueType)",
-    "CascadiaMono.ttf": "Cascadia Mono (TrueType)",
+    "CascadiaCode.ttf": "Cascadia Code Regular (TrueType)",
+    "CascadiaMono.ttf": "Cascadia Mono Regular (TrueType)",
 }
 
 def get_existing_mono_companions(fonts_dir=None):
     target_dir = Path(fonts_dir or FONTS_DIR)
+    results = {}
+    for fname, default_reg_name in MONO_COMPANION_FILES.items():
+        if (target_dir / fname).exists():
+            reg_name = default_reg_name
+            try:
+                import winreg
+                with winreg.OpenKey(
+                    winreg.HKEY_LOCAL_MACHINE,
+                    r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",
+                ) as key:
+                    i = 0
+                    while True:
+                        try:
+                            vname, val, _ = winreg.EnumValue(key, i)
+                            if str(val).lower() == fname.lower():
+                                reg_name = vname
+                                break
+                            i += 1
+                        except OSError:
+                            break
+            except Exception:
+                pass
+            results[fname] = reg_name
+    return results
+
+UI_COMPANION_FILES = {
+    "tahoma.ttf": "Tahoma (TrueType)",
+    "tahomabd.ttf": "Tahoma Bold (TrueType)",
+    "micross.ttf": "Microsoft Sans Serif (TrueType)",
+}
+
+def get_existing_ui_companions(fonts_dir=None):
+    target_dir = Path(fonts_dir or FONTS_DIR)
     return {
         fname: reg_name
-        for fname, reg_name in MONO_COMPANION_FILES.items()
+        for fname, reg_name in UI_COMPANION_FILES.items()
+        if (target_dir / fname).exists()
+    }
+
+REGIONAL_TARGET_FILES = {
+    "msyh.ttc": "regular",
+    "msyhbd.ttc": "bold",
+    "msyhl.ttc": "light",
+    "msjh.ttc": "regular",
+    "msjhbd.ttc": "bold",
+    "msjhl.ttc": "light",
+    "YuGothR.ttc": ["regular", "semilight"],
+    "YuGothB.ttc": ["bold", "bold", "semibold"],
+    "YuGothM.ttc": ["medium", "regular"],
+    "YuGothL.ttc": ["light", "light"],
+    "malgun.ttf": "regular",
+    "malgunbd.ttf": "bold",
+    "malgunsl.ttf": "semilight",
+}
+
+def get_existing_regional_targets(fonts_dir=None):
+    target_dir = Path(fonts_dir or FONTS_DIR)
+    return {
+        fname: weight
+        for fname, weight in REGIONAL_TARGET_FILES.items()
         if (target_dir / fname).exists()
     }
 

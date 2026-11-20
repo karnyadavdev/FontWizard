@@ -1,0 +1,7 @@
+build/
+dist/
+.build-venv/
+FontWizard.spec
+Font Wizard.spec
+__pycache__/
+*.pyc

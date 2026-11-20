@@ -51,10 +51,15 @@ class WindowsFontRegistry:
         ) as key:
             winreg.SetValueEx(key, "MS Shell Dlg", 0, winreg.REG_SZ, "Segoe UI")
             winreg.SetValueEx(key, "MS Shell Dlg 2", 0, winreg.REG_SZ, "Segoe UI")
+            winreg.SetValueEx(key, "MS Sans Serif", 0, winreg.REG_SZ, "Segoe UI")
+            winreg.SetValueEx(key, "Microsoft Sans Serif", 0, winreg.REG_SZ, "Segoe UI")
+            winreg.SetValueEx(key, "Tahoma", 0, winreg.REG_SZ, "Segoe UI")
             winreg.SetValueEx(key, "Segoe WPC", 0, winreg.REG_SZ, "Segoe UI")
             winreg.SetValueEx(key, "Segoe UI Variable Text", 0, winreg.REG_SZ, var_target)
             winreg.SetValueEx(key, "Segoe UI Variable Display", 0, winreg.REG_SZ, var_target)
             winreg.SetValueEx(key, "Segoe UI Variable Small", 0, winreg.REG_SZ, var_target)
+            winreg.SetValueEx(key, "Cascadia Code", 0, winreg.REG_SZ, "Consolas")
+            winreg.SetValueEx(key, "Cascadia Mono", 0, winreg.REG_SZ, "Consolas")
 
     def remove_font_substitutes(self):
         with winreg.OpenKey(
@@ -63,16 +68,26 @@ class WindowsFontRegistry:
             0,
             winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY,
         ) as key:
+            try:
+                winreg.SetValueEx(key, "MS Shell Dlg", 0, winreg.REG_SZ, "Microsoft Sans Serif")
+                winreg.SetValueEx(key, "MS Shell Dlg 2", 0, winreg.REG_SZ, "Tahoma")
+            except OSError:
+                pass
             for name in (
+                "MS Sans Serif",
+                "Microsoft Sans Serif",
+                "Tahoma",
                 "Segoe WPC",
                 "Segoe WPC Semibold",
                 "Segoe UI Variable Text",
                 "Segoe UI Variable Display",
                 "Segoe UI Variable Small",
+                "Cascadia Code",
+                "Cascadia Mono",
             ):
                 try:
                     winreg.DeleteValue(key, name)
-                except FileNotFoundError:
+                except (FileNotFoundError, OSError):
                     pass
 
 

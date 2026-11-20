@@ -6,6 +6,7 @@ from checks import PreflightService
 from font_detection import detect_weight_overrides, inspect_font
 from operation import FontWorkflow
 from app_state import ManagedStateStore
+from settings import DEFAULT_INCLUDE_REGIONAL
 from win_registry import WindowsFontRegistry
 
 
@@ -35,8 +36,25 @@ class FontWizardController:
             labels={w: "unset" for w in system_weights},
         )
 
-    def refresh_preflight(self):
-        report = self.preflight.collect()
+    def get_include_regional(self) -> bool:
+        state = self.state_store.load_or_empty()
+        return state.get("preferences", {}).get("include_regional", DEFAULT_INCLUDE_REGIONAL)
+
+    def set_include_regional(self, enabled: bool) -> None:
+        state = self.state_store.load_or_empty()
+        if "preferences" not in state or not isinstance(state["preferences"], dict):
+            state["preferences"] = {}
+        state["preferences"]["include_regional"] = bool(enabled)
+        try:
+            self.state_store.save(state)
+        except OSError:
+            pass
+
+    def refresh_preflight(self, include_regional: bool | None = None):
+        if include_regional is None:
+            include_regional = self.get_include_regional()
+        report = self.preflight.collect(include_regional=include_regional)
+        self._last_report = report
 
         if report.managed_state_valid:
             state = self.state_store.load()
@@ -97,6 +115,10 @@ class FontWizardController:
             raise ValueError(
                 "Variable fonts can only be assigned to the Variable UI slot. Choose a static .ttf file for static weights."
             )
+        if weight == "variable" and not metadata.is_variable:
+            raise ValueError(
+                "The Variable UI slot requires a variable TrueType font. Choose a variable .ttf font file."
+            )
         resolved_path = str(Path(path).resolve())
         self.selection.paths[weight] = resolved_path
         self.selection.labels[weight] = "manual"
@@ -148,11 +170,14 @@ class FontWizardController:
         self.selection.paths[weight] = detected.get(weight) or primary_path
         self.selection.labels[weight] = "auto-detected"
 
-    def apply(self, progress=None):
+    def apply(self, progress=None, include_regional: bool | None = None):
+        if include_regional is None:
+            include_regional = self.get_include_regional()
         return self.workflow.apply(
             self.selection.paths,
             self.selection.labels,
             progress=progress,
+            include_regional=include_regional,
         )
 
     def restore(self, progress=None):

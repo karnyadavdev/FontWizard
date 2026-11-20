@@ -5,10 +5,10 @@
 #define MyAppName "Font Wizard"
 #define MyAppExeName "FontWizard.exe"
 #ifndef MyAppVersion
-#define MyAppVersion "5.0.0"
+#define MyAppVersion "6.0.0"
 #endif
 #ifndef MyAppVersionFull
-#define MyAppVersionFull "5.0.0.0"
+#define MyAppVersionFull "6.0.0.0"
 #endif
 #define MyAppPublisher "karnyadavdev"
 #define MyAppURL "https://github.com/karnyadavdev/FontWizard"
@@ -25,18 +25,19 @@ AppUpdatesURL={#MyAppURL}/releases
 AppComments=Customize Windows 11 & 10 system font completely with 100% system coverage
 DefaultDirName={autopf}\Font Wizard
 DisableProgramGroupPage=yes
-LicenseFile=..\LICENSE
+DisableDirPage=yes
+DisableReadyMemo=yes
 SetupIconFile=src\assets\font-wizard.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 OutputDir=dist
-OutputBaseFilename=Font Wizard 5 Setup
+OutputBaseFilename=Font Wizard 6.0 Setup
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern dynamic
-WizardImageFile=src\assets\wizard-image.bmp
-WizardImageFileDynamicDark=src\assets\wizard-image-dark.bmp
-WizardSmallImageFile=src\assets\wizard-small.bmp
-WizardSmallImageFileDynamicDark=src\assets\wizard-small-dark.bmp
+WizardImageFile=src\assets\wizard-image.png
+WizardImageFileDynamicDark=src\assets\wizard-image.png
+WizardSmallImageFile=src\assets\wizard-small.png
+WizardSmallImageFileDynamicDark=src\assets\wizard-small.png
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -49,7 +50,7 @@ VersionInfoDescription={#MyAppName} Setup
 VersionInfoProductName={#MyAppName}
 VersionInfoProductVersion={#MyAppVersion}
 VersionInfoCopyright=Copyright (c) 2026 {#MyAppPublisher}
-VersionInfoOriginalFilename=Font Wizard 5 Setup.exe
+VersionInfoOriginalFilename=Font Wizard 6.0 Setup.exe
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -63,8 +64,8 @@ Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\third-party-notices.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; AppUserModelID: "karnyadavdev.FontWizard"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; AppUserModelID: "karnyadavdev.FontWizard"
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent runascurrentuser

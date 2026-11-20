@@ -27,6 +27,16 @@ def run_as_admin():
 
 
 def main():
+    try:
+        from settings import APP_USER_MODEL_ID
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_USER_MODEL_ID)
+    except Exception:
+        pass
+
+    if getattr(sys, "frozen", False):
+        import multiprocessing
+        multiprocessing.freeze_support()
+
     if "--no-admin" not in sys.argv and not is_admin():
         if not run_as_admin():
             return 1

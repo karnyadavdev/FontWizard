@@ -37,3 +37,12 @@ Font Wizard uses PySide6 for its desktop interface.
 
 LGPLv3 license text:
 https://www.gnu.org/licenses/lgpl-3.0.html
+
+
+Icons8
+Homepage: https://icons8.com/
+License: Icons8 Free License (attribution required)
+
+The file-edit icon used in font preview cards (assets/action-edit-file.png)
+is an Icons8 asset ("Edit File" icon), used under the Icons8 Free License:
+https://icons8.com/license

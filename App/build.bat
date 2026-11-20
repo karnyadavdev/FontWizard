@@ -19,9 +19,23 @@ if %errorlevel% neq 0 (
     )
 )
 
-echo Using Python: %PYTHON_EXE%
+:: Build in an isolated venv. A full PySide6 install in the global Python
+:: would otherwise pull unused Qt modules (QML/Quick/PDF/VirtualKeyboard)
+:: into the EXE and undo the slim build.
+set "VENV_DIR=.build-venv"
+set "VENV_PY=%VENV_DIR%\Scripts\python.exe"
+if not exist "%VENV_PY%" (
+    echo Creating isolated build environment in %VENV_DIR%...
+    "%PYTHON_EXE%" -m venv "%VENV_DIR%"
+    if errorlevel 1 (
+        popd
+        exit /b 1
+    )
+)
+
+echo Using Python: %VENV_PY%
 echo Installing build dependencies...
-%PYTHON_EXE% -m pip install -r requirements.txt pyinstaller
+"%VENV_PY%" -m pip install --disable-pip-version-check -r requirements.txt pyinstaller
 if errorlevel 1 (
     popd
     exit /b 1
@@ -33,13 +47,8 @@ if exist "dist" rmdir /s /q "dist"
 if exist "FontWizard.spec" del "FontWizard.spec"
 if exist "Font Wizard.spec" del "Font Wizard.spec"
 
-echo Building Font Wizard...
-%PYTHON_EXE% -m PyInstaller --noconfirm --onefile --windowed --name "FontWizard" ^
-    --manifest "fontwizard.manifest" --uac-admin ^
-    --add-data "src/assets;assets" ^
-    --icon="src/assets/font-wizard.ico" ^
-    --version-file="fontwizard_version_info.txt" ^
-    "src/main.py"
+echo Building Font Wizard (slim spec: no screenshots / unused Qt modules)...
+"%VENV_PY%" -m PyInstaller --noconfirm --clean "FontWizard.slim.spec"
 if errorlevel 1 (
     popd
     exit /b 1
@@ -93,8 +102,8 @@ set "VER4=%VER_RAW:,=.%"
 set "VER4=%VER4: =%"
 for /f "tokens=1-4 delims=." %%a in ("%VER4%") do set "APP_VER=%%a.%%b.%%c"
 for /f "tokens=4 delims=." %%d in ("%VER4%") do set "APP_VER_FULL=%APP_VER%.%%d"
-if not defined APP_VER set "APP_VER=5.0.0"
-if not defined APP_VER_FULL set "APP_VER_FULL=5.0.0.0"
+if not defined APP_VER set "APP_VER=6.0.0"
+if not defined APP_VER_FULL set "APP_VER_FULL=6.0.0.0"
 echo App version: %APP_VER%
 "%ISCC_EXE%" /DMyAppVersion=%APP_VER% /DMyAppVersionFull=%APP_VER_FULL% "installer.iss"
 if errorlevel 1 (

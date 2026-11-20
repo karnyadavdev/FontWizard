@@ -70,16 +70,9 @@ def validate_selection(selection, source_labels=None, weights=None):
             except ValueError as exc:
                 if cache_key not in invalid_source_rejections:
                     ext = source_path.suffix.lower()
-                    if ext == ".otf":
+                    if ext != ".ttf":
                         summary.errors.append(
-                            f"OpenType (.otf) fonts are not supported. "
-                            f"System font replacement requires TrueType (.ttf) files. "
-                            f"File: {source_path.name}"
-                        )
-                    elif ext != ".ttf":
-                        summary.errors.append(
-                            f"This file type ({ext}) is not supported. "
-                            f"Choose a .ttf font file."
+                            "Only TrueType (.ttf) fonts can be used as system fonts. Please select a .ttf font file."
                         )
                     else:
                         summary.errors.append(str(exc))
@@ -112,11 +105,6 @@ def validate_selection(selection, source_labels=None, weights=None):
                 family_name=metadata.family_name,
                 full_name=metadata.full_name,
             )
-        )
-
-    if len(ui_family_names) > 1 or len(mono_family_names) > 1:
-        summary.warnings.append(
-            "Selected styles come from multiple font families. Review them carefully before applying."
         )
 
     return summary

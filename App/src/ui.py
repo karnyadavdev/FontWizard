@@ -8,13 +8,35 @@ import winreg
 from ctypes import wintypes
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThread, Signal, QSize, QPoint, QPointF, QRect, QRectF, QUrl, QTimer, QEvent, QPropertyAnimation, QAbstractAnimation, QEasingCurve, QVariantAnimation
-from PySide6.QtGui import QDesktopServices, QFont, QFontDatabase, QFontMetrics, QIcon, QImage, QLinearGradient, QRadialGradient, QColor, QPainter, QPainterPath, QPen, QPixmap, QPolygonF
+from PySide6.QtCore import Qt, QThread, Signal, QSize, QPoint, QPointF, QRect, QRectF, QUrl, QTimer, QEvent, QObject, QPropertyAnimation, QAbstractAnimation, QEasingCurve, QVariantAnimation, QParallelAnimationGroup
+from PySide6.QtGui import (
+    QBrush,
+    QDesktopServices,
+    QFont,
+    QFontDatabase,
+    QFontMetrics,
+    QIcon,
+    QImage,
+    QLinearGradient,
+    QRadialGradient,
+    QColor,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPixmap,
+    QPolygonF,
+    QRegion,
+    QTextDocument,
+)
 from PySide6.QtWidgets import (
     QApplication,
+    QAbstractButton,
+    QCheckBox,
+    QDialog,
     QFileDialog,
     QBoxLayout,
     QFrame,
+    QGraphicsDropShadowEffect,
     QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
@@ -29,7 +51,7 @@ from PySide6.QtWidgets import (
     QLayout,
 )
 
-from settings import APP_GITHUB_URL, APP_NAME, WEIGHT_TARGETS, GITHUB_FONTS_REPO, GITHUB_FONTS_BRANCH, GITHUB_FONTS_URL
+from settings import APP_GITHUB_URL, APP_NAME, WEIGHT_TARGETS, GITHUB_FONTS_REPO, GITHUB_FONTS_BRANCH, GITHUB_FONTS_URL, FONTS_DIR
 from core import FontWizardController
 from font_detection import inspect_font
 from operation import OperationResult
@@ -92,13 +114,17 @@ def get_theme_colors(is_dark: bool, is_win11: bool = True) -> dict[str, str]:
     if is_dark:
         return {
             "bg_window": "transparent" if is_win11 else "#202020",
-            "bg_card": "rgba(255, 255, 255, 0.04)" if is_win11 else "#2B2B2B",
-            "bg_card_hover": "rgba(255, 255, 255, 0.07)" if is_win11 else "#353535",
+            "bg_card": "rgba(255, 255, 255, 0.05)" if is_win11 else "#2B2B2B",
+            "bg_card_hover": "rgba(255, 255, 255, 0.08)" if is_win11 else "#353535",
             "bg_button": "rgba(255, 255, 255, 0.06)" if is_win11 else "#2D2D2D",
             "bg_button_hover": "rgba(255, 255, 255, 0.09)" if is_win11 else "#383838",
-            "bg_button_pressed": "rgba(255, 255, 255, 0.03)" if is_win11 else "#242424",
-            "border_card": "rgba(255, 255, 255, 0.08)" if is_win11 else "#383838",
-            "border_button": "rgba(255, 255, 255, 0.08)" if is_win11 else "#383838",
+            "bg_button_pressed": "rgba(255, 255, 255, 0.08)" if is_win11 else "#353535",
+            "border_card": "rgba(255, 255, 255, 0.04)" if is_win11 else "#262626",
+            "border_card_top": "rgba(255, 255, 255, 0.04)" if is_win11 else "#262626",
+            "border_card_bottom": "rgba(255, 255, 255, 0.04)" if is_win11 else "#262626",
+            "border_button": "rgba(255, 255, 255, 0.04)" if is_win11 else "#262626",
+            "border_button_top": "rgba(255, 255, 255, 0.04)" if is_win11 else "#262626",
+            "border_button_bottom": "rgba(255, 255, 255, 0.04)" if is_win11 else "#262626",
 
             "text_primary": "#FFFFFF",
             "text_secondary": "rgba(255, 255, 255, 0.78)" if is_win11 else "#CCCCCC",
@@ -115,7 +141,10 @@ def get_theme_colors(is_dark: bool, is_win11: bool = True) -> dict[str, str]:
             "danger": accent,
             "danger_hover": accent_hover,
             "danger_text": accent_text,
-            "bg_dialog": "#202020",
+            "bg_dialog": "#2B2B2B",
+            "bg_dialog_footer": "#242424",
+            "tip_bg": "#2C2C2C",
+            "tip_border": "rgba(255, 255, 255, 0.08)",
         }
     return {
         "bg_window": "transparent" if is_win11 else "#F3F3F3",
@@ -123,9 +152,13 @@ def get_theme_colors(is_dark: bool, is_win11: bool = True) -> dict[str, str]:
         "bg_card_hover": "rgba(0, 0, 0, 0.05)" if is_win11 else "#F0F0F0",
         "bg_button": "rgba(255, 255, 255, 0.7)" if is_win11 else "#E5E5E5",
         "bg_button_hover": "rgba(0, 0, 0, 0.07)" if is_win11 else "#D8D8D8",
-        "bg_button_pressed": "rgba(0, 0, 0, 0.13)" if is_win11 else "#C4C4C4",
-        "border_card": "rgba(0, 0, 0, 0.06)" if is_win11 else "#E0E0E0",
-        "border_button": "rgba(0, 0, 0, 0.06)" if is_win11 else "#D0D0D0",
+        "bg_button_pressed": "rgba(0, 0, 0, 0.04)" if is_win11 else "#DCDCDC",
+        "border_card": "rgba(0, 0, 0, 0.05)" if is_win11 else "#E0E0E0",
+        "border_card_top": "rgba(0, 0, 0, 0.05)" if is_win11 else "#E0E0E0",
+        "border_card_bottom": "rgba(0, 0, 0, 0.05)" if is_win11 else "#E0E0E0",
+        "border_button": "rgba(0, 0, 0, 0.05)" if is_win11 else "#E0E0E0",
+        "border_button_top": "rgba(0, 0, 0, 0.05)" if is_win11 else "#E0E0E0",
+        "border_button_bottom": "rgba(0, 0, 0, 0.05)" if is_win11 else "#E0E0E0",
 
         "text_primary": "rgba(0, 0, 0, 0.9)" if is_win11 else "#1A1A1A",
         "text_secondary": "rgba(0, 0, 0, 0.6)" if is_win11 else "#555555",
@@ -142,7 +175,10 @@ def get_theme_colors(is_dark: bool, is_win11: bool = True) -> dict[str, str]:
         "danger": accent,
         "danger_hover": accent_hover,
         "danger_text": accent_text,
-        "bg_dialog": "#F3F3F3",
+        "bg_dialog": "#FFFFFF",
+        "bg_dialog_footer": "#F9F9F9",
+        "tip_bg": "#F9F9F9",
+        "tip_border": "rgba(0, 0, 0, 0.05)",
     }
 
 def get_asset_path(name):
@@ -264,27 +300,39 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
         font-family: {font_stack}; 
         font-size: 14px; 
     }}
-    QDialog, QMessageBox, QToolTip {{ 
+    QDialog, QMessageBox {{ 
         background-color: {colors["bg_dialog"]}; 
         border: 1px solid {colors["border_card"]}; 
         border-radius: 8px;
+    }}
+    QToolTip {{
+        background-color: {"#2C2C2C" if is_dark else "#F9F9F9"};
+        color: {"#FFFFFF" if is_dark else "#1A1A1A"};
+        border: 1px solid {"rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.10)"};
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+        font-family: {font_stack};
     }}
     #AppTitle {{ font-size: 28px; font-weight: 600; font-family: {title_font_stack}; letter-spacing: -0.5px; }}
     #AppSubtitle {{ color: {colors["text_secondary"]}; font-size: 14px; margin-top: 0px; }}
     #SectionHeader {{ font-weight: 600; font-size: 18px; padding: 0; font-family: {title_font_stack}; }}
     #SectionMeta {{ color: {colors["text_muted"]}; font-size: 13px; }}
     
-    #Banner, #SetupCard, #VariantCard, #EmptyState {{ 
+    #Banner, #SetupCard, #VariantCard, #EmptyState, #CloudPanel {{ 
         background-color: {colors["bg_card"]}; 
-        border: 1px solid {colors["border_card"]}; 
-        border-radius: 8px; 
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-radius: 4px; 
     }}
     #VariantCard:hover {{ 
         background-color: {colors["bg_card_hover"]}; 
     }}
     #BannerIcon {{ font-family: 'Segoe Fluent Icons'; font-size: 20px; }}
-    #BannerTitle {{ font-size: 15px; font-weight: 600; }}
-    #BannerText {{ font-size: 14px; color: {colors["text_secondary"]}; }}
+    #BannerTitle {{ font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif; font-size: 13.5px; font-weight: 600; color: {colors["text_primary"]}; }}
+    #BannerText {{ font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif; font-size: 13px; color: {colors["text_secondary"]}; }}
     
     #CardTitle {{ font-weight: 600; font-size: 15px; }}
     #CardDesc {{ color: {colors["text_secondary"]}; font-size: 14px; }}
@@ -296,20 +344,15 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
         background-color: transparent;
         border: none;
         border-radius: 4px;
-        padding: 0 0 2px 0;
-        min-width: 28px;
-        max-width: 28px;
-        min-height: 28px;
-        max-height: 28px;
-        font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
-        font-size: 18px;
-        font-weight: 400;
-        color: {colors["accent_icon"]};
+        padding: 0;
+        min-width: 32px;
+        max-width: 32px;
+        min-height: 32px;
+        max-height: 32px;
         outline: none;
     }}
     #CardChangeBtn:hover {{
         background-color: {colors["bg_button_hover"]};
-        color: {colors["accent_hover"]};
     }}
     #CardChangeBtn:pressed {{
         background-color: {colors["bg_button_pressed"]};
@@ -317,84 +360,139 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
     
     QPushButton {{ 
         background-color: {colors["bg_button"]}; 
-        border: 1px solid {colors["border_button"]}; 
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
         border-radius: 4px; 
-        padding: 0 16px; 
-        min-height: 34px; 
-        max-height: 34px; 
-        font-weight: 600; 
-        font-size: 13px;
+        padding: 0 14px 1px 14px; 
+        min-height: 32px; 
+        max-height: 32px; 
+        font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+        font-weight: 500; 
+        font-size: 13.5px;
+        color: {colors["text_primary"]};
         outline: none;
     }}
-    QPushButton:focus {{ outline: none; }}
+    QPushButton:focus {{
+        border: 2px solid {colors["accent"]};
+    }}
+    QPushButton:hover {{ 
+        background-color: {colors["bg_button_hover"]}; 
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
+    }}
+    QPushButton:pressed {{ 
+        background-color: {colors["bg_button_hover"]}; 
+        border: 1px solid {colors["border_card"]}; 
+        padding: 0 14px 1px 14px;
+    }}
+    QPushButton:disabled {{ 
+        color: {colors["text_muted"]}; 
+        background-color: {colors["bg_button"]}; 
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
+    }}
     #ActionButton {{
         background-color: {colors["bg_button"]};
-        border: 1px solid {colors["border_button"]};
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
         border-radius: 4px;
+        min-height: 32px;
+        max-height: 32px;
+        outline: none;
+    }}
+    #ActionButton:focus {{
+        border: 2px solid {colors["accent"]};
     }}
     #ActionButton[buttonRole="primary"] {{
-        background-color: {colors["accent"]};
-        border: 1px solid {colors["accent"]};
+        background-color: {colors["bg_button"]};
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
     }}
     #ActionButton:hover {{
         background-color: {colors["bg_button_hover"]};
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
     }}
     #ActionButton[buttonRole="primary"]:hover {{
-        background-color: {colors["accent_hover"]};
-        border-color: {colors["accent_hover"]};
+        background-color: {colors["bg_button_hover"]};
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
     }}
     #ActionButton[pressed="true"] {{
-        background-color: {colors["bg_button_pressed"]};
+        background-color: {colors["bg_button_hover"]};
+        border: 1px solid {colors["border_card"]};
     }}
     #ActionButton:disabled {{
-        background-color: {colors["bg_card"]};
-        border-color: {colors["border_card"]};
+        background-color: {colors["bg_button"]};
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
     }}
     #ActionButton #ActionIconLocal {{
-        color: {colors["accent_icon"]};
         background: transparent;
         border: none;
-        font-family: 'Segoe MDL2 Assets';
-        font-size: 18px;
-        font-weight: 400;
     }}
     #ActionButton #ActionIconFetch {{
-        color: {colors["accent_icon"]};
         background: transparent;
         border: none;
-        font-family: 'Segoe MDL2 Assets';
-        font-size: 24px;
-        font-weight: 400;
     }}
     #ActionButton #ActionText {{
         color: {colors["text_primary"]};
         background: transparent;
         border: none;
-        font-family: 'Segoe UI';
-        font-size: 13px;
-        font-weight: 700;
+        font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+        font-size: 13.5px;
+        font-weight: 500;
     }}
-    QPushButton:hover {{ background-color: {colors["bg_button_hover"]}; }}
-    QPushButton:pressed {{ background-color: {colors["bg_button_pressed"]}; }}
-    QPushButton:disabled {{ color: {colors["text_muted"]}; background-color: {colors["bg_card"]}; border-color: {colors["border_card"]}; }}
     
     QPushButton[buttonRole="primary"] {{ 
         background-color: {colors["accent"]}; 
         border: 1px solid {colors["accent"]}; 
         color: {colors["accent_text"]}; 
+        font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+        font-weight: 600;
+        font-size: 13.5px;
         outline: none;
     }}
-    QPushButton[buttonRole="primary"]:hover {{ background-color: {colors["accent_hover"]}; border-color: {colors["accent_hover"]}; }}
+    QPushButton[buttonRole="primary"]:hover {{ 
+        background-color: {colors["accent_hover"]}; 
+        border: 1px solid {colors["accent_hover"]}; 
+    }}
+    QPushButton[buttonRole="primary"]:pressed {{ 
+        background-color: {colors["accent_hover"]}; 
+        border: 1px solid {colors["accent_hover"]}; 
+    }}
     
     QPushButton[buttonRole="warning"] {{ 
         background-color: {colors["accent"]}; 
         border: 1px solid {colors["accent"]}; 
         color: {colors["accent_text"]}; 
+        font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+        font-weight: 600;
         outline: none;
     }}
     QPushButton[buttonRole="warning"]:hover {{ 
         background-color: {colors["accent_hover"]}; 
-        border-color: {colors["accent_hover"]}; 
+        border: 1px solid {colors["accent_hover"]}; 
+    }}
+    QPushButton[buttonRole="warning"]:pressed {{ 
+        background-color: {colors["accent_hover"]}; 
+        border: 1px solid {colors["accent_hover"]}; 
     }}
     
     QPushButton[buttonRole="danger"] {{ 
@@ -404,21 +502,38 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
     }}
     QPushButton[buttonRole="danger"]:hover {{ 
         background-color: {colors["bg_button_hover"]}; 
-        border-color: {colors["border_button"]}; 
+        border: 1px solid {colors["border_card"]}; 
     }}
     QPushButton[buttonRole="secondary"] {{ 
-        background-color: {colors["bg_card"]}; 
+        background-color: {colors["bg_button"]}; 
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
         color: {colors["text_primary"]}; 
+        /* IconActionButton parks its icon on a fixed 16px inset with text at
+           50px; Qt would otherwise centre the icon+text group, which shifts the
+           icon whenever the label changes ("Apply Changes" vs "Restart Windows"). */
+        text-align: left;
     }}
-    QPushButton[buttonRole="secondary"]:hover {{ background-color: {colors["bg_button_hover"]}; }}
+    QPushButton[buttonRole="secondary"]:hover {{ 
+        background-color: {colors["bg_button_hover"]}; 
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
+    }}
     QPushButton:disabled,
     QPushButton[buttonRole="primary"]:disabled,
     QPushButton[buttonRole="warning"]:disabled,
     QPushButton[buttonRole="danger"]:disabled,
     QPushButton[buttonRole="secondary"]:disabled {{ 
         color: {colors["text_muted"]}; 
-        background-color: {colors["bg_card"]}; 
-        border-color: {colors["border_card"]}; 
+        background-color: {colors["bg_button"]}; 
+        border-top: 1px solid {colors["border_card_top"]}; 
+        border-left: 1px solid {colors["border_card"]}; 
+        border-right: 1px solid {colors["border_card"]}; 
+        border-bottom: 1px solid {colors["border_card_bottom"]}; 
     }}
     #HeaderIconButton {{
         background-color: transparent;
@@ -437,15 +552,44 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
         background-color: {colors["bg_button_pressed"]};
     }}
     
-    QScrollBar:vertical {{ border: none; background: transparent; width: 12px; margin: 0; }}
-    QScrollBar::handle:vertical {{ background: {colors["border_card"]}; border-radius: 3px; min-height: 30px; margin: 0 3px; }}
-    QScrollBar::handle:vertical:hover {{ background: {colors["text_secondary"]}; }}
-    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ border: none; background: none; height: 0px; }}
+    QScrollBar:vertical {{ border: none; background: transparent; width: 10px; margin: 0; }}
+    QScrollBar::handle:vertical {{ 
+        background: {"rgba(255, 255, 255, 0.40)" if is_dark else "rgba(0, 0, 0, 0.38)"}; 
+        border-radius: 3px; 
+        min-height: 36px; 
+        margin: 2px 2px; 
+    }}
+    QScrollBar::handle:vertical:hover {{ 
+        background: {"rgba(255, 255, 255, 0.65)" if is_dark else "rgba(0, 0, 0, 0.60)"}; 
+    }}
+    QScrollBar::handle:vertical:pressed {{ 
+        background: {"rgba(255, 255, 255, 0.85)" if is_dark else "rgba(0, 0, 0, 0.80)"}; 
+    }}
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ border: none; background: none; height: 0px; width: 0px; }}
     QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none; }}
+
+    QScrollBar:horizontal {{ border: none; background: transparent; height: 10px; margin: 0; }}
+    QScrollBar::handle:horizontal {{ 
+        background: {"rgba(255, 255, 255, 0.40)" if is_dark else "rgba(0, 0, 0, 0.38)"}; 
+        border-radius: 3px; 
+        min-width: 36px; 
+        margin: 2px 2px; 
+    }}
+    QScrollBar::handle:horizontal:hover {{ 
+        background: {"rgba(255, 255, 255, 0.65)" if is_dark else "rgba(0, 0, 0, 0.60)"}; 
+    }}
+    QScrollBar::handle:horizontal:pressed {{ 
+        background: {"rgba(255, 255, 255, 0.85)" if is_dark else "rgba(0, 0, 0, 0.80)"}; 
+    }}
+    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ border: none; background: none; height: 0px; width: 0px; }}
+    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{ background: none; }}
     #CloudPanel {{
         background-color: {colors["bg_card"]};
-        border: 1px solid {colors["border_card"]};
-        border-radius: 8px;
+        border-top: 1px solid {colors["border_card_top"]};
+        border-bottom: 1px solid {colors["border_card_bottom"]};
+        border-left: 1px solid {colors["border_card"]};
+        border-right: 1px solid {colors["border_card"]};
+        border-radius: 4px;
     }}
     #CloudPanel #CloudTitle {{
         font-weight: 600;
@@ -458,7 +602,10 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
     }}
     #CloudPanel QPushButton {{
         background-color: {colors["bg_button"]};
-        border: 1px solid {colors["border_button"]};
+        border-top: 1px solid {colors["border_card_top"]};
+        border-left: 1px solid {colors["border_card"]};
+        border-right: 1px solid {colors["border_card"]};
+        border-bottom: 1px solid {colors["border_card_bottom"]};
         border-radius: 4px;
         color: {colors["text_primary"]};
         font-family: 'Segoe UI';
@@ -468,68 +615,53 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
     }}
     #CloudPanel QPushButton:hover {{
         background-color: {colors["bg_button_hover"]};
+        border-top: 1px solid {colors["border_card_top"]};
+        border-left: 1px solid {colors["border_card"]};
+        border-right: 1px solid {colors["border_card"]};
+        border-bottom: 1px solid {colors["border_card_bottom"]};
     }}
     #CloudPanel QPushButton:disabled {{
         color: {colors["text_muted"]};
         background-color: {colors["bg_card"]};
-        border-color: {colors["border_card"]};
+        border: 1px solid {colors["border_card"]};
     }}
-    #CloudPanel #IconBtn {{
-        font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
-        font-size: 10px;
-        font-weight: 400;
-        color: {colors["accent_icon"]};
+    #CloudPanel #IconBtn, #CloudPanel #IconBtnRefresh {{
         background-color: transparent;
         border: none;
+        border-radius: 4px;
         padding: 0;
         min-width: 28px;
         max-width: 28px;
         min-height: 28px;
         max-height: 28px;
     }}
-    #CloudPanel #IconBtn:hover {{
+    #CloudPanel #IconBtn:hover, #CloudPanel #IconBtnRefresh:hover {{
         background-color: {colors["bg_button_hover"]};
     }}
-    #CloudPanel #IconBtn:disabled {{
-        color: {colors["text_muted"]};
-        background-color: {colors["bg_card"]};
-        border-color: {colors["border_card"]};
+    #CloudPanel #IconBtn:pressed, #CloudPanel #IconBtnRefresh:pressed {{
+        background-color: {colors["bg_button_pressed"]};
     }}
-    #CloudPanel #IconBtnRefresh {{
-        font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
-        font-size: 13px;
-        font-weight: 400;
-        color: {colors["accent_icon"]};
+    #CloudPanel #IconBtn:disabled, #CloudPanel #IconBtnRefresh:disabled {{
         background-color: transparent;
         border: none;
-        padding: 0;
-        min-width: 28px;
-        max-width: 28px;
-        min-height: 28px;
-        max-height: 28px;
-    }}
-    #CloudPanel #IconBtnRefresh:hover {{
-        background-color: {colors["bg_button_hover"]};
-    }}
-    #CloudPanel #IconBtnRefresh:disabled {{
-        color: {colors["text_muted"]};
-        background-color: {colors["bg_card"]};
-        border-color: {colors["border_card"]};
     }}
     #CloudFolderRow {{
-        background-color: {colors["bg_button"]};
-        border: 1px solid {colors["border_button"]};
-        border-radius: 6px;
+        background-color: transparent;
+        border: 1px solid transparent;
+        border-radius: 4px;
         text-align: left;
         padding: 0px;
     }}
     #CloudFolderRow:hover {{
-        background-color: {colors["bg_button_hover"]};
-        border-color: {colors["accent"]};
+        background-color: {colors["bg_card_hover"]};
+        border: 1px solid {"rgba(255, 255, 255, 0.04)" if is_dark else "rgba(0, 0, 0, 0.04)"};
+    }}
+    #CloudFolderRow:pressed {{
+        background-color: {colors["bg_button_pressed"]};
     }}
     #CloudFolderRow:disabled {{
-        background-color: {colors["bg_card"]};
-        border-color: {colors["border_card"]};
+        background-color: transparent;
+        border: 1px solid transparent;
     }}
     #CloudFolderName {{
         color: {colors["text_secondary"]};
@@ -546,12 +678,36 @@ def get_wizard_stylesheet(is_dark: bool) -> str:
     }}
     #CloudFolderPreview {{
         color: {colors["text_primary"]};
-        font-size: 22px;
+        font-size: 34px;
         font-weight: 400;
         background: transparent;
     }}
     #CloudFolderRow:disabled #CloudFolderPreview {{
         color: {colors["text_muted"]};
+    }}
+    QCheckBox {{
+        color: {colors["text_secondary"]};
+        font-size: 13px;
+        font-weight: 500;
+        spacing: 8px;
+    }}
+    QCheckBox:hover {{
+        color: {colors["text_primary"]};
+    }}
+    QPushButton#IconBtnInfo {{
+        background: transparent;
+        border: none;
+        padding: 0px;
+        margin: 0px;
+        min-width: 20px;
+        max-width: 20px;
+        min-height: 20px;
+        max-height: 20px;
+        border-radius: 10px;
+        outline: none;
+    }}
+    QPushButton#IconBtnInfo:hover {{
+        background-color: {colors["bg_card_hover"]};
     }}
     #CloudScroll {{
         border: none;
@@ -677,6 +833,9 @@ class BoldIconLabel(QLabel):
         return QSize(int(width) + 8, height + 8)
 
     def paintEvent(self, event):
+        if self.pixmap() and not self.pixmap().isNull():
+            super().paintEvent(event)
+            return
         # Plain glyph rendering (no outline stroke), matching the weight of
         # the other chrome icons in the app.
         text = self.text()
@@ -691,14 +850,810 @@ class BoldIconLabel(QLabel):
         painter.end()
 
 
+class Win11ProgressRing(QWidget):
+    """Rotating accent-tinted action icon shown while an operation runs.
+
+    Replaces the old 5-dot ring but keeps the exact same API (``_timer``,
+    ``_angle``, ~60 fps) so ButtonProgressCover and the ghost test harness
+    work untouched. The glyph is the same circular-arrow artwork the Restart
+    button uses, recoloured to the accent so the busy cue stays on-palette.
+    """
+    _ICON_ASSET = "action-restart.png"
+    _ICON_PX = 18          # logical px, centred inside the 20px box
+    _ICON_CACHE = {}       # (r, g, b, a, px, dpr) -> tinted QPixmap
+
+    def __init__(self, size=16, color=None, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(size, size)
+        self._size = size
+        self._color = color if color is not None else QColor(255, 255, 255)
+        self._angle = 0.0
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._rotate)
+        self._timer.start(16)  # ~60 fps
+
+    def _rotate(self):
+        # Decrementing (not incrementing) makes the glyph spin
+        # counter-clockwise: QPainter.rotate() is clockwise for positive
+        # angles. Reversing here rather than at draw time keeps the dot
+        # fallback path -- which reads _angle directly -- consistent too.
+        self._angle = (self._angle - 4.5) % 360.0
+        self.update()
+
+    def _tinted_icon(self):
+        """The restart glyph recoloured to the accent, cached per colour.
+
+        Built once per colour rather than per frame: paintEvent runs at
+        ~60fps and re-tinting there would allocate a pixmap 60 times a
+        second for no visual gain.
+        """
+        try:
+            dpr = float(self.devicePixelRatioF())
+        except AttributeError:
+            dpr = 1.0
+        c = self._color
+        key = (c.red(), c.green(), c.blue(), c.alpha(),
+               self._ICON_PX, round(dpr, 2))
+        cached = self._ICON_CACHE.get(key)
+        if cached is not None:
+            return cached
+
+        try:
+            src_path = get_asset_path(self._ICON_ASSET)
+        except Exception:
+            return None
+        if not src_path.exists():
+            return None
+        src = QPixmap(str(src_path))
+        if src.isNull():
+            return None
+
+        px = max(1, int(round(self._ICON_PX * dpr)))
+        src = src.scaled(px, px, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        tinted = QPixmap(src.size())
+        tinted.fill(Qt.transparent)
+        painter = QPainter(tinted)
+        painter.drawPixmap(0, 0, src)
+        # Keep the glyph's own alpha, replace its blue with the accent.
+        painter.setCompositionMode(
+            QPainter.CompositionMode.CompositionMode_SourceIn)
+        painter.fillRect(tinted.rect(), c)
+        painter.end()
+        tinted.setDevicePixelRatio(dpr)
+
+        if len(self._ICON_CACHE) > 32:
+            self._ICON_CACHE.clear()
+        self._ICON_CACHE[key] = tinted
+        return tinted
+
+    def paintEvent(self, event):
+        icon = self._tinted_icon()
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
+        if icon is not None:
+            # Rotate about the widget centre; icon is dpr-aware so it stays
+            # crisp on scaled displays and draws at _ICON_PX logical px.
+            painter.translate(self._size / 2.0, self._size / 2.0)
+            painter.rotate(self._angle)
+            half = self._ICON_PX / 2.0
+            painter.drawPixmap(-half, -half, icon)
+            painter.end()
+            return
+        # Asset unavailable: fall back to the original 5-dot ring rather than
+        # showing an empty box.
+        center = self._size / 2.0
+        radius = (self._size - 4) / 2.0
+        for i in range(5):
+            rad = math.radians(self._angle - (i * 22.0))
+            x = center + radius * math.cos(rad)
+            y = center + radius * math.sin(rad)
+            r = 1.3 - (i * 0.15)
+            alpha = int(255 * (1.0 - (i * 0.18)))
+            c = QColor(self._color)
+            c.setAlpha(max(40, alpha))
+            painter.setBrush(QBrush(c))
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(QRectF(x - r, y - r, r * 2, r * 2))
+        painter.end()
+
+
+class ButtonProgressCover(QFrame):
+    """Overlay displayed on action buttons during operations.
+
+    The cover is a child of the button and, on neutral faces, paints no
+    background or border of its own: the button's own face shows through
+    untouched, so it looks exactly as it did before the click. Because the
+    cover is see-through, the button's original icon and label are blanked
+    while it is up (otherwise they would ghost through next to the cover's
+    label) and put back by restore().
+    """
+    def __init__(self, initial_text, btn, bg_color=None, is_dark=None):
+        super().__init__(btn)
+        if is_dark is None:
+            win = btn.window() if hasattr(btn, "window") else None
+            is_dark = getattr(win, "is_dark", is_system_dark_mode())
+        self.is_dark = is_dark
+        self._btn = btn
+        self.setGeometry(0, 0, btn.width(), btn.height())
+        colors = get_theme_colors(is_dark)
+
+        is_accent_face = bool(bg_color) and bg_color == colors["accent"]
+        if is_accent_face:
+            face = bg_color
+            borders = (
+                f"border-top: 1px solid {bg_color};"
+                f"border-left: 1px solid {bg_color};"
+                f"border-right: 1px solid {bg_color};"
+                f"border-bottom: 1px solid {bg_color};"
+            )
+        else:
+            # Neutral by default: no fill, no border. The button underneath
+            # paints its own face (the very face it showed before the click),
+            # so there is nothing to match and no seam is possible -- and no
+            # accent pill is ever laid over a non-accent button.
+            face = "transparent"
+            borders = "border: none;"
+
+        # The cover is see-through, so the button's own icon and label must not
+        # be under it: blank them for the duration and restore afterwards.
+        # The action buttons are fixed-size (160x34), so this cannot shift
+        # the layout.
+        self._saved_text = btn.text()
+        self._saved_icon = btn.icon()
+        self._saved_icon_size = btn.iconSize()
+        btn.setText("")
+        btn.setIcon(QIcon())
+
+        self.setStyleSheet(
+            f"QFrame, QFrame:disabled {{"
+            f"  background-color: {face};"
+            f"  {borders}"
+            f"  border-radius: 4px;"
+            f"}}"
+        )
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(10, 0, 10, 0)
+        # Wider gap pushes the spinner left while the pair stays centred.
+        lay.setSpacing(14)
+        lay.setAlignment(Qt.AlignCenter)
+
+        text_color = colors["accent_text"] if is_accent_face else colors["text_primary"]
+        # Keep the ring on the accent so a neutral cover still reads as busy.
+        spinner_color = QColor(text_color if is_accent_face else colors["accent"])
+
+        self.spinner = Win11ProgressRing(size=20, color=spinner_color, parent=self)
+        self.label = QLabel(initial_text, self)
+        self.label.setStyleSheet(
+            f"QLabel, QLabel:disabled {{"
+            f"  color: {text_color};"
+            f"  font-family: 'Segoe UI Variable Text', 'Segoe UI';"
+            f"  font-size: 13.5px;"
+            f"  font-weight: 600;"
+            f"  border: none;"
+            f"  background: transparent;"
+            f"}}"
+        )
+        lay.addWidget(self.spinner)
+        lay.addWidget(self.label)
+        self.show()
+        self.raise_()
+
+    def setText(self, text: str):
+        self.setToolTip(text)
+        metrics = QFontMetrics(self.label.font())
+        # Budget the label can use: cover margins (10+10) + spinner (20) +
+        # spinner-to-label gap (14) = 54, so it never runs past the right
+        # margin or under the spinner, even for "Restart Windows".
+        available_w = max(60, self.width() - 54)
+        elided = metrics.elidedText(text, Qt.TextElideMode.ElideRight, available_w)
+        self.label.setText(elided)
+
+    set_text = setText
+
+    def restore(self):
+        """Put the covered button's original text and icon back.
+
+        Called whenever the cover goes away. Safe to call more than once and
+        safe if the widgets are already gone.
+        """
+        btn = self._btn
+        try:
+            btn.setText(self._saved_text)
+            btn.setIcon(self._saved_icon)
+            btn.setIconSize(self._saved_icon_size)
+        except RuntimeError:
+            pass
+
+
+class WinUI3ToolTip(QFrame):
+    """Modern WinUI 3 / Fluent 2 ToolTip with translucent background,
+    elevation drop shadow, 6px corner radius, Segoe UI Variable Caption typography,
+    and smooth fade-in animation."""
+    _instance = None
+
+    def __init__(self):
+        super().__init__(None)
+        self.setWindowFlags(Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WA_ShowWithoutActivating)
+
+        self._active_target = None
+        self._is_dark = True
+
+        outer_lay = QVBoxLayout(self)
+        outer_lay.setContentsMargins(10, 10, 10, 10)
+
+        self.container = QFrame(self)
+        self.container_lay = QVBoxLayout(self.container)
+        self.container_lay.setContentsMargins(9, 5, 9, 5)
+
+        self.label = QLabel(self.container)
+        self.label.setWordWrap(True)
+        self.container_lay.addWidget(self.label)
+        outer_lay.addWidget(self.container)
+
+        self.shadow = QGraphicsDropShadowEffect(self.container)
+        self.shadow.setBlurRadius(16)
+        self.shadow.setOffset(0, 4)
+        self.container.setGraphicsEffect(self.shadow)
+
+        self.anim = QPropertyAnimation(self, b"windowOpacity")
+        self.anim.setDuration(120)
+        self.anim.setEasingCurve(QEasingCurve.OutCubic)
+
+    @classmethod
+    def instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def show_tip(self, text: str, target: QWidget, is_dark: bool = True):
+        if not text or not target or not target.isVisible():
+            self.hide_tip()
+            return
+
+        self._active_target = target
+        self._is_dark = is_dark
+        colors = get_theme_colors(is_dark)
+
+        bg = colors.get("tip_bg", "#2C2C2C" if is_dark else "#F9F9F9")
+        border = colors.get("tip_border", "rgba(255, 255, 255, 0.08)" if is_dark else "rgba(0, 0, 0, 0.05)")
+        text_color = colors.get("text_primary", "#FFFFFF" if is_dark else "rgba(0, 0, 0, 0.9)")
+
+        self.container.setStyleSheet(f"""
+            QFrame {{
+                background-color: {bg};
+                border: 1px solid {border};
+                border-radius: 4px;
+            }}
+        """)
+        self.label.setStyleSheet(f"""
+            QLabel {{
+                color: {text_color};
+                font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+                font-size: 12px;
+                font-weight: 400;
+                background: transparent;
+                border: none;
+            }}
+        """)
+        self.label.setText(text)
+        self.shadow.setColor(QColor(0, 0, 0, 95 if is_dark else 30))
+
+        self.container.setMaximumWidth(360)
+        self.adjustSize()
+
+        target_rect = target.rect()
+        target_top_left = target.mapToGlobal(QPoint(0, 0))
+        target_center_x = target_top_left.x() + target_rect.width() // 2
+
+        tip_w = self.width()
+        tip_h = self.height()
+        pos_x = target_center_x - tip_w // 2
+        pos_y = target_top_left.y() + target_rect.height() + 4 - 10
+
+        screen = target.screen() or QApplication.primaryScreen()
+        if screen:
+            geo = screen.availableGeometry()
+            if pos_y + tip_h > geo.bottom():
+                pos_y = target_top_left.y() - tip_h - 4 + 10
+            if pos_x < geo.left() + 8:
+                pos_x = geo.left() + 8
+            elif pos_x + tip_w > geo.right() - 8:
+                pos_x = geo.right() - tip_w - 8
+
+        self.move(pos_x, pos_y)
+        self.setWindowOpacity(0.0)
+        self.show()
+        self.anim.stop()
+        self.anim.setStartValue(0.0)
+        self.anim.setEndValue(1.0)
+        self.anim.start()
+
+    def hide_tip(self):
+        self._active_target = None
+        if hasattr(self, "anim"):
+            self.anim.stop()
+        self.hide()
+
+
+class WinUI3ToolTipFilter(QObject):
+    """Global event filter that intercepts legacy Qt tooltips and seamlessly
+    presents authentic WinUI 3 tooltips with standard 280ms hover delay."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.setInterval(280)
+        self._timer.timeout.connect(self._on_timer_timeout)
+        self._pending_target = None
+        self._pending_text = ""
+        self._is_dark = True
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if not isinstance(watched, QWidget):
+            return super().eventFilter(watched, event)
+
+        etype = event.type()
+        if etype == QEvent.ToolTip:
+            tip_text = watched.toolTip()
+            if tip_text:
+                self._pending_target = watched
+                self._pending_text = tip_text
+                win = watched.window()
+                self._is_dark = getattr(win, "is_dark", True)
+                self._timer.start()
+                return True
+            else:
+                self._cancel()
+                return False
+
+        elif etype in (QEvent.Leave, QEvent.MouseButtonPress, QEvent.MouseButtonRelease,
+                       QEvent.Wheel, QEvent.KeyPress, QEvent.WindowDeactivate):
+            self._cancel()
+
+        return super().eventFilter(watched, event)
+
+    def _on_timer_timeout(self):
+        try:
+            if self._pending_target and self._pending_target.isVisible():
+                WinUI3ToolTip.instance().show_tip(self._pending_text, self._pending_target, self._is_dark)
+        except RuntimeError:
+            pass
+
+    def _cancel(self):
+        self._timer.stop()
+        self._pending_target = None
+        self._pending_text = ""
+        try:
+            WinUI3ToolTip.instance().hide_tip()
+        except Exception:
+            pass
+
+
+class WinUI3ToggleSwitch(QAbstractButton):
+    """Modern Windows 11 WinUI 3 ToggleSwitch widget with smooth sliding thumb and full UIA accessibility."""
+    def __init__(self, checked=False, is_dark=True, parent=None):
+        super().__init__(parent)
+        self.setCheckable(True)
+        self.setChecked(bool(checked))
+        self.is_dark = is_dark
+        self.setFixedSize(40, 20)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.TabFocus)
+        self.setAccessibleName("Asian & regional system fonts")
+        self.setAccessibleDescription("Toggle patching regional Asian system fonts")
+        self._thumb_pos = 1.0 if self.isChecked() else 0.0
+        self._anim = QVariantAnimation(self)
+        self._anim.setDuration(120)
+        self._anim.setEasingCurve(QEasingCurve.OutCubic)
+        self._anim.valueChanged.connect(self._on_anim_val)
+        self.toggled.connect(self._on_toggled_anim)
+
+    def _on_anim_val(self, val):
+        self._thumb_pos = float(val)
+        self.update()
+
+    def _on_toggled_anim(self, checked):
+        if self.isVisible():
+            self._anim.stop()
+            self._anim.setStartValue(self._thumb_pos)
+            self._anim.setEndValue(1.0 if checked else 0.0)
+            self._anim.start()
+        else:
+            self._thumb_pos = 1.0 if checked else 0.0
+            self.update()
+
+    def toggle(self):
+        self.setChecked(not self.isChecked())
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        w, h = self.width(), self.height()
+        radius = h / 2.0
+        enabled = self.isEnabled()
+
+        accent_color, _, _, _ = get_windows_accent_color(self.is_dark)
+        accent_col = QColor(accent_color)
+        off_col = QColor("#333333" if self.is_dark else "#E5E5E5")
+
+        t = self._thumb_pos
+        if enabled:
+            r = int(off_col.red() * (1.0 - t) + accent_col.red() * t)
+            g = int(off_col.green() * (1.0 - t) + accent_col.green() * t)
+            b = int(off_col.blue() * (1.0 - t) + accent_col.blue() * t)
+            bg_col = QColor(r, g, b)
+        else:
+            bg_col = QColor("#555555" if self.isChecked() else ("#252525" if self.is_dark else "#EEEEEE"))
+
+        path = QPainterPath()
+        path.addRoundedRect(0.5, 0.5, w - 1.0, h - 1.0, radius, radius)
+        painter.fillPath(path, bg_col)
+
+        border_alpha = int(25 * (1.0 - t)) if self.is_dark else int(35 * (1.0 - t))
+        border_col = QColor(255, 255, 255, border_alpha) if self.is_dark else QColor(0, 0, 0, border_alpha)
+        painter.setPen(QPen(border_col, 1))
+        painter.drawPath(path)
+
+        # Thumb
+        thumb_x = radius + (w - 2 * radius) * t
+        thumb_col = QColor("#FFFFFF") if (t > 0.5 or not self.is_dark) else QColor("#D0D0D0")
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(thumb_col)
+        thumb_r = 5.5 + 0.5 * t
+        painter.drawEllipse(QPointF(thumb_x, radius), thumb_r, thumb_r)
+
+        # High-visibility focus indicator when focused via Tab
+        if self.hasFocus():
+            painter.setPen(QPen(accent_col, 2.0, Qt.SolidLine))
+            painter.setBrush(Qt.NoBrush)
+            focus_path = QPainterPath()
+            focus_path.addRoundedRect(0.5, 0.5, w - 1.0, h - 1.0, radius, radius)
+            painter.drawPath(focus_path)
+
+
+class SmokeOverlay(QWidget):
+    """Semi-transparent modal scrim (SmokeFillColorDefault) that dims the parent window when a ContentDialog opens."""
+    def __init__(self, parent, on_dismiss=None):
+        super().__init__(parent)
+        self._on_dismiss = on_dismiss
+        self.setGeometry(parent.rect())
+        self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+        is_dark = getattr(parent, "is_dark", True)
+        self.smoke_color = QColor(0, 0, 0, 115 if is_dark else 65)
+        if parent:
+            parent.installEventFilter(self)
+        self.show()
+
+    def eventFilter(self, obj, event):
+        if obj is self.parent() and event.type() == QEvent.Resize:
+            self.setGeometry(self.parent().rect())
+        return super().eventFilter(obj, event)
+
+    def mousePressEvent(self, event):
+        if callable(self._on_dismiss):
+            self._on_dismiss()
+        super().mousePressEvent(event)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), self.smoke_color)
+
+
+class WinUI3ContentDialog(QDialog):
+    """
+    Authentic Windows 11 WinUI 3 ContentDialog according to generic.xaml specs:
+    - 2-tier card: DialogSpace (Title + Body) + CommandSpace (tinted footer band with top divider)
+    - OverlayCornerRadius = 8px
+    - Segoe UI Variable typography
+    - Proper Fluent badge integration
+    - Parent window smoke overlay (SmokeFillColorDefault)
+    - 140ms smooth entrance animation
+    - Dynamic word-wrap bounding rect calculation preventing any vertical text clipping
+    """
+    def __init__(self, title_text, body_text, primary_btn="OK", secondary_btn=None, parent=None, icon_kind=None, is_accent_btn=False, light_dismiss=False):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setModal(True)
+        self.setFixedWidth(460)
+
+        # Override application QDialog stylesheet to guarantee transparent backdrop for drop shadow
+        self.setStyleSheet("QDialog { background: transparent; border: none; }")
+
+        is_dark = getattr(parent, "is_dark", True) if parent is not None else True
+        colors = get_theme_colors(is_dark, is_windows_11())
+
+        bg_card = "#2B2B2B" if is_dark else "#FFFFFF"
+        bg_footer = "#242424" if is_dark else "#F9F9F9"
+        border_col = "rgba(255, 255, 255, 0.09)" if is_dark else "rgba(0, 0, 0, 0.08)"
+        border_divider = "rgba(255, 255, 255, 0.08)" if is_dark else "rgba(0, 0, 0, 0.06)"
+        text_primary = colors["text_primary"]
+        text_secondary = colors["text_secondary"]
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+
+        # Outer Card
+        self.card = QFrame(self)
+        self.card.setObjectName("WinUI3Card")
+        self.card.setStyleSheet(f"""
+            #WinUI3Card {{
+                background-color: {bg_card};
+                border: 1px solid {border_col};
+                border-radius: 8px;
+            }}
+        """)
+
+        # Ambient + Directional Shadow
+        shadow = QGraphicsDropShadowEffect(self.card)
+        shadow.setBlurRadius(32)
+        shadow.setColor(QColor(0, 0, 0, 140 if is_dark else 45))
+        shadow.setOffset(0, 8)
+        self.card.setGraphicsEffect(shadow)
+
+        card_layout = QVBoxLayout(self.card)
+        card_layout.setContentsMargins(0, 0, 0, 0)
+        card_layout.setSpacing(0)
+
+        # 1. DialogSpace (Content Area)
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(24, 24, 24, 20)
+        content_layout.setSpacing(12)
+
+        # Title row (with optional Fluent icon badge)
+        title_row = QHBoxLayout()
+        title_row.setContentsMargins(0, 0, 0, 0)
+        title_row.setSpacing(12)
+
+        if icon_kind in ("info", "warning", "error", "restart"):
+            status_map = {
+                "info": "info",
+                "warning": "warning",
+                "error": "error",
+                "restart": "restart",
+            }
+            icon_p = get_asset_path(f"status-{status_map.get(icon_kind, 'info')}.png")
+            if icon_p.exists():
+                badge = QLabel()
+                pix = QPixmap(str(icon_p))
+                dpr = getattr(self, "devicePixelRatioF", lambda: 1.0)()
+                sz = int(28 * dpr)
+                scaled = pix.scaled(sz, sz, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                scaled.setDevicePixelRatio(dpr)
+                badge.setPixmap(scaled)
+                badge.setFixedSize(28, 28)
+                badge.setAlignment(Qt.AlignCenter)
+                title_row.addWidget(badge, 0, Qt.AlignVCenter)
+            elif icon_kind == "info":
+                badge = QLabel("ℹ")
+                badge.setFixedSize(26, 26)
+                badge.setAlignment(Qt.AlignCenter)
+                badge.setStyleSheet("""
+                    background-color: #0078D4;
+                    color: #FFFFFF;
+                    border-radius: 13px;
+                    font-family: 'Segoe UI', sans-serif;
+                    font-size: 15px;
+                    font-weight: bold;
+                """)
+                title_row.addWidget(badge, 0, Qt.AlignVCenter)
+            elif icon_kind == "warning":
+                badge = QLabel("⚠")
+                badge.setFixedSize(28, 28)
+                badge.setAlignment(Qt.AlignCenter)
+                badge.setStyleSheet("""
+                    color: #FFB900;
+                    font-size: 24px;
+                    background: transparent;
+                """)
+                title_row.addWidget(badge, 0, Qt.AlignVCenter)
+
+        title_lbl = QLabel(title_text)
+        title_lbl.setStyleSheet(f"""
+            font-family: 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: {text_primary};
+            background: transparent;
+        """)
+        title_row.addWidget(title_lbl, 1, Qt.AlignVCenter)
+        content_layout.addLayout(title_row)
+
+        body_lbl = QLabel(body_text)
+        body_lbl.setWordWrap(True)
+        body_lbl.setStyleSheet(f"""
+            font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+            font-size: 14px;
+            color: {text_secondary};
+            background: transparent;
+        """)
+
+        # Precise dynamic wrapped text height calculation via QTextDocument to prevent clipping
+        f = body_lbl.font()
+        f.setFamily("Segoe UI Variable Text" if is_windows_11() else "Segoe UI")
+        f.setPixelSize(14)
+        body_lbl.setFont(f)
+
+        doc = QTextDocument()
+        doc.setDefaultFont(f)
+        # Content width inside 460px card (460 - 2*16 outer margins - 2*24 content margins = 380px)
+        doc.setTextWidth(380.0)
+        doc.setPlainText(body_text)
+        needed_height = int(math.ceil(doc.size().height())) + 8
+
+        body_lbl.setMinimumHeight(needed_height)
+        if needed_height > 260:
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+            scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+            scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+            scroll.setWidget(body_lbl)
+            scroll.setFixedHeight(260)
+            content_layout.addWidget(scroll)
+        else:
+            content_layout.addWidget(body_lbl)
+        card_layout.addWidget(content_widget)
+
+        # 2. CommandSpace (Dedicated Tinted Footer Band)
+        footer_widget = QFrame()
+        footer_widget.setObjectName("CommandSpace")
+        footer_widget.setStyleSheet(f"""
+            #CommandSpace {{
+                background-color: {bg_footer};
+                border-top: 1px solid {border_divider};
+                border-bottom-left-radius: 8px;
+                border-bottom-right-radius: 8px;
+            }}
+        """)
+        footer_layout = QHBoxLayout(footer_widget)
+        footer_layout.setContentsMargins(24, 16, 24, 16)
+        footer_layout.setSpacing(8)
+        footer_layout.addStretch()
+
+        if secondary_btn:
+            s_btn = QPushButton(secondary_btn)
+            s_btn.setCursor(Qt.PointingHandCursor)
+            s_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {"rgba(255, 255, 255, 0.06)" if is_dark else "#FFFFFF"};
+                    color: {text_primary};
+                    border: 1px solid {"rgba(0, 0, 0, 0.35)" if is_dark else "rgba(0, 0, 0, 0.08)"};
+                    {"border-bottom: 1px solid rgba(0, 0, 0, 0.40);" if is_dark else "border-bottom: 1px solid rgba(0, 0, 0, 0.16);"}
+                    border-radius: 4px;
+                    padding: 0 20px;
+                    min-height: 32px;
+                    max-height: 32px;
+                    font-family: 'Segoe UI Variable Text', sans-serif;
+                    font-size: 13px;
+                    font-weight: 500;
+                }}
+                QPushButton:hover {{
+                    background-color: {"rgba(255, 255, 255, 0.09)" if is_dark else "rgba(0, 0, 0, 0.06)"};
+                }}
+                QPushButton:pressed {{
+                    background-color: {"rgba(255, 255, 255, 0.03)" if is_dark else "rgba(0, 0, 0, 0.12)"};
+                }}
+            """)
+            s_btn.clicked.connect(self.reject)
+            footer_layout.addWidget(s_btn)
+
+        p_btn = QPushButton(primary_btn)
+        p_btn.setCursor(Qt.PointingHandCursor)
+        p_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {"rgba(255, 255, 255, 0.06)" if is_dark else "#FFFFFF"};
+                color: {text_primary};
+                border: 1px solid {"rgba(0, 0, 0, 0.35)" if is_dark else "rgba(0, 0, 0, 0.08)"};
+                {"border-bottom: 1px solid rgba(0, 0, 0, 0.40);" if is_dark else "border-bottom: 1px solid rgba(0, 0, 0, 0.16);"}
+                border-radius: 4px;
+                padding: 0 28px;
+                min-height: 32px;
+                max-height: 32px;
+                font-family: 'Segoe UI Variable Text', sans-serif;
+                font-size: 13px;
+                font-weight: 500;
+            }}
+            QPushButton:hover {{
+                background-color: {"rgba(255, 255, 255, 0.09)" if is_dark else "rgba(0, 0, 0, 0.06)"};
+            }}
+            QPushButton:pressed {{
+                background-color: {"rgba(255, 255, 255, 0.03)" if is_dark else "rgba(0, 0, 0, 0.12)"};
+            }}
+        """)
+        p_btn.clicked.connect(self.accept)
+        footer_layout.addWidget(p_btn)
+
+        card_layout.addWidget(footer_widget)
+        main_layout.addWidget(self.card)
+        content_widget.adjustSize()
+        self.card.adjustSize()
+        self.adjustSize()
+
+        if parent is not None:
+            parent_geom = parent.geometry()
+            x = parent_geom.x() + (parent_geom.width() - self.width()) // 2
+            y = parent_geom.y() + (parent_geom.height() - self.height()) // 2
+            self.move(max(0, x), max(0, y))
+
+    @classmethod
+    def show_dialog(cls, parent, title, message, primary_btn="OK", secondary_btn=None, icon_kind=None, is_accent_btn=False, light_dismiss=False):
+        dlg_instance = None
+        filter_obj = None
+
+        overlay = SmokeOverlay(parent) if parent is not None and hasattr(parent, "rect") and hasattr(parent, "isVisible") and parent.isVisible() else None
+        try:
+            dlg_instance = cls(title, message, primary_btn=primary_btn, secondary_btn=secondary_btn, parent=parent, icon_kind=icon_kind, is_accent_btn=is_accent_btn, light_dismiss=light_dismiss)
+            if light_dismiss:
+                from PySide6.QtCore import QObject
+                class LightDismissFilter(QObject):
+                    def eventFilter(self, obj, event):
+                        if event.type() == QEvent.MouseButtonPress and dlg_instance is not None:
+                            try:
+                                pos = event.globalPosition().toPoint() if hasattr(event, "globalPosition") else event.globalPos()
+                                if not dlg_instance.geometry().contains(pos):
+                                    dlg_instance.reject()
+                                    return True
+                            except Exception:
+                                pass
+                        return False
+                filter_obj = LightDismissFilter()
+                qApp.installEventFilter(filter_obj)
+
+            return dlg_instance.exec()
+        finally:
+            if filter_obj is not None:
+                try:
+                    qApp.removeEventFilter(filter_obj)
+                except Exception:
+                    pass
+            if overlay is not None:
+                overlay.hide()
+                overlay.deleteLater()
+
+    @classmethod
+    def show_cjk_info(cls, parent):
+        return cls.show_dialog(
+            parent,
+            title="Asian & Regional System Fonts",
+            message=(
+                "99% of Asian apps and websites already work fine.\n\n"
+                "Only enable if you use specific apps or websites (like WeChat, LINE, KakaoTalk, etc.) that force regional system fonts instead of normal system fonts."
+            ),
+            primary_btn="Got it",
+            icon_kind="info",
+            is_accent_btn=False,
+            light_dismiss=True
+        )
+
+    @classmethod
+    def show_warning(cls, parent, title, message, primary_btn="OK"):
+        return cls.show_dialog(
+            parent,
+            title=title,
+            message=message,
+            primary_btn=primary_btn,
+            icon_kind="warning",
+            is_accent_btn=False,
+            light_dismiss=False
+        )
+
+
 class StatusBanner(QFrame):
+    """Modern Windows 11 WinUI 3 InfoBar control with severity-themed tinting, fluent iconography, and bold headline."""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("Banner")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(18, 16, 18, 16)
-        layout.setSpacing(16)
+        layout.setContentsMargins(18, 14, 18, 14)
+        layout.setSpacing(14)
         
         self.icon_lbl = BoldIconLabel()
         self.icon_lbl.setObjectName("BannerIcon")
@@ -712,11 +1667,13 @@ class StatusBanner(QFrame):
         self.title.setObjectName("BannerTitle")
         self.title.setWordWrap(True)
         self.title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        
         self.text = QLabel("")
         self.text.setObjectName("BannerText")
         self.text.setWordWrap(True)
         self.text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.text.hide()
+        
         text_layout.addWidget(self.title)
         text_layout.addWidget(self.text)
         layout.addLayout(text_layout, 1)
@@ -727,8 +1684,67 @@ class StatusBanner(QFrame):
         self.text.hide()
 
     def set_icon(self, icon_char, color):
+        name_map = {
+            "\uE930": "success",
+            "\uEA39": "warning" if str(color).upper() in ("#FFB900", "WARNING") else "error",
+            "\uE83D": "admin",
+            "\uE895": "restart",
+            "success": "success",
+            "warning": "warning",
+            "error": "error",
+            "admin": "admin",
+            "restart": "restart",
+            "info": "info",
+            "\uE946": "info",
+        }
+        status_key = name_map.get(icon_char)
+        if status_key:
+            icon_path = get_asset_path(f"status-{status_key}.png")
+            if icon_path.exists():
+                pix = QPixmap(str(icon_path))
+                dpr = getattr(self, "devicePixelRatioF", lambda: 1.0)()
+                sz = int(24 * dpr)
+                scaled = pix.scaled(sz, sz, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                scaled.setDevicePixelRatio(dpr)
+                self.icon_lbl.setText("")
+                self.icon_lbl.setPixmap(scaled)
+                self.icon_lbl.setFixedSize(24, 24)
+                return
+        self.icon_lbl.setPixmap(QPixmap())
         self.icon_lbl.setText(icon_char)
         self.icon_lbl.set_ink(QColor(color))
+
+    def set_severity(self, severity: str, is_dark: bool = True):
+        themes = {
+            "success": {
+                "bg": "rgba(16, 124, 65, 0.12)" if is_dark else "rgba(16, 124, 65, 0.08)",
+                "border": "rgba(16, 124, 65, 0.35)" if is_dark else "rgba(16, 124, 65, 0.25)",
+                "icon": "#107C41",
+            },
+            "warning": {
+                "bg": "rgba(255, 185, 0, 0.12)" if is_dark else "rgba(255, 185, 0, 0.10)",
+                "border": "rgba(255, 185, 0, 0.35)" if is_dark else "rgba(255, 185, 0, 0.25)",
+                "icon": "#FFB900",
+            },
+            "info": {
+                "bg": "rgba(0, 120, 212, 0.12)" if is_dark else "rgba(0, 120, 212, 0.08)",
+                "border": "rgba(0, 120, 212, 0.35)" if is_dark else "rgba(0, 120, 212, 0.25)",
+                "icon": "#0078D4",
+            },
+            "error": {
+                "bg": "rgba(209, 52, 56, 0.12)" if is_dark else "rgba(209, 52, 56, 0.08)",
+                "border": "rgba(209, 52, 56, 0.35)" if is_dark else "rgba(209, 52, 56, 0.25)",
+                "icon": "#D13438",
+            },
+        }
+        theme = themes.get(severity, themes["info"])
+        self.setStyleSheet(f"""
+            #Banner {{
+                background-color: {theme["bg"]};
+                border: 1px solid {theme["border"]};
+                border-radius: 4px;
+            }}
+        """)
 
 class WeightCard(QFrame):
     def __init__(self, weight, font_path, is_manual=False, is_dark=False, on_change=None, on_reset=None, parent=None):
@@ -742,6 +1758,7 @@ class WeightCard(QFrame):
         self.on_reset = on_reset
         colors = get_theme_colors(is_dark, is_windows_11())
         
+        metadata = None
         try:
             metadata = inspect_font(font_path)
             detected_weight = metadata.weight_class
@@ -773,15 +1790,23 @@ class WeightCard(QFrame):
 
         header_layout.addStretch(1)
 
-        action_btn = QPushButton("\uE7A7" if is_manual else "\uE7C3")
+        action_btn = QPushButton()
         action_btn.setObjectName("CardChangeBtn")
         action_btn.setProperty("isCustom", "true" if is_manual else "false")
         action_btn.setCursor(Qt.PointingHandCursor)
         action_btn.setFocusPolicy(Qt.NoFocus)
+
+        icon_file = "action-reset.png" if is_manual else "action-edit-file.png"
+        icon_p = get_asset_path(icon_file)
+        if icon_p.exists():
+            action_btn.setIcon(QIcon(str(icon_p)))
+            action_btn.setIconSize(QSize(22, 22))
         if is_manual:
+            action_btn.setToolTip("Reset to auto-detected font")
             if on_reset:
                 action_btn.clicked.connect(lambda: on_reset(self.weight))
         else:
+            action_btn.setToolTip("Choose a font file and override the auto-detected font")
             if on_change:
                 action_btn.clicked.connect(lambda: on_change(self.weight))
         header_layout.addWidget(action_btn, 0, Qt.AlignVCenter)
@@ -814,18 +1839,32 @@ class WeightCard(QFrame):
         layout.addWidget(self.preview)
 
         filename_str = Path(font_path).name
-        if weight == "variable":
-            if is_var_file:
-                meta_text = f"Variable Font • {filename_str}"
-            else:
-                meta_text = f"Static Fallback • Weight {detected_weight} • {filename_str}"
+        if weight == "variable" and is_var_file:
+            left_text = "Variable Font"
         else:
-            meta_text = f"Weight {detected_weight}" + (" • Italic" if detected_italic else "") + f" • {filename_str}"
-        meta = QLabel(meta_text)
-        meta.setObjectName("VariantMeta")
-        meta.setStyleSheet(f"color: {colors['text_muted']}; font-size: 11px;")
-        meta.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        layout.addWidget(meta)
+            left_text = f"Weight {detected_weight}"
+
+        meta_row = QWidget()
+        meta_row.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        meta_layout = QHBoxLayout(meta_row)
+        meta_layout.setContentsMargins(0, 0, 0, 0)
+        meta_layout.setSpacing(8)
+
+        meta_left = QLabel(left_text)
+        meta_left.setObjectName("VariantMeta")
+        meta_left.setStyleSheet(f"color: {colors['text_muted']}; font-size: 11px;")
+        meta_layout.addWidget(meta_left, 0, Qt.AlignVCenter | Qt.AlignLeft)
+
+        meta_layout.addStretch(1)
+
+        meta_right = QLabel(filename_str)
+        meta_right.setObjectName("VariantMeta")
+        meta_right.setStyleSheet(f"color: {colors['text_muted']}; font-size: 11px;")
+        meta_right.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        meta_right.setToolTip(filename_str)
+        meta_layout.addWidget(meta_right, 0, Qt.AlignVCenter | Qt.AlignRight)
+
+        layout.addWidget(meta_row)
 
     def cleanup(self):
         if hasattr(self, "preview") and self.preview:
@@ -914,11 +1953,29 @@ class CloudFolderRow(QPushButton):
         lay.setContentsMargins(16, 0, 16, 0)
         lay.setSpacing(20)
 
-        self.name_label = QLabel(folder.name)
+        name_container = QWidget(self)
+        name_container.setAttribute(Qt.WA_TransparentForMouseEvents)
+        name_container.setFixedWidth(246)
+        name_lay = QHBoxLayout(name_container)
+        name_lay.setContentsMargins(0, 0, 0, 0)
+        name_lay.setSpacing(8)
+
+        self.icon_label = QLabel(name_container)
+        self.icon_label.setObjectName("CloudFolderIcon")
+        self.icon_label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.icon_label.setFixedSize(18, 18)
+        font_icon_p = get_asset_path("action-font.png")
+        if font_icon_p.exists():
+            pm = QPixmap(str(font_icon_p)).scaled(18, 18, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.icon_label.setPixmap(pm)
+        name_lay.addWidget(self.icon_label)
+
+        self.name_label = QLabel(folder.name, name_container)
         self.name_label.setObjectName("CloudFolderName")
-        self.name_label.setFixedWidth(175)
         self.name_label.setAttribute(Qt.WA_TransparentForMouseEvents)
-        lay.addWidget(self.name_label)
+        name_lay.addWidget(self.name_label, 1)
+
+        lay.addWidget(name_container)
 
         self.preview_label = QLabel("The quick brown fox jumps over the lazy dog")
         self.preview_label.setObjectName("CloudFolderPreview")
@@ -932,6 +1989,13 @@ class CloudFolderRow(QPushButton):
         window = self.window()
         is_dark = getattr(window, "is_dark", None)
         if is_dark is None:
+            p = self.parent()
+            while p is not None:
+                if hasattr(p, "is_dark"):
+                    is_dark = p.is_dark
+                    break
+                p = p.parent()
+        if is_dark is None:
             is_dark = is_system_dark_mode()
         colors = get_theme_colors(is_dark, is_windows_11())
         text_color = colors["text_primary"] if self.isEnabled() else colors["text_muted"]
@@ -940,7 +2004,7 @@ class CloudFolderRow(QPushButton):
         )
         fam = f"font-family: '{self._family_name}', sans-serif;" if self._family_name else "font-family: 'Segoe UI', sans-serif;"
         self.preview_label.setStyleSheet(
-            f"color: {text_color}; {fam} font-size: 22px; background: transparent;"
+            f"color: {text_color}; {fam} font-size: 34px; background: transparent;"
         )
 
     def set_font_family(self, family_name: str):
@@ -984,7 +2048,32 @@ class LocalFontsGuide(QWidget):
         self._title_lbl = QLabel("Guide to Applying Local Fonts")
         self._title_lbl.setAlignment(Qt.AlignCenter)
         self._title_lbl.setStyleSheet("font-size: 15px; font-weight: 600; font-family: 'Segoe UI';")
-        inner_lay.addWidget(self._title_lbl)
+
+        # Info icon in front of the title; stretches keep the pair centred.
+        self._title_icon = QLabel()
+        self._title_icon.setObjectName("GuideTitleIcon")
+        _about = Path(get_asset_path("test-about.png"))
+        if _about.exists():
+            # Scale in device pixels, then declare the ratio.
+            _pm = QPixmap(str(_about))
+            _dpr = getattr(self, "devicePixelRatioF", lambda: 1.0)()
+            _sz = int(18 * _dpr)
+            _scaled = _pm.scaled(_sz, _sz, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            _scaled.setDevicePixelRatio(_dpr)
+            self._title_icon.setPixmap(_scaled)
+            self._title_icon.setFixedSize(18, 18)
+            self._title_icon.setAlignment(Qt.AlignCenter)
+        else:
+            self._title_icon.hide()
+
+        title_row = QHBoxLayout()
+        title_row.setContentsMargins(0, 0, 0, 0)
+        title_row.setSpacing(7)
+        title_row.addStretch(1)
+        title_row.addWidget(self._title_icon, 0, Qt.AlignVCenter)
+        title_row.addWidget(self._title_lbl, 0, Qt.AlignVCenter)
+        title_row.addStretch(1)
+        inner_lay.addLayout(title_row)
 
         points_lay = QVBoxLayout()
         points_lay.setSpacing(10)
@@ -1015,6 +2104,27 @@ class LocalFontsGuide(QWidget):
         for lbl in self._labels:
             lbl.setStyleSheet(f"color: {colors['text_muted']}; font-size: 13px; font-family: 'Segoe UI';")
 
+    def fade_in(self, duration=150):
+        """Softly fade in the guide text to prevent abrupt snap/glitch when cloud panel closes."""
+        effect = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(effect)
+        anim = QPropertyAnimation(effect, b"opacity", self)
+        anim.setStartValue(0.0)
+        anim.setEndValue(1.0)
+        anim.setDuration(duration)
+        anim.setEasingCurve(QEasingCurve.OutQuad)
+
+        def _on_done():
+            try:
+                self.setGraphicsEffect(None)
+            except Exception:
+                pass
+
+        anim.finished.connect(_on_done)
+        self._fade_anim = anim
+        self.show()
+        anim.start()
+
 
 class IconActionButton(QFrame):
     """Standalone action button with an MDL2 glyph icon and a text label.
@@ -1026,19 +2136,18 @@ class IconActionButton(QFrame):
 
     clicked = Signal()
 
-    _LEFT_PAD = 12
+    _LEFT_PAD = 10
     _ICON_GAP = 8
-    _RIGHT_PAD = 16
+    _RIGHT_PAD = 14
 
-    def __init__(self, icon_char, icon_px, icon_object_name, text, parent=None):
+    def __init__(self, icon_char, icon_px, icon_object_name, text, parent=None, icon_asset=None):
         super().__init__(parent)
         self.setObjectName("ActionButton")
-        # 36px total so the frame lines up exactly with real QPushButtons
-        # (34px QSS content height + 1px border on each side).
-        self.setFixedHeight(36)
+        # 34px height for modern balanced WinUI 3 button feel
+        self.setFixedHeight(34)
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.setCursor(Qt.ArrowCursor)
-        self.setFocusPolicy(Qt.NoFocus)
+        self.setFocusPolicy(Qt.TabFocus)
         self.setMouseTracking(True)
         self.setAccessibleName(text)
         self._enabled = True
@@ -1046,10 +2155,15 @@ class IconActionButton(QFrame):
         self._pressed = False
         self.setProperty("pressed", False)
         self._icon_px = icon_px
-        self._icon_label = QLabel(icon_char, self)
+        self._icon_asset = icon_asset
+        self._icon_label = QLabel(self)
         self._icon_label.setObjectName(icon_object_name)
         self._icon_label.setAlignment(Qt.AlignCenter)
         self._icon_label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        if icon_asset:
+            self._update_icon_pixmap()
+        elif icon_char:
+            self._icon_label.setText(icon_char)
         self._text_label = QLabel(text, self)
         self._text_label.setObjectName("ActionText")
         self._text_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
@@ -1058,6 +2172,17 @@ class IconActionButton(QFrame):
         self._text_label.raise_()
         self._sync_width()
         self.refresh_action_style()
+
+    def _update_icon_pixmap(self):
+        if not self._icon_asset:
+            return
+        p = get_asset_path(self._icon_asset)
+        if p.exists():
+            dpr = self.devicePixelRatioF() if hasattr(self, "devicePixelRatioF") else 1.0
+            target = int(self._icon_px * dpr)
+            pm = QPixmap(str(p)).scaled(target, target, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pm.setDevicePixelRatio(dpr)
+            self._icon_label.setPixmap(pm)
 
     def text(self):
         try:
@@ -1086,11 +2211,12 @@ class IconActionButton(QFrame):
         except RuntimeError:
             return
         icon_w = self._icon_px + 12
+        offset_y = 2 if self._pressed else 1
         try:
-            self._icon_label.setGeometry(self._LEFT_PAD, 1, icon_w, max(1, height - 2))
+            self._icon_label.setGeometry(self._LEFT_PAD, offset_y, icon_w, max(1, height - 2))
             tx = self._LEFT_PAD + icon_w + self._ICON_GAP
             self._text_label.setGeometry(
-                tx, 1, max(1, width - tx - self._RIGHT_PAD + 4), max(1, height - 2))
+                tx, offset_y, max(1, width - tx - self._RIGHT_PAD + 4), max(1, height - 2))
         except RuntimeError:
             pass
 
@@ -1141,7 +2267,10 @@ class IconActionButton(QFrame):
             icon_ink = colors["accent_icon"]
             text_ink = colors["text_primary"]
         try:
-            self._icon_label.setStyleSheet(f"color: {icon_ink};")
+            if not self._icon_asset:
+                self._icon_label.setStyleSheet(f"color: {icon_ink};")
+            else:
+                self._icon_label.setGraphicsEffect(None)
             self._text_label.setStyleSheet(f"color: {text_ink};")
         except RuntimeError:
             pass
@@ -1159,6 +2288,7 @@ class IconActionButton(QFrame):
                 self.setProperty("pressed", bool(pressed))
                 self.style().unpolish(self)
                 self.style().polish(self)
+                self._layout_content()
                 self.update()
         except RuntimeError:
             pass
@@ -1205,6 +2335,40 @@ class IconActionButton(QFrame):
             return
         super().mouseReleaseEvent(event)
 
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Space, Qt.Key_Return) and self._enabled:
+            self._pressed = True
+            self._paint_pressed(True)
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event):
+        if event.key() in (Qt.Key_Space, Qt.Key_Return) and self._enabled:
+            if self._pressed:
+                self._pressed = False
+                self._paint_pressed(False)
+                self.clicked.emit()
+            event.accept()
+            return
+        super().keyReleaseEvent(event)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.hasFocus() and self._enabled:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            window = self.window()
+            is_dark = getattr(window, "is_dark", True)
+            accent, _, _, _ = get_windows_accent_color(is_dark)
+            pen = QPen(QColor(accent), 2)
+            painter.setPen(pen)
+            painter.setBrush(Qt.NoBrush)
+            r = QRectF(1.0, 1.0, self.width() - 2.0, self.height() - 2.0)
+            path = QPainterPath()
+            path.addRoundedRect(r, 6.0, 6.0)
+            painter.drawPath(path)
+
 
 class CloudFolderPanel(QFrame):
     """Inline (non-popup) dropdown listing the folders of the GitHub fonts repo."""
@@ -1234,18 +2398,26 @@ class CloudFolderPanel(QFrame):
         title.setObjectName("CloudTitle")
         header.addWidget(title)
         header.addStretch(1)
-        refresh_btn = QPushButton(chr(0xE7AD))
+        refresh_btn = QPushButton()
         refresh_btn.setObjectName("IconBtnRefresh")
         refresh_btn.setCursor(Qt.PointingHandCursor)
-        refresh_btn.setToolTip("Refresh folder list")
-        refresh_btn.setAccessibleName("Refresh folder list")
+        refresh_btn.setToolTip("Refresh cloud fonts")
+        refresh_btn.setAccessibleName("Refresh cloud fonts")
+        refresh_p = get_asset_path("action-refresh.png")
+        if refresh_p.exists():
+            refresh_btn.setIcon(QIcon(str(refresh_p)))
+            refresh_btn.setIconSize(QSize(18, 18))
         refresh_btn.clicked.connect(lambda: self.start_fetch(force=True))
         header.addWidget(refresh_btn)
-        close_btn = QPushButton(chr(0xE8BB))
+        close_btn = QPushButton()
         close_btn.setObjectName("IconBtn")
         close_btn.setCursor(Qt.PointingHandCursor)
         close_btn.setToolTip("Close")
         close_btn.setAccessibleName("Close cloud panel")
+        close_p = get_asset_path("action-close.png")
+        if close_p.exists():
+            close_btn.setIcon(QIcon(str(close_p)))
+            close_btn.setIconSize(QSize(18, 18))
         close_btn.clicked.connect(self._on_close)
         header.addWidget(close_btn)
         layout.addLayout(header)
@@ -1450,6 +2622,7 @@ class CloudFolderPanel(QFrame):
             row.clicked.connect(lambda _checked=False, f=folder: self._on_folder_clicked(f))
             self._rows_layout.insertWidget(self._rows_layout.count() - 1, row)
             self._row_map[folder.name] = row
+            row.refresh_theme()
         self._set_status("")
         self.sync_height()
         # Re-measure once the event loop has polished and laid out the new
@@ -1596,6 +2769,14 @@ class CloudFolderPanel(QFrame):
             except RuntimeError:
                 pass
             self._height_anim = None
+        try:
+            self.clearMask()
+        except RuntimeError:
+            pass
+        try:
+            self.setGraphicsEffect(None)
+        except RuntimeError:
+            pass
 
     def animate_show(self, window_height=None):
         """Expand the panel smoothly with a slide-down animation."""
@@ -1607,6 +2788,7 @@ class CloudFolderPanel(QFrame):
         self._set_status("")
         self.sync_height(window_height)
         target = max(60, self.sizeHint().height())
+        self.setMinimumHeight(0)
         self.setMaximumHeight(0)
         self.show()
         self.raise_()
@@ -1616,9 +2798,20 @@ class CloudFolderPanel(QFrame):
         anim.setDuration(200)
         anim.setEasingCurve(QEasingCurve.OutCubic)
 
+        def _on_show_step(v):
+            h = int(v)
+            if h < 90:
+                self.setMask(QRegion(0, 0, max(1, self.width()), max(0, h)))
+            else:
+                self.clearMask()
+
+        anim.valueChanged.connect(_on_show_step)
+
         def _on_show_done():
             self._height_anim = None
+            self.clearMask()
             self.setMaximumHeight(16777215)
+            self.setMinimumHeight(0)
             self.sync_height()
 
         anim.finished.connect(_on_show_done)
@@ -1627,8 +2820,7 @@ class CloudFolderPanel(QFrame):
         return True
 
     def animate_hide(self):
-        """Collapse the panel with a short animation. Refuses (False) while
-        a download is running, so the list can't be yanked away mid-fetch."""
+        """Collapse the panel smoothly with a slide-up animation matching animate_show."""
         if self._dl_thread and self._dl_thread.isRunning():
             return False
         if not self.isVisible():
@@ -1637,12 +2829,23 @@ class CloudFolderPanel(QFrame):
         self._is_hiding = True
         self.setEnabled(False)
         start = max(1, self.height())
+        self.setMinimumHeight(0)
         self.setMaximumHeight(start)
+
         anim = QPropertyAnimation(self, b"maximumHeight", self)
         anim.setStartValue(start)
         anim.setEndValue(0)
-        anim.setDuration(180)
-        anim.setEasingCurve(QEasingCurve.InCubic)
+        anim.setDuration(200)
+        anim.setEasingCurve(QEasingCurve.OutCubic)
+
+        def _on_hide_step(v):
+            h = int(v)
+            if h < 90:
+                self.setMask(QRegion(0, 0, max(1, self.width()), max(0, h)))
+            else:
+                self.clearMask()
+
+        anim.valueChanged.connect(_on_hide_step)
         anim.finished.connect(self._on_hide_anim_done)
         self._height_anim = anim
         anim.start()
@@ -1651,10 +2854,12 @@ class CloudFolderPanel(QFrame):
     def _on_hide_anim_done(self):
         self._is_hiding = False
         self._height_anim = None
+        self.hide()
+        self.clearMask()
         self.setMaximumHeight(16777215)
+        self.setMinimumHeight(0)
         self.setEnabled(True)
         self._set_status("")
-        self.hide()
         self.closed.emit()
 
 
@@ -1698,7 +2903,63 @@ def _render_star_flat(angle_deg=0.0, px=96):
     return _render_star3d(angle_deg, px=px)
 
 
+_STAR_ASSET = "test-star.png"
+_STAR_CANVAS = 128
+_STAR_GIF_DELAYS = (40, 40, 50, 40, 40, 40, 40, 40, 50, 40, 40, 40,
+                       40, 40, 50, 40, 40, 40, 40, 40, 50, 40, 40, 80, 90, 40)
+_STAR_GIF_TOTAL_MS = 1170
+_STAR_BREATH_GAP_MS = 1300
+_STAR_GIF_CACHE = None
+
+
+def _star_frames():
+    """Load the GIF frames once."""
+    global _STAR_GIF_CACHE
+    if _STAR_GIF_CACHE is None:
+        frames = []
+        for i in range(len(_STAR_GIF_DELAYS)):
+            p = get_asset_path(f"star-breath/frame_{i:02d}.png")
+            if not p.exists():
+                break
+            frames.append(QPixmap(str(p)))
+        _STAR_GIF_CACHE = frames or None
+    return _STAR_GIF_CACHE
+_STAR_PIX = None
+_STAR_LOADED = False
+
+
+def _star_pixmap():
+    """Load the star asset, or None to use the procedural fallback."""
+    global _STAR_PIX, _STAR_LOADED
+    if not _STAR_LOADED:
+        _STAR_LOADED = True
+        _STAR_PIX = None
+        try:
+            p = Path(get_asset_path(_STAR_ASSET))
+            if p.exists():
+                _STAR_PIX = QPixmap(str(p))
+        except Exception:
+            _STAR_PIX = None
+    return _STAR_PIX
+
+
 def _render_star3d(angle_deg, px=96, palette=None):
+    _flat = _star_pixmap()
+    if _flat is not None and not _flat.isNull():
+        # Fixed canvas: rotating inside a tight one would change the size.
+        src = _flat.toImage().convertToFormat(QImage.Format_ARGB32_Premultiplied)
+        canvas = QImage(_STAR_CANVAS, _STAR_CANVAS,
+                        QImage.Format_ARGB32_Premultiplied)
+        canvas.fill(Qt.transparent)
+        painter = QPainter(canvas)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        painter.translate(canvas.width() / 2.0, canvas.height() / 2.0)
+        if angle_deg:
+            painter.rotate(float(angle_deg))
+        painter.drawImage(-src.width() / 2.0, -src.height() / 2.0, src)
+        painter.end()
+        return QPixmap.fromImage(canvas)
     if palette is None:
         colors = get_theme_colors(True)
         base = QColor(colors.get("accent", "#0078D4"))
@@ -1845,10 +3106,14 @@ class FontWizardApp(QMainWindow):
         icon_path = get_asset_path("font-wizard-icon.png")
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(f"fontwizard.{APP_NAME}.1")
+            try:
+                from settings import APP_USER_MODEL_ID
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_USER_MODEL_ID)
+            except Exception:
+                pass
 
-        self.setMinimumSize(980, 600)
-        self.resize(1050, 650)
+        self.setMinimumSize(1250, 600)
+        self.resize(1270, 650)
         self._selection_dirty = False
         self._hide_applied_variants = True
         self._apply_action = "apply"
@@ -1862,6 +3127,8 @@ class FontWizardApp(QMainWindow):
         self._op_cover_btn = None
         self._armed_at = 0.0
         self._star_active = False
+        self._star_breath_timer = None
+        self._star_breath_t0 = time.monotonic()
         self._cloud_open = False
         self._cards_sig = None
         self._last_theme_sig = None
@@ -1892,6 +3159,11 @@ class FontWizardApp(QMainWindow):
 
         self._sync_responsive_layout()
         self._apply_theme(self.is_dark)
+
+        self._tooltip_filter = WinUI3ToolTipFilter(self)
+        app_inst = QApplication.instance()
+        if app_inst:
+            app_inst.installEventFilter(self._tooltip_filter)
 
     def _build_header(self):
         header = QWidget()
@@ -1966,6 +3238,30 @@ class FontWizardApp(QMainWindow):
         header_layout.addWidget(self.banner)
         self.main_layout.addWidget(header)
 
+    def _make_button_icon(self, name, icon_size=20, pad_left=0, pad_right=0):
+        """Scale an icon and pad it to match IconActionButton's inset."""
+        p = get_asset_path(name)
+        if not p.exists():
+            return QIcon(), QSize(icon_size, icon_size)
+        dpr = self.devicePixelRatioF() if hasattr(self, "devicePixelRatioF") else 1.0
+        logical_w = icon_size + pad_left + pad_right
+        total_w_px = max(1, round(logical_w * dpr))
+        total_h_px = max(1, round(icon_size * dpr))
+        # Whole-pixel offsets keep the glyph sharp on scaled displays.
+        left_px = max(0, min(round(pad_left * dpr),
+                             total_w_px - round(icon_size * dpr)))
+
+        pm_src = QPixmap(str(p)).scaled(max(1, round(icon_size * dpr)),
+                                        max(1, round(icon_size * dpr)),
+                                        Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        padded_pm = QPixmap(total_w_px, total_h_px)
+        padded_pm.fill(Qt.transparent)
+        painter = QPainter(padded_pm)
+        painter.drawPixmap(left_px, 0, pm_src)
+        painter.end()
+        padded_pm.setDevicePixelRatio(dpr)
+        return QIcon(padded_pm), QSize(logical_w, icon_size)
+
     def _build_font_setup(self):
         self.setup_card = QFrame(objectName="SetupCard")
         self.setup_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -1989,21 +3285,35 @@ class FontWizardApp(QMainWindow):
 
         self.setup_layout.addWidget(self.font_summary, 1, Qt.AlignVCenter)
 
+        # Regional font support is always-on; UI toggle is omitted for a clean interface
+        self.cjk_container = None
+        self.cjk_toggle = None
+        self.cjk_label = None
+        self.cjk_info_btn = None
+        self.cjk_checkbox = None
+
         self.actions_widget = QWidget()
         self.actions_layout = QHBoxLayout(self.actions_widget)
         self.actions_layout.setContentsMargins(0, 0, 0, 0)
         self.actions_layout.setSpacing(10)
 
-        self.local_btn = IconActionButton(chr(0xE8E5), 18, "ActionIconLocal", "Local Fonts")
-        self.fetch_btn = IconActionButton(chr(0xE753), 24, "ActionIconFetch", "Fetch Fonts")
+        self.local_btn = IconActionButton("", 20, "ActionIconLocal", "Local Fonts", icon_asset="action-add-file.png")
+        self.fetch_btn = IconActionButton("", 20, "ActionIconFetch", "Fetch Fonts", icon_asset="action-cloud.png")
         self.apply_btn = QPushButton("Apply Changes")
-        self.restore_btn = QPushButton("Restore Original Fonts")
+        self.restore_btn = QPushButton("Restore Defaults")
+
+        tick_ico, tick_sz = self._make_button_icon("action-tick.png", 20, 2, 10)
+        self.apply_btn.setIcon(tick_ico)
+        self.apply_btn.setIconSize(tick_sz)
+
+        restore_ico, restore_sz = self._make_button_icon("action-restore.png", 20, 2, 10)
+        self.restore_btn.setIcon(restore_ico)
+        self.restore_btn.setIconSize(restore_sz)
 
         self.local_btn.setToolTip("From this PC")
         self.fetch_btn.setToolTip("From cloud")
         for button in (self.apply_btn, self.restore_btn):
-            button.setFixedHeight(34)
-            button.setMinimumWidth(150)
+            button.setFixedSize(180, 34)
         for button in (self.local_btn, self.fetch_btn, self.apply_btn, self.restore_btn):
             button.setCursor(Qt.PointingHandCursor)
             button.setFocusPolicy(Qt.NoFocus)
@@ -2094,6 +3404,9 @@ class FontWizardApp(QMainWindow):
             self.cloud_panel.refresh_theme()
         if hasattr(self, "local_fonts_guide"):
             self.local_fonts_guide.refresh_theme(self.is_dark)
+        if hasattr(self, "cjk_toggle") and self.cjk_toggle:
+            self.cjk_toggle.is_dark = self.is_dark
+            self.cjk_toggle.update()
 
     def _update_github_icon(self):
         if not hasattr(self, "github_btn"):
@@ -2124,8 +3437,8 @@ class FontWizardApp(QMainWindow):
         except Exception:
             pass
 
-    _STAR_REST_PX = 28
-    _STAR_SHOW_MS = 13000
+    _STAR_REST_PX = 32                  # matches the 32x32 header button
+    _STAR_SHOW_MS = 10000                 # 10s total; ~4 breath cycles at 2.47s each
     _STAR_SPIN_DELAY_MS = 350
 
     def _star_palette(self):
@@ -2153,13 +3466,7 @@ class FontWizardApp(QMainWindow):
             self._star_timer.stop()
         except (RuntimeError, AttributeError):
             pass
-        spin = getattr(self, "_star_spin_anim", None)
-        if spin is not None:
-            try:
-                spin.stop()
-            except RuntimeError:
-                pass
-            self._star_spin_anim = None
+        self._stop_star_breath()
         button = getattr(self, "github_btn", None)
         if button is not None:
             try:
@@ -2185,7 +3492,9 @@ class FontWizardApp(QMainWindow):
         def _swap_to_star():
             if not self._star_active:
                 return
-            button.setIcon(QIcon(_render_star3d(0.0, palette=self._star_palette())))
+            _frames = _star_frames()
+            button.setIcon(QIcon(_frames[0] if _frames else
+                                 _render_star3d(0.0, palette=self._star_palette())))
             self._star_angle = 0.0
             button.setIconSize(QSize(12, 12))
             button.setText("")
@@ -2201,40 +3510,70 @@ class FontWizardApp(QMainWindow):
             pop.setEndValue(QSize(self._STAR_REST_PX, self._STAR_REST_PX))
             pop.setEasingCurve(QEasingCurve.OutBack)
             pop.start(QAbstractAnimation.DeleteWhenStopped)
-            QTimer.singleShot(self._STAR_SPIN_DELAY_MS, self._start_star_spin)
+            # Start breathing once the fade/pop finishes.
+            QTimer.singleShot(self._STAR_SPIN_DELAY_MS, self._start_star_breath)
 
         fade_out.finished.connect(_swap_to_star)
         fade_out.start(QAbstractAnimation.DeleteWhenStopped)
 
-    def _start_star_spin(self):
+    def _start_star_breath(self):
+        """GIF-style breathing until the GitHub logo returns."""
         if not getattr(self, "_star_active", False):
             return
-        spin = QVariantAnimation(self)
-        spin.setDuration(1200)
-        spin.setStartValue(0.0)
-        spin.setEndValue(360.0)
-        spin.setEasingCurve(QEasingCurve.InOutQuad)
-        spin.valueChanged.connect(self._spin_star_frame)
-        spin.finished.connect(self._finish_star_spin)
-        self._star_spin_anim = spin
-        spin.start(QAbstractAnimation.DeleteWhenStopped)
+        self._stop_star_breath()
+        self._star_breath_t0 = time.monotonic()
+        timer = QTimer(self)
+        timer.setInterval(16)            # ~60fps, smoother than the GIF's 40ms
+        timer.timeout.connect(self._star_breath_frame)
+        self._star_breath_timer = timer
+        timer.start()
+        # The restore timer stops the breathing when the star is replaced.
 
-    def _spin_star_frame(self, angle):
-        if not getattr(self, "_star_active", False):
-            return
-        try:
-            self._star_angle = float(angle)
-            self.github_btn.setIcon(QIcon(_render_star3d(angle, palette=self._star_palette())))
-        except Exception:
-            pass
+    def _stop_star_breath(self):
+        timer = getattr(self, "_star_breath_timer", None)
+        if timer is not None:
+            try:
+                timer.stop()
+            except RuntimeError:
+                pass
+            try:
+                timer.deleteLater()
+            except RuntimeError:
+                pass
+            self._star_breath_timer = None
+        # Settle back to the resting star, unless GitHub is coming back.
+        if getattr(self, "_star_active", False):
+            try:
+                _frames = _star_frames()
+                self.github_btn.setIcon(
+                    QIcon(_frames[0] if _frames else
+                          _render_star3d(0.0, palette=self._star_palette())))
+            except Exception:
+                pass
 
-    def _finish_star_spin(self):
-        self._star_spin_anim = None
+    def _star_breath_frame(self):
         if not getattr(self, "_star_active", False):
+            self._stop_star_breath()
             return
+        frames = _star_frames()
+        if not frames:
+            return
+        # Play the GIF frames, then hold the rest frame before repeating.
+        elapsed_ms = (time.monotonic() - self._star_breath_t0) * 1000.0
+        cycle_ms = _STAR_GIF_TOTAL_MS + _STAR_BREATH_GAP_MS
+        phase = elapsed_ms % cycle_ms
+        if phase >= _STAR_GIF_TOTAL_MS:
+            idx = 0                          # rest (smallest) frame, held still
+        else:
+            acc = 0.0
+            idx = 0
+            for i, dur in enumerate(_STAR_GIF_DELAYS):
+                if phase < acc + dur:
+                    idx = i
+                    break
+                acc += dur
         try:
-            self._star_angle = 0.0
-            self.github_btn.setIcon(QIcon(_render_star3d(0.0, palette=self._star_palette())))
+            self.github_btn.setIcon(QIcon(frames[idx]))
         except Exception:
             pass
 
@@ -2242,6 +3581,7 @@ class FontWizardApp(QMainWindow):
         if not getattr(self, "_star_active", False):
             return
         self._star_active = False
+        self._stop_star_breath()
         try:
             self._star_timer.stop()
         except RuntimeError:
@@ -2332,7 +3672,9 @@ class FontWizardApp(QMainWindow):
             QTimer.singleShot(0, self._resync_variant_height)
         if watched is self._armed_button:
             etype = event.type()
-            if etype in (QEvent.Type.Enter, QEvent.Type.MouseMove):
+            if etype == QEvent.Type.Resize:
+                self._layout_arm_halves()
+            elif etype in (QEvent.Type.Enter, QEvent.Type.MouseMove):
                 try:
                     x = event.position().x()
                 except AttributeError:
@@ -2394,7 +3736,7 @@ class FontWizardApp(QMainWindow):
         cover_btn = getattr(self, "_op_cover_btn", None)
         if cover is not None and cover_btn is not None:
             try:
-                cover.setGeometry(1, 1, max(1, cover_btn.width() - 2), max(1, cover_btn.height() - 2))
+                cover.setGeometry(0, 0, cover_btn.width(), cover_btn.height())
             except RuntimeError:
                 pass
 
@@ -2516,32 +3858,61 @@ class FontWizardApp(QMainWindow):
     def _arm(self, button, kind):
         self._disarm()
         self._armed_button = button
+        self._armed_orig_text = button.text()
+        self._armed_orig_icon = button.icon() if hasattr(button, "icon") else None
+        try:
+            button.setText("")
+            if hasattr(button, "setIcon"):
+                button.setIcon(QIcon())
+        except RuntimeError:
+            pass
         self._armed_action = {
             "apply": self.on_apply,
             "restore": self._start_restore_op,
             "restart": self._do_restart,
         }[kind]
         colors = get_theme_colors(self.is_dark)
-        window_bg = _opaque_window_bg(self.is_dark)
-        role = button.property("buttonRole") or "secondary"
-        face = {
-            "primary": ("accent", "accent_hover", "accent_text"),
-            "warning": ("accent", "accent_hover", "warning_text"),
-        }.get(role, ("bg_card", "bg_button_hover", "text_primary"))
+        face = ("bg_button", "bg_button_hover", "text_primary")
         self._armed_face = {
-            "bg": _solid_color(colors[face[0]], window_bg),
-            "hover": _solid_color(colors[face[1]], window_bg),
+            "bg": colors[face[0]],
+            "hover": colors[face[1]],
             "ink": colors[face[2]],
         }
-        yes_label = QLabel(self._ARMED_TICK, button)
-        no_label = QLabel(self._ARMED_CROSS, button)
+        yes_label = QLabel(button)
+        no_label = QLabel(button)
         self._arm_labels = (yes_label, no_label)
         for label in self._arm_labels:
             label.setAttribute(Qt.WA_TransparentForMouseEvents)
+            label.setAttribute(Qt.WA_StyledBackground, True)
             label.setAlignment(Qt.AlignCenter)
+        dpr = self.devicePixelRatioF() if hasattr(self, "devicePixelRatioF") else 1.0
+        target = int(20 * dpr)
+        tick_p = get_asset_path("action-tick.png")
+        if tick_p.exists():
+            pm_tick = QPixmap(str(tick_p)).scaled(target, target, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pm_tick.setDevicePixelRatio(dpr)
+            yes_label.setPixmap(pm_tick)
+        cross_p = get_asset_path("action-cross.png")
+        if cross_p.exists():
+            pm_cross = QPixmap(str(cross_p)).scaled(target, target, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pm_cross.setDevicePixelRatio(dpr)
+            no_label.setPixmap(pm_cross)
         self._armed_hover_half = None
+        border_top = colors.get("border_card_top", colors["border_card"])
+        border_mid = colors["border_card"]
+        border_bottom = colors.get("border_card_bottom", colors["border_card"])
         try:
             button.setMouseTracking(True)
+            button.setStyleSheet(f"background-color: {self._armed_face['bg']}; border: none;")
+            button.setStyleSheet(
+                f"background-color: {self._armed_face['bg']}; "
+                f"color: transparent; "
+                f"border-top: 1px solid {border_top}; "
+                f"border-left: 1px solid {border_mid}; "
+                f"border-right: 1px solid {border_mid}; "
+                f"border-bottom: 1px solid {border_bottom}; "
+                f"border-radius: 4px;"
+            )
         except RuntimeError:
             pass
         self._layout_arm_halves()
@@ -2559,7 +3930,7 @@ class FontWizardApp(QMainWindow):
         try:
             width, height = button.width(), button.height()
             mid = width // 2
-            labels[0].setGeometry(0, 0, mid, height)
+            labels[0].setGeometry(0, 0, mid + 1, height)
             labels[1].setGeometry(mid, 0, width - mid, height)
         except RuntimeError:
             pass
@@ -2575,24 +3946,25 @@ class FontWizardApp(QMainWindow):
         face = getattr(self, "_armed_face", None)
         if not labels or not face:
             return
+        colors = get_theme_colors(self.is_dark)
         for index, label in enumerate(labels):
-            background = face["hover"] if index == half else face["bg"]
+            background = face["hover"] if index == half else "transparent"
             try:
-                size = self._ARMED_CROSS_SIZE if index == 1 else self._ARMED_FONT_SIZE
-                divider = "border: none;"
+                divider = f"border-right: 1px solid {colors['border_card']};" if index == 0 else "border: none;"
                 radius_css = (
-                    "border-top-left-radius: 4px; border-bottom-left-radius: 4px; border-top-right-radius: 0px; border-bottom-right-radius: 0px;"
+                    "border-top-left-radius: 5px; border-bottom-left-radius: 5px; border-top-right-radius: 0px; border-bottom-right-radius: 0px;"
                     if index == 0
-                    else "border-top-right-radius: 4px; border-bottom-right-radius: 4px; border-top-left-radius: 0px; border-bottom-left-radius: 0px;"
+                    else "border-top-right-radius: 5px; border-bottom-right-radius: 5px; border-top-left-radius: 0px; border-bottom-left-radius: 0px;"
                 )
-                label.setText(self._ARMED_TICK if index == 0 else self._ARMED_CROSS)
                 label.setStyleSheet(
-                    f"font-family: '{self._ARMED_FONT_FAMILY}'; "
-                    f"font-size: {size}px; "
-                    f"color: {face['ink']}; background-color: {background}; {divider} {radius_css}"
+                    f"background-color: {background}; {divider} {radius_css}"
                 )
             except RuntimeError:
                 pass
+        if half == 1 and len(labels) > 1:
+            labels[1].raise_()
+        elif len(labels) > 0:
+            labels[0].raise_()
 
     def _confirm_armed(self):
         if self._armed_button is None:
@@ -2608,6 +3980,10 @@ class FontWizardApp(QMainWindow):
         self._armed_action = None
         self._armed_face = None
         self._armed_hover_half = None
+        orig_text = getattr(self, "_armed_orig_text", None)
+        self._armed_orig_text = None
+        orig_icon = getattr(self, "_armed_orig_icon", None)
+        self._armed_orig_icon = None
         for label in (getattr(self, "_arm_labels", None) or ()):
             try:
                 label.hide()
@@ -2616,7 +3992,18 @@ class FontWizardApp(QMainWindow):
                 pass
         self._arm_labels = None
         if button is not None:
+            if orig_text is not None:
+                try:
+                    button.setText(orig_text)
+                except RuntimeError:
+                    pass
+            if orig_icon is not None:
+                try:
+                    button.setIcon(orig_icon)
+                except RuntimeError:
+                    pass
             try:
+                button.setStyleSheet("")
                 button.setAccessibleDescription("")
             except RuntimeError:
                 pass
@@ -2640,11 +4027,34 @@ class FontWizardApp(QMainWindow):
         self.cloud_panel.animate_hide()
         self._select_regular(font_path)
 
+    def _on_cjk_toggled(self, checked: bool):
+        self.controller.set_include_regional(checked)
+        from checks import check_disk_space_only
+        state_data = getattr(self.controller, "state", None) or {}
+        installed = state_data.get("install", {}).get("fonts", {}) if isinstance(state_data, dict) else {}
+        has_reg = any(k.startswith("regional_") for k in installed)
+        ok, msg = check_disk_space_only(include_regional=checked, has_regional_installed=has_reg)
+        if not ok:
+            req_str = "1.2 GB" if checked else ("400 MB" if has_reg else "180 MB")
+            target_drive = Path(FONTS_DIR).anchor.rstrip("\\") if hasattr(FONTS_DIR, "anchor") else "C:"
+            self.banner.set_icon("\uEA39", "#FFB900")
+            self.banner.set_severity("warning", self.is_dark)
+            self.banner.set_content(f"Free up at least {req_str} on {target_drive} to continue", msg or "")
+            self.apply_btn.setEnabled(False)
+            # Restore only requires 400 MB and has its own preflight check; do not disable restore unless space < 400 MB
+            can_restore, _ = check_disk_space_only(include_regional=False, is_restore=True, has_regional_installed=has_reg)
+            self.restore_btn.setEnabled(can_restore)
+        else:
+            self.refresh_all()
+
+    def _show_cjk_info_dialog(self):
+        WinUI3ContentDialog.show_cjk_info(self)
+
     def _select_regular(self, font_path):
         try:
             self.controller.set_regular_font(font_path)
         except Exception as exc:
-            QMessageBox.warning(self, "Font not supported", str(exc))
+            WinUI3ContentDialog.show_warning(self, "Font not supported", str(exc))
             return False
         self._selection_dirty = True
         self._hide_applied_variants = False
@@ -2656,9 +4066,6 @@ class FontWizardApp(QMainWindow):
         # button's job, so a second click must not toggle it away.
         if self.cloud_panel.isVisible() and not getattr(self.cloud_panel, "_is_hiding", False):
             return
-        # Preview cards step aside while the cloud list is open; the
-        # panel's height cap reads sibling sizes, so it grows into the
-        # freed space on its own.
         self._cloud_open = True
         self.refresh_all()
         self.cloud_panel.sync_height(self.height())
@@ -2698,20 +4105,17 @@ class FontWizardApp(QMainWindow):
 
         for button in self._action_buttons:
             button.setEnabled(False)
+        if hasattr(self, "cjk_checkbox") and self.cjk_checkbox:
+            self.cjk_checkbox.setEnabled(False)
         colors = get_theme_colors(self.is_dark)
-        cover = QLabel(text, btn)
-        cover.setAlignment(Qt.AlignCenter)
-        cover.setGeometry(0, 0, btn.width(), btn.height())
-        cover.setStyleSheet(
-            "font-family: 'Segoe UI'; font-size: 13px; font-weight: 600; "
-            f"color: {colors['accent_text']}; background-color: {colors['accent']}; "
-            f"border: 1px solid {colors['accent']}; border-radius: 4px;"
-        )
+        cover = ButtonProgressCover(text, btn, colors["bg_button"], is_dark=self.is_dark)
         cover.show()
+        cover.raise_()
         self._op_cover = cover
         self._op_cover_btn = btn
-        self._set_button_role(btn, "primary")
         self._op_thread = OperationThread(func, self)
+        # The label stays on the static phase name ("Applying…"/"Restoring…");
+        # step-by-step progress chatter is deliberately not shown on the button.
         self._op_thread.done.connect(lambda r: self._on_operation_done(r, btn))
         self._op_thread.finished.connect(self._op_thread.deleteLater)
         self._op_thread.start()
@@ -2722,6 +4126,7 @@ class FontWizardApp(QMainWindow):
         self._op_cover_btn = None
         if cover is not None:
             try:
+                cover.restore()     # button's own text/icon back first
                 cover.hide()
                 cover.deleteLater()
             except RuntimeError:
@@ -2739,7 +4144,20 @@ class FontWizardApp(QMainWindow):
             self._selection_dirty = False
 
         if not result.success:
-            QMessageBox.warning(self, "Result", result.message)
+            title = "Low Disk Space" if "disk space" in result.message.lower() else "Operation Failed"
+            WinUI3ContentDialog.show_warning(self, title, result.message)
+        elif result.warnings:
+            notices = [w for w in result.warnings if not w.startswith("Note:")]
+            if notices:
+                if len(notices) <= 6:
+                    notice_lines = "\n".join(f"• {w}" for w in notices)
+                else:
+                    notice_lines = "\n".join(f"• {w}" for w in notices[:5]) + f"\n• ...and {len(notices) - 5} more notices"
+                WinUI3ContentDialog.show_warning(
+                    self,
+                    "Completed with Notices",
+                    result.message + "\n\nNotices:\n" + notice_lines
+                )
         self.refresh_all()
         if btn == self.apply_btn and result.success:
             self._morph_to_star()
@@ -2757,10 +4175,34 @@ class FontWizardApp(QMainWindow):
         self._run_operation(self.controller.restore, self.restore_btn, "Restoring...")
 
     def _do_restart(self):
+        btn = self.apply_btn if getattr(self, "_apply_action", "apply") == "restart" else self.restore_btn
+        colors = get_theme_colors(self.is_dark)
+        cover = ButtonProgressCover("Restarting...", btn, colors["bg_button"], is_dark=self.is_dark)
+        cover.show()
+        cover.raise_()
+        # Same contract as _run_operation: while the cover is up, refresh_all()
+        # must not put the button's content back underneath it.
+        self._op_cover = cover
+        self._op_cover_btn = btn
+        btn.setEnabled(False)
+        QApplication.processEvents()
         try:
             subprocess.run(["shutdown", "/r", "/t", "0"], check=True)
-        except Exception as exc:
-            QMessageBox.warning(self, "Restart Failed", f"Could not initiate Windows restart: {exc}\n\nPlease restart your computer manually to finish the setup.")
+        except Exception:
+            self._op_cover = None
+            self._op_cover_btn = None
+            try:
+                cover.restore()
+                cover.hide()
+                cover.deleteLater()
+            except RuntimeError:
+                pass
+            btn.setEnabled(True)
+            WinUI3ContentDialog.show_warning(
+                self,
+                "Restart Required",
+                "Font Wizard couldn't restart Windows automatically.\n\nPlease restart your computer manually to finish the setup."
+            )
 
     def refresh_all(self):
         self._disarm()
@@ -2769,19 +4211,23 @@ class FontWizardApp(QMainWindow):
 
         is_pending = report.install_state in ("pending_reboot_apply", "pending_reboot_recovery")
         if not report.is_supported:
-            self.banner.set_icon("\uEA39", colors["accent_icon"])
+            self.banner.set_icon("\uEA39", "#D13438")
+            self.banner.set_severity("error", self.is_dark)
         elif not report.is_admin:
-            self.banner.set_icon("\uE83D", colors["accent_icon"])
+            self.banner.set_icon("\uE83D", "#0078D4")
+            self.banner.set_severity("info", self.is_dark)
         elif is_pending:
-            self.banner.set_icon("\uE895", colors["accent_icon"])
+            self.banner.set_icon("\uE895", "#0078D4")
+            self.banner.set_severity("info", self.is_dark)
+        elif report.issues or report.install_state == "partial":
+            self.banner.set_icon("\uEA39", "#FFB900")
+            self.banner.set_severity("warning", self.is_dark)
         elif report.install_state == "managed":
-            self.banner.set_icon("\uE930", colors["accent_icon"])
-        elif report.install_state == "partial":
-            self.banner.set_icon("\uEA39", colors["accent_icon"])
-        elif report.issues:
-            self.banner.set_icon("\uEA39", colors["accent_icon"])
+            self.banner.set_icon("\uE930", "#107C41")
+            self.banner.set_severity("success", self.is_dark)
         else:
-            self.banner.set_icon("\uE930", colors["accent_icon"])
+            self.banner.set_icon("\uE930", "#107C41")
+            self.banner.set_severity("success", self.is_dark)
 
         self.banner.set_content(report.headline, report.summary)
 
@@ -2812,7 +4258,7 @@ class FontWizardApp(QMainWindow):
                 self._apply_action = "restart"
                 apply_text = "Restart Windows"
                 apply_available = True
-            restore_text = "Restore Original Fonts"
+            restore_text = "Restore Defaults"
             apply_visible = True
             restore_visible = False
             restore_available = False
@@ -2822,9 +4268,9 @@ class FontWizardApp(QMainWindow):
             self._restore_action = "restore"
             apply_text = "Apply Changes"
             apply_available = can_apply
-            restore_text = "Restore Original Fonts"
+            restore_text = "Restore Defaults"
             apply_visible = has_selected_font
-            restore_visible = report.install_state in ("managed", "partial")
+            restore_visible = (not apply_visible) and (report.install_state in ("managed", "partial"))
             apply_available = apply_visible and can_apply
             restore_available = restore_visible and report.can_restore_defaults
 
@@ -2833,13 +4279,47 @@ class FontWizardApp(QMainWindow):
         self.fetch_btn.setEnabled(not is_recovery_pending)
         self.fetch_btn.setVisible(not is_recovery_pending)
 
-        self.apply_btn.setText(apply_text)
-        self.apply_btn.setEnabled(apply_available)
-        self.apply_btn.setVisible(apply_visible)
+        # While an operation cover is up, the covered button's content is
+        # deliberately blanked (the cover is transparent so the button's face
+        # shows through unchanged -- its icon/label must stay hidden or they
+        # ghost through next to the cover's label). refresh_all() can fire
+        # mid-operation (card clicks, theme toggle), so it must not put
+        # content back underneath an active cover.
+        covered_btn = getattr(self, "_op_cover_btn", None)
+        apply_covered = covered_btn is self.apply_btn
+        restore_covered = covered_btn is self.restore_btn
 
-        self.restore_btn.setEnabled(restore_available)
-        self.restore_btn.setVisible(restore_visible)
-        self.restore_btn.setText(restore_text)
+        if not apply_covered:
+            self.apply_btn.setText(apply_text)
+            self.apply_btn.setEnabled(apply_available)
+            self.apply_btn.setVisible(apply_visible)
+
+        if not restore_covered:
+            self.restore_btn.setEnabled(restore_available)
+            self.restore_btn.setVisible(restore_visible)
+            self.restore_btn.setText(restore_text)
+
+        restart_p = get_asset_path("action-restart.png")
+        restart_name = "action-restart.png" if restart_p.exists() else "status-restart.png"
+        restart_icon, restart_size = self._make_button_icon(restart_name, 20, 2, 10)
+
+        if not apply_covered:
+            if self._apply_action == "restart":
+                self.apply_btn.setIcon(restart_icon)
+                self.apply_btn.setIconSize(restart_size)
+            else:
+                tick_ico, tick_sz = self._make_button_icon("action-tick.png", 20, 2, 10)
+                self.apply_btn.setIcon(tick_ico)
+                self.apply_btn.setIconSize(tick_sz)
+
+        if not restore_covered:
+            if self._restore_action == "restart":
+                self.restore_btn.setIcon(restart_icon)
+                self.restore_btn.setIconSize(restart_size)
+            else:
+                restore_ico, restore_sz = self._make_button_icon("action-restore.png", 20, 2, 10)
+                self.restore_btn.setIcon(restore_ico)
+                self.restore_btn.setIconSize(restore_sz)
 
         if not can_apply and self._apply_action != "restart":
             if not regular_font:
@@ -2852,12 +4332,22 @@ class FontWizardApp(QMainWindow):
             self.apply_btn.setToolTip("")
 
         if not self.restore_btn.isEnabled() and self._restore_action != "restart":
-            self.restore_btn.setToolTip("Cannot restore fonts right now.")
+            if not report.is_admin:
+                self.restore_btn.setToolTip("Run Font Wizard as Administrator to restore default fonts.")
+            elif any("disk space" in issue.lower() for issue in report.issues):
+                self.restore_btn.setToolTip("Free up disk space on C: to restore default fonts.")
+            else:
+                self.restore_btn.setToolTip("Default Windows fonts are already active.")
         else:
             self.restore_btn.setToolTip("")
 
-        fetch_role = "secondary" if (has_selected_font or is_pending) else "primary"
-        apply_role = "primary"
+        if hasattr(self, "cjk_checkbox") and self.cjk_checkbox:
+            self.cjk_checkbox.setEnabled(not is_recovery_pending and not (self._op_thread and self._op_thread.isRunning()))
+
+        # Apply/Restore/Restart stay neutral (secondary) — Local/Fetch Fonts
+        # are the reference look, so nothing in this row is accent-filled.
+        fetch_role = "secondary"
+        apply_role = "secondary"
         restore_role = "secondary"
 
         self._set_button_role(self.local_btn, "secondary")
@@ -2889,13 +4379,15 @@ class FontWizardApp(QMainWindow):
             start_dir = str(Path(current_path).parent)
             if w == "variable":
                 display_name = "Variable UI Font"
+                filter_str = "Variable TrueType fonts (*.ttf)"
             else:
                 display_name = w.replace("consolas_", "Consolas ").replace("_", " ").title()
+                filter_str = "Static TrueType fonts (*.ttf)"
             chosen_file, _ = QFileDialog.getOpenFileName(
                 self,
                 f"Select Font File for {display_name}",
                 start_dir,
-                "TrueType Fonts (*.ttf);;All Files (*.*)",
+                filter_str,
             )
             if chosen_file:
                 try:
@@ -2903,7 +4395,7 @@ class FontWizardApp(QMainWindow):
                     self._selection_dirty = True
                     self.refresh_all()
                 except Exception as exc:
-                    QMessageBox.warning(self, "Invalid Font", str(exc))
+                    WinUI3ContentDialog.show_warning(self, "Invalid Font", str(exc))
 
         def _handle_card_reset(w):
             self.controller.reset_card_override(w)
@@ -2944,12 +4436,14 @@ class FontWizardApp(QMainWindow):
         self.empty_variants.setVisible(show_variant_section and not has_variants)
         self.weight_scroll.setVisible(has_variants)
         if hasattr(self, "local_fonts_guide"):
-            show_guide = (
-                not has_selected_font
-                and not is_recovery_pending
-                and not getattr(self, "_cloud_open", False)
-            )
-            self.local_fonts_guide.setVisible(show_guide)
+            show_guide = not has_selected_font and not getattr(self, "_cloud_open", False)
+            if not show_guide:
+                self.local_fonts_guide.hide()
+            else:
+                if not self.local_fonts_guide.isVisible():
+                    self.local_fonts_guide.fade_in(150)
+                else:
+                    self.local_fonts_guide.show()
         if has_variants:
             self.weight_widget.show()
         # Lay the cards first, then pin to their real geometry: syncing
@@ -2992,13 +4486,21 @@ class FontWizardApp(QMainWindow):
                         pass
         except Exception:
             pass
+        try:
+            if hasattr(self, "_tooltip_filter"):
+                app_inst = QApplication.instance()
+                if app_inst:
+                    app_inst.removeEventFilter(self._tooltip_filter)
+            WinUI3ToolTip.instance().hide_tip()
+        except Exception:
+            pass
         event.accept()
 
     def run(self):
         self.show()
         # Re-assert the default size once native: creating the native
         # window during __init__ (mica/winId) eats ~20px of height.
-        self.resize(1050, 650)
+        self.resize(1270, 650)
         return QApplication.instance().exec()
 
 if __name__ == "__main__":

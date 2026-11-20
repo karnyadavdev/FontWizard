@@ -4,7 +4,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
-from settings import APP_NAME, SCHEMA_VERSION
+from settings import APP_NAME, SCHEMA_VERSION, DEFAULT_INCLUDE_REGIONAL
 
 
 def iso_now() -> str:
@@ -30,6 +30,9 @@ def build_empty_state():
             "previous_registry": {},
             "applied_at": None,
             "restored_at": None,
+        },
+        "preferences": {
+            "include_regional": DEFAULT_INCLUDE_REGIONAL,
         },
         "last_action": {
             "kind": "startup",
@@ -72,4 +75,9 @@ class ManagedStateStore:
 
     def load_or_empty(self):
         state = self.load()
-        return deepcopy(state) if state else build_empty_state()
+        if state:
+            state = deepcopy(state)
+            if "preferences" not in state or not isinstance(state["preferences"], dict):
+                state["preferences"] = {"include_regional": DEFAULT_INCLUDE_REGIONAL}
+            return state
+        return build_empty_state()

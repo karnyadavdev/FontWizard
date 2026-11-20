@@ -72,7 +72,7 @@ def _inspect_font_cached(font_path_str: str) -> FontMetadata:
     font_path = Path(font_path_str)
     extension = font_path.suffix.lower()
     if extension not in FONT_EXTENSIONS:
-        raise ValueError(f"Unsupported font type: {font_path.suffix}")
+        raise ValueError("Only TrueType (.ttf) fonts can be used as system fonts. Please select a .ttf font file.")
     try:
         font = TTFont(font_path)
     except Exception as exc:
