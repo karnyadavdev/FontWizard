@@ -1,5 +1,9 @@
->Note: v6 has been released with all previous issues <b> fixed </b>
+<p>
+  <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v6.0/Font_Wizard_6.exe">
+    <img src="https://img.shields.io/badge/Download-Font%20Wizard%20v6.0-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download Font Wizard" />
+  </a>
 
+</p>
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
