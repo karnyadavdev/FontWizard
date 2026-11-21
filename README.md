@@ -1,4 +1,4 @@
->Note: v6 has been released with all previous issues fixed<br>Font sizing & clipping issues have been fixed too, now all fonts work <br>Font not changing in some old apps and asian websites have been fixed too
+>Note: v6 has been released with all previous issues fixed
 
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
