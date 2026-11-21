@@ -9,7 +9,8 @@
 <p align="center">
   <b>Change Windows 11 &amp; 10 system font Everywhere</b>.<br>
   Start, Taskbar, Lockscreen, Old Legacy Apps, New UWP &amp; WinUI apps, everywhere.<br>
-
+  <br>
+Supports all languages and regions
 </p>
 
 ---
