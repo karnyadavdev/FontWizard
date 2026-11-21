@@ -1,9 +1,21 @@
-<p>
-  <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v6.0/Font_Wizard_6.exe">
-    <img src="https://img.shields.io/badge/Download-Font%20Wizard%20v6.0-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download Font Wizard" />
-  </a>
+<table>
+  <tr>
+    <td align="center" valign="middle">
+      <a href="https://github.com/karnyadavdev/FontWizard/releases/download/v6.0/Font_Wizard_6.exe">
+        <img src="https://img.shields.io/badge/Download-Font%20Wizard%20v6.0-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download Font Wizard">
+      </a>
+    </td>
+    <td valign="middle">
 
-</p>
+**One-command install via Windows Terminal**
+
+```powershell
+winget install -e --id karnyadavdev.FontWizard
+```
+
+</td>
+  </tr>
+</table>
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
 </p>
