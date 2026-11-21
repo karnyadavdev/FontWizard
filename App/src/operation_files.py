@@ -7,6 +7,7 @@ import uuid
 import winreg
 from pathlib import Path
 
+from localization import Message
 from settings import default_registry_targets
 from app_state import hash_file, iso_now
 
@@ -60,7 +61,7 @@ def take_canonical_font_ownership(font_names: list[str], fonts_dir: Path) -> lis
                 creationflags=0x08000000,
             )
         except Exception as exc:
-            warnings.append(f"Permission grant warning for {name}: {exc}")
+            warnings.append(Message("Permission grant warning for {file}: {error}", file=name, error=exc))
     return warnings
 
 
@@ -156,7 +157,7 @@ def backup_canonical_fonts(workflow, font_names: list[str]) -> tuple[list[str], 
                     shutil.copy2(src, dest)
                 backed_up_count += 1
             except OSError as exc:
-                warnings.append(f"Could not back up original font {name}: {exc}")
+                warnings.append(Message("Could not back up original font {file}: {error}", file=name, error=exc))
         else:
             warnings.append(f"Note: Original font file not found for backup: {name}")
 
@@ -183,7 +184,11 @@ def schedule_canonical_replacement(workflow, artifacts: dict[str, dict]) -> tupl
         system_filename = artifact["system_filename"]
         # Per-file backup guard (IMP-06)
         if find_original_font_backup(workflow, system_filename) is None:
-            warnings.append(f"Skipping {system_filename}: no verified authentic backup available (run 'sfc /scannow' to recover original).")
+            warnings.append(Message(
+                "Skipping {file}: no verified authentic backup available (run 'sfc /scannow' to recover "
+                "original).",
+                file=system_filename,
+            ))
             failed_count += 1
             continue
 
@@ -201,7 +206,7 @@ def schedule_canonical_replacement(workflow, artifacts: dict[str, dict]) -> tupl
                 staged_src.unlink(missing_ok=True)
             except Exception:
                 pass
-            warnings.append(f"Could not stage {system_filename} for replacement: {exc}")
+            warnings.append(Message("Could not stage {file} for replacement: {error}", file=system_filename, error=exc))
             failed_count += 1
             continue
 
@@ -249,7 +254,11 @@ def schedule_canonical_replacement(workflow, artifacts: dict[str, dict]) -> tupl
                 }
             else:
                 err = ctypes.get_last_error()
-                warnings.append(f"Failed to schedule boot replacement for {system_filename} (Win32 error {err})")
+                warnings.append(Message(
+                    "Failed to schedule boot replacement for {file} (Win32 error {code})",
+                    file=system_filename,
+                    code=err,
+                ))
                 failed_count += 1
 
     # Atomic rollback if any failure occurred:
@@ -285,7 +294,10 @@ def schedule_canonical_restore(
         backup_file = find_original_font_backup(workflow, name)
 
         if not backup_file or not backup_file.exists():
-            warnings.append(f"Authentic backup file missing for {name}; run 'sfc /scannow' to recover original.")
+            warnings.append(Message(
+                "Authentic backup file missing for {file}; run 'sfc /scannow' to recover original.",
+                file=name,
+            ))
             failed_count += 1
             if failed_names is not None:
                 failed_names.append(name)
@@ -315,7 +327,7 @@ def schedule_canonical_restore(
                 staged_src.unlink(missing_ok=True)
             except Exception:
                 pass
-            warnings.append(f"Could not stage {name} for restore: {exc}")
+            warnings.append(Message("Could not stage {file} for restore: {error}", file=name, error=exc))
             failed_count += 1
             if failed_names is not None:
                 failed_names.append(name)
@@ -355,7 +367,7 @@ def schedule_canonical_restore(
                 scheduled_count += 1
             else:
                 err = ctypes.get_last_error()
-                warnings.append(f"Failed to schedule restore for {name} (Win32 error {err})")
+                warnings.append(Message("Failed to schedule restore for {file} (Win32 error {code})", file=name, code=err))
                 failed_count += 1
                 if failed_names is not None:
                     failed_names.append(name)
@@ -473,7 +485,7 @@ def purge_fontwizard_pending_renames() -> list[str]:
                     except OSError:
                         pass
     except OSError as exc:
-        warnings.append(f"Could not scrub PendingFileRenameOperations: {exc}")
+        warnings.append(Message("Could not scrub PendingFileRenameOperations: {error}", error=exc))
     return warnings
 
 
@@ -491,7 +503,7 @@ def cleanup_orphaned_pending_ops(workflow) -> tuple[list[str], bool]:
             try:
                 path.unlink(missing_ok=True)
             except OSError as exc:
-                warnings.append(f"Could not remove stale staged file {path}: {exc}")
+                warnings.append(Message("Could not remove stale staged file {file}: {error}", file=path, error=exc))
 
     return warnings, is_pending
 

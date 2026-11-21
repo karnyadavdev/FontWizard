@@ -5,6 +5,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from localization import Message
 from settings import (
     APP_NAME,
     SUPPORTED_WINDOWS_MAJOR,
@@ -271,12 +272,12 @@ def experience_state(is_supported, is_admin, install_state, issues=None):
             req = m.group(1) if m else "space"
             drive_m = re.search(r"on\s+([A-Za-z]:)", first_issue)
             drive = drive_m.group(1) if drive_m else "C:"
-            headline = f"Free up at least {req} on {drive} to continue"
+            headline = Message("Free up at least {required} on {drive} to continue", required=req, drive=drive)
             return (
                 "low_disk_space",
                 headline,
                 first_issue,
-                f"Free up at least {req} on {drive}, then try again.",
+                Message("Free up at least {required} on {drive}, then try again.", required=req, drive=drive),
             )
         clean_first = first_issue.split(".")[0].strip()
         headline = clean_first if len(clean_first) <= 60 else "System issue detected — resolve before continuing"
@@ -441,8 +442,13 @@ class PreflightService:
                 free_mb = free_bytes // (1024 * 1024)
                 req_str = f"{min_mb} MB" if is_restore or not include_regional else "1.2 GB"
                 issues.append(
-                    f"Insufficient free disk space on {target_drive} ({free_mb} MB available). "
-                    f"At least {req_str} free space is required to safely stage font backups and replacements."
+                    Message(
+                        "Insufficient free disk space on {drive} ({free} MB available). At least {required} free "
+                        "space is required to safely stage font backups and replacements.",
+                        drive=target_drive,
+                        free=free_mb,
+                        required=req_str,
+                    )
                 )
         except Exception:
             pass
@@ -508,7 +514,12 @@ def check_disk_space_only(*, include_regional: bool = True, is_restore: bool = F
         free_mb = usage.free // (1024 * 1024)
         if free_mb < min_mb:
             req_str = "1.2 GB" if (include_regional and not is_restore) else f"{min_mb} MB"
-            return False, f"Low disk space: {free_mb} MB available on {target_drive}, requires {req_str}."
+            return False, Message(
+                "Low disk space: {free} MB available on {drive}, requires {required}.",
+                free=free_mb,
+                drive=target_drive,
+                required=req_str,
+            )
         return True, None
     except Exception:
         return True, None

@@ -45,6 +45,7 @@ def main():
     from PySide6.QtGui import QFontDatabase
     from PySide6.QtWidgets import QApplication
 
+    from localization import configure_language
     from ui import FontWizardApp
 
     paths = RuntimePaths.discover()
@@ -63,6 +64,7 @@ def main():
 
     try:
         app = QApplication(sys.argv)
+        configure_language()
         app.setFont(QFontDatabase.systemFont(QFontDatabase.GeneralFont))
         window = FontWizardApp()
         return window.run()

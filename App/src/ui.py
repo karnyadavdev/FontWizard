@@ -52,6 +52,7 @@ from PySide6.QtWidgets import (
 )
 
 from settings import APP_GITHUB_URL, APP_NAME, WEIGHT_TARGETS, GITHUB_FONTS_REPO, GITHUB_FONTS_BRANCH, GITHUB_FONTS_URL, FONTS_DIR
+from localization import tr
 from core import FontWizardController
 from font_detection import inspect_font
 from operation import OperationResult
@@ -1243,8 +1244,8 @@ class WinUI3ToggleSwitch(QAbstractButton):
         self.setFixedSize(40, 20)
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.TabFocus)
-        self.setAccessibleName("Asian & regional system fonts")
-        self.setAccessibleDescription("Toggle patching regional Asian system fonts")
+        self.setAccessibleName(tr("Asian & regional system fonts"))
+        self.setAccessibleDescription(tr("Toggle patching regional Asian system fonts"))
         self._thumb_pos = 1.0 if self.isChecked() else 0.0
         self._anim = QVariantAnimation(self)
         self._anim.setDuration(120)
@@ -1544,7 +1545,7 @@ class WinUI3ContentDialog(QDialog):
             s_btn.clicked.connect(self.reject)
             footer_layout.addWidget(s_btn)
 
-        p_btn = QPushButton(primary_btn)
+        p_btn = QPushButton(tr(primary_btn))
         p_btn.setCursor(Qt.PointingHandCursor)
         p_btn.setStyleSheet(f"""
             QPushButton {{
@@ -1621,8 +1622,8 @@ class WinUI3ContentDialog(QDialog):
     def show_cjk_info(cls, parent):
         return cls.show_dialog(
             parent,
-            title="Asian & Regional System Fonts",
-            message=(
+            title=tr("Asian & Regional System Fonts"),
+            message=tr(
                 "99% of Asian apps and websites already work fine.\n\n"
                 "Only enable if you use specific apps or websites (like WeChat, LINE, KakaoTalk, etc.) that force regional system fonts instead of normal system fonts."
             ),
@@ -1777,11 +1778,11 @@ class WeightCard(QFrame):
 
         if weight == "variable":
             is_var_file = getattr(metadata, "is_variable", False)
-            title_str = "Variable UI Font"
+            title_str = tr("Variable UI Font")
         elif weight.startswith("consolas_"):
-            title_str = "Monospaced " + weight.replace("consolas_", "").replace("_", " ").title()
+            title_str = tr("Monospaced {style}", style=tr(weight.removeprefix("consolas_").replace("_", " ").title()))
         else:
-            title_str = weight.replace("_", " ").title()
+            title_str = tr(weight.replace("_", " ").title())
 
         title = QLabel(title_str)
         title.setObjectName("CardTitle")
@@ -1802,11 +1803,11 @@ class WeightCard(QFrame):
             action_btn.setIcon(QIcon(str(icon_p)))
             action_btn.setIconSize(QSize(22, 22))
         if is_manual:
-            action_btn.setToolTip("Reset to auto-detected font")
+            action_btn.setToolTip(tr("Reset to auto-detected font"))
             if on_reset:
                 action_btn.clicked.connect(lambda: on_reset(self.weight))
         else:
-            action_btn.setToolTip("Choose a font file and override the auto-detected font")
+            action_btn.setToolTip(tr("Choose a font file and override the auto-detected font"))
             if on_change:
                 action_btn.clicked.connect(lambda: on_change(self.weight))
         header_layout.addWidget(action_btn, 0, Qt.AlignVCenter)
@@ -1814,7 +1815,7 @@ class WeightCard(QFrame):
         layout.addWidget(header_row)
         
         is_mono = weight.startswith("consolas_")
-        sample_text = "The quick brown fox jumps over the lazy dog"
+        sample_text = tr("The quick brown fox jumps over the lazy dog")
         self.preview = QLabel(sample_text)
         self.preview.setObjectName("VariantPreview")
         self.preview.setWordWrap(True)
@@ -1840,9 +1841,9 @@ class WeightCard(QFrame):
 
         filename_str = Path(font_path).name
         if weight == "variable" and is_var_file:
-            left_text = "Variable Font"
+            left_text = tr("Variable Font")
         else:
-            left_text = f"Weight {detected_weight}"
+            left_text = tr("Weight {weight}", weight=detected_weight)
 
         meta_row = QWidget()
         meta_row.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -1977,7 +1978,7 @@ class CloudFolderRow(QPushButton):
 
         lay.addWidget(name_container)
 
-        self.preview_label = QLabel("The quick brown fox jumps over the lazy dog")
+        self.preview_label = QLabel(tr("The quick brown fox jumps over the lazy dog"))
         self.preview_label.setObjectName("CloudFolderPreview")
         self.preview_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.preview_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
@@ -2045,7 +2046,7 @@ class LocalFontsGuide(QWidget):
         inner_lay.setContentsMargins(0, 0, 0, 0)
         inner_lay.setSpacing(14)
 
-        self._title_lbl = QLabel("Guide to Applying Local Fonts")
+        self._title_lbl = QLabel(tr("Guide to Applying Local Fonts"))
         self._title_lbl.setAlignment(Qt.AlignCenter)
         self._title_lbl.setStyleSheet("font-size: 15px; font-weight: 600; font-family: 'Segoe UI';")
 
@@ -2083,7 +2084,7 @@ class LocalFontsGuide(QWidget):
         for html_text in self.POINTS:
             lbl = QLabel()
             lbl.setTextFormat(Qt.RichText)
-            lbl.setText(html_text)
+            lbl.setText(tr(html_text))
             lbl.setAlignment(Qt.AlignCenter)
             lbl.setWordWrap(False)
             points_lay.addWidget(lbl, 0, Qt.AlignCenter)
@@ -2394,15 +2395,15 @@ class CloudFolderPanel(QFrame):
 
         header = QHBoxLayout()
         header.setSpacing(8)
-        title = QLabel("Download fonts to apply")
+        title = QLabel(tr("Download fonts to apply"))
         title.setObjectName("CloudTitle")
         header.addWidget(title)
         header.addStretch(1)
         refresh_btn = QPushButton()
         refresh_btn.setObjectName("IconBtnRefresh")
         refresh_btn.setCursor(Qt.PointingHandCursor)
-        refresh_btn.setToolTip("Refresh cloud fonts")
-        refresh_btn.setAccessibleName("Refresh cloud fonts")
+        refresh_btn.setToolTip(tr("Refresh cloud fonts"))
+        refresh_btn.setAccessibleName(tr("Refresh cloud fonts"))
         refresh_p = get_asset_path("action-refresh.png")
         if refresh_p.exists():
             refresh_btn.setIcon(QIcon(str(refresh_p)))
@@ -2412,8 +2413,8 @@ class CloudFolderPanel(QFrame):
         close_btn = QPushButton()
         close_btn.setObjectName("IconBtn")
         close_btn.setCursor(Qt.PointingHandCursor)
-        close_btn.setToolTip("Close")
-        close_btn.setAccessibleName("Close cloud panel")
+        close_btn.setToolTip(tr("Close"))
+        close_btn.setAccessibleName(tr("Close cloud panel"))
         close_p = get_asset_path("action-close.png")
         if close_p.exists():
             close_btn.setIcon(QIcon(str(close_p)))
@@ -2422,7 +2423,7 @@ class CloudFolderPanel(QFrame):
         header.addWidget(close_btn)
         layout.addLayout(header)
 
-        self.status_lbl = QLabel("Loading folder list…")
+        self.status_lbl = QLabel(tr("Loading folder list…"))
         self.status_lbl.setObjectName("CloudMeta")
         self.status_lbl.setWordWrap(True)
         layout.addWidget(self.status_lbl)
@@ -2600,9 +2601,9 @@ class CloudFolderPanel(QFrame):
             return
         if not self._folders or self._rows_layout.count() <= 1:
             self._clear_rows()
-            self._set_status("Loading fonts…")
+            self._set_status(tr("Loading fonts…"))
         else:
-            self._set_status("Refreshing fonts…")
+            self._set_status(tr("Refreshing fonts…"))
         self._fetch_thread = _FetchFoldersThread(GITHUB_FONTS_REPO, GITHUB_FONTS_BRANCH, self)
         self._fetch_thread.finished_ok.connect(self._on_fetch_ok)
         self._fetch_thread.finished_err.connect(self._on_fetch_err)
@@ -2614,7 +2615,7 @@ class CloudFolderPanel(QFrame):
         self._folders = folders
         self._clear_rows()
         if not folders:
-            self._set_status("Fonts couldn't be loaded.")
+            self._set_status(tr("Fonts couldn't be loaded."))
             return
         self._row_map = {}
         for folder in folders:
@@ -2685,9 +2686,9 @@ class CloudFolderPanel(QFrame):
         self._fetch_thread = None
         text = str(message or "")
         if "403" in text or "rate limit" in text.lower():
-            self._set_status("Fonts couldn't be loaded. Please try again in an hour.")
+            self._set_status(tr("Fonts couldn't be loaded. Please try again in an hour."))
         else:
-            self._set_status("Fonts couldn't be loaded. Check your internet connection.")
+            self._set_status(tr("Fonts couldn't be loaded. Check your internet connection."))
 
     def _row_text(self, folder):
         return folder.name.replace("&", "&&")
@@ -2711,7 +2712,7 @@ class CloudFolderPanel(QFrame):
         if self._dl_thread and self._dl_thread.isRunning():
             return
         self._set_rows_enabled(False)
-        self._set_status("Downloading…")
+        self._set_status(tr("Downloading…"))
         self._dl_thread = _DownloadFolderThread(folder, self)
         self._dl_thread.progress.connect(self._on_dl_progress)
         self._dl_thread.finished_ok.connect(self._on_dl_ok)
@@ -2720,7 +2721,7 @@ class CloudFolderPanel(QFrame):
         self._dl_thread.start()
 
     def _on_dl_progress(self, pct, name):
-        self._set_status(f"Downloading… {int(pct)}%")
+        self._set_status(tr("Downloading… {percent}%", percent=int(pct)))
 
     def _on_dl_ok(self, local_paths):
         self._dl_thread = None
@@ -2737,9 +2738,9 @@ class CloudFolderPanel(QFrame):
         # almost always the connection.
         lowered = (message or "").lower()
         if "403" in lowered or "429" in lowered or "rate limit" in lowered:
-            self._set_status("Too many downloads right now. Try again in an hour.")
+            self._set_status(tr("Too many downloads right now. Try again in an hour."))
         else:
-            self._set_status("Download failed. Check your internet and try again.")
+            self._set_status(tr("Download failed. Check your internet and try again."))
 
     def refresh_theme(self):
         for i in range(self._rows_layout.count() - 1):
@@ -3225,7 +3226,7 @@ class FontWizardApp(QMainWindow):
         title_row_layout.addWidget(self.github_btn, 0, Qt.AlignBottom)
         text_layout.addWidget(title_row, 0, Qt.AlignLeft)
 
-        subtitle = QLabel("Customize your system fonts")
+        subtitle = QLabel(tr("Customize your system fonts"))
         subtitle.setObjectName("AppSubtitle")
         subtitle.setFixedHeight(20)
         subtitle.setAlignment(Qt.AlignLeft | Qt.AlignTop)
@@ -3274,11 +3275,11 @@ class FontWizardApp(QMainWindow):
         summary_layout.setContentsMargins(0, 0, 0, 0)
         summary_layout.setSpacing(2)
 
-        title = QLabel("Interface Font")
+        title = QLabel(tr("Interface Font"))
         title.setObjectName("CardTitle")
         summary_layout.addWidget(title)
 
-        self.cur_font_lbl = QLabel("No font selected")
+        self.cur_font_lbl = QLabel(tr("No font selected"))
         self.cur_font_lbl.setObjectName("SelectedFont")
         self.cur_font_lbl.setWordWrap(True)
         summary_layout.addWidget(self.cur_font_lbl)
@@ -3297,10 +3298,10 @@ class FontWizardApp(QMainWindow):
         self.actions_layout.setContentsMargins(0, 0, 0, 0)
         self.actions_layout.setSpacing(10)
 
-        self.local_btn = IconActionButton("", 20, "ActionIconLocal", "Local Fonts", icon_asset="action-add-file.png")
-        self.fetch_btn = IconActionButton("", 20, "ActionIconFetch", "Fetch Fonts", icon_asset="action-cloud.png")
-        self.apply_btn = QPushButton("Apply Changes")
-        self.restore_btn = QPushButton("Restore Defaults")
+        self.local_btn = IconActionButton("", 20, "ActionIconLocal", tr("Local Fonts"), icon_asset="action-add-file.png")
+        self.fetch_btn = IconActionButton("", 20, "ActionIconFetch", tr("Fetch Fonts"), icon_asset="action-cloud.png")
+        self.apply_btn = QPushButton(tr("Apply Changes"))
+        self.restore_btn = QPushButton(tr("Restore Defaults"))
 
         tick_ico, tick_sz = self._make_button_icon("action-tick.png", 20, 2, 10)
         self.apply_btn.setIcon(tick_ico)
@@ -3310,8 +3311,8 @@ class FontWizardApp(QMainWindow):
         self.restore_btn.setIcon(restore_ico)
         self.restore_btn.setIconSize(restore_sz)
 
-        self.local_btn.setToolTip("From this PC")
-        self.fetch_btn.setToolTip("From cloud")
+        self.local_btn.setToolTip(tr("From this PC"))
+        self.fetch_btn.setToolTip(tr("From cloud"))
         for button in (self.apply_btn, self.restore_btn):
             button.setFixedSize(180, 34)
         for button in (self.local_btn, self.fetch_btn, self.apply_btn, self.restore_btn):
@@ -3333,7 +3334,7 @@ class FontWizardApp(QMainWindow):
         v_layout.setContentsMargins(0, 0, 0, 0)
         v_layout.setSpacing(12)
 
-        text_lbl = QLabel("Style Variants", objectName="SectionHeader")
+        text_lbl = QLabel(tr("Style Variants"), objectName="SectionHeader")
         self.variant_count_lbl = QLabel("")
         self.variant_count_lbl.setObjectName("SectionMeta")
         v_layout.addWidget(text_lbl)
@@ -3347,9 +3348,9 @@ class FontWizardApp(QMainWindow):
         empty_layout = QVBoxLayout(self.empty_variants)
         empty_layout.setContentsMargins(24, 24, 24, 24)
         empty_layout.setSpacing(8)
-        empty_title = QLabel("No style variants yet")
+        empty_title = QLabel(tr("No style variants yet"))
         empty_title.setObjectName("CardTitle")
-        empty_desc = QLabel("Select a font to preview detected styles.")
+        empty_desc = QLabel(tr("Select a font to preview detected styles."))
         empty_desc.setObjectName("CardDesc")
         empty_desc.setWordWrap(True)
         empty_layout.addWidget(empty_title)
@@ -3481,7 +3482,7 @@ class FontWizardApp(QMainWindow):
         self._star_active = True
         self._star_timer.start(self._STAR_SHOW_MS)
         button = self.github_btn
-        button.setAccessibleName("Star Font Wizard on GitHub")
+        button.setAccessibleName(tr("Star Font Wizard on GitHub"))
         effect = QGraphicsOpacityEffect(button)
         button.setGraphicsEffect(effect)
         fade_out = QPropertyAnimation(effect, b"opacity", self)
@@ -3919,7 +3920,7 @@ class FontWizardApp(QMainWindow):
         self._paint_arm_halves(None)
         for label in self._arm_labels:
             label.show()
-        button.setAccessibleDescription("Armed. Activate the left side or press Enter to confirm, or press Escape to cancel.")
+        button.setAccessibleDescription(tr("Armed. Activate the left side or press Enter to confirm, or press Escape to cancel."))
         self._armed_at = time.monotonic()
 
     def _layout_arm_halves(self):
@@ -4015,9 +4016,9 @@ class FontWizardApp(QMainWindow):
     def _on_local_pick(self):
         font_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select Static TrueType Font",
+            tr("Select Static TrueType Font"),
             "",
-            "Static TrueType fonts (*.ttf)",
+            tr("Static TrueType fonts (*.ttf)"),
         )
         if not font_path:
             return
@@ -4039,7 +4040,7 @@ class FontWizardApp(QMainWindow):
             target_drive = Path(FONTS_DIR).anchor.rstrip("\\") if hasattr(FONTS_DIR, "anchor") else "C:"
             self.banner.set_icon("\uEA39", "#FFB900")
             self.banner.set_severity("warning", self.is_dark)
-            self.banner.set_content(f"Free up at least {req_str} on {target_drive} to continue", msg or "")
+            self.banner.set_content(tr("Free up at least {required} on {drive} to continue", required=req_str, drive=target_drive), tr(msg or ""))
             self.apply_btn.setEnabled(False)
             # Restore only requires 400 MB and has its own preflight check; do not disable restore unless space < 400 MB
             can_restore, _ = check_disk_space_only(include_regional=False, is_restore=True, has_regional_installed=has_reg)
@@ -4054,7 +4055,7 @@ class FontWizardApp(QMainWindow):
         try:
             self.controller.set_regular_font(font_path)
         except Exception as exc:
-            WinUI3ContentDialog.show_warning(self, "Font not supported", str(exc))
+            WinUI3ContentDialog.show_warning(self, tr("Font not supported"), tr(str(exc)))
             return False
         self._selection_dirty = True
         self._hide_applied_variants = False
@@ -4144,26 +4145,27 @@ class FontWizardApp(QMainWindow):
             self._selection_dirty = False
 
         if not result.success:
-            title = "Low Disk Space" if "disk space" in result.message.lower() else "Operation Failed"
-            WinUI3ContentDialog.show_warning(self, title, result.message)
+            title = tr("Low Disk Space") if "disk space" in result.message.lower() else tr("Operation Failed")
+            WinUI3ContentDialog.show_warning(self, title, tr(result.message))
         elif result.warnings:
             notices = [w for w in result.warnings if not w.startswith("Note:")]
             if notices:
                 if len(notices) <= 6:
-                    notice_lines = "\n".join(f"• {w}" for w in notices)
+                    notice_lines = "\n".join(f"• {tr(w)}" for w in notices)
                 else:
-                    notice_lines = "\n".join(f"• {w}" for w in notices[:5]) + f"\n• ...and {len(notices) - 5} more notices"
+                    notice_lines = "\n".join(f"• {tr(w)}" for w in notices[:5])
+                    notice_lines += "\n• " + tr("...and {count} more notices", count=len(notices) - 5)
                 WinUI3ContentDialog.show_warning(
                     self,
-                    "Completed with Notices",
-                    result.message + "\n\nNotices:\n" + notice_lines
+                    tr("Completed with Notices"),
+                    tr("{message}\n\nNotices:\n{notices}", message=tr(result.message), notices=notice_lines)
                 )
         self.refresh_all()
         if btn == self.apply_btn and result.success:
             self._morph_to_star()
 
     def on_apply(self):
-        self._run_operation(self.controller.apply, self.apply_btn, "Applying...")
+        self._run_operation(self.controller.apply, self.apply_btn, tr("Applying..."))
 
     def on_restore(self):
         if getattr(self, "_restore_action", "restore") == "restart":
@@ -4172,12 +4174,12 @@ class FontWizardApp(QMainWindow):
         self._arm_or_confirm(self.restore_btn, "restore")
 
     def _start_restore_op(self):
-        self._run_operation(self.controller.restore, self.restore_btn, "Restoring...")
+        self._run_operation(self.controller.restore, self.restore_btn, tr("Restoring..."))
 
     def _do_restart(self):
         btn = self.apply_btn if getattr(self, "_apply_action", "apply") == "restart" else self.restore_btn
         colors = get_theme_colors(self.is_dark)
-        cover = ButtonProgressCover("Restarting...", btn, colors["bg_button"], is_dark=self.is_dark)
+        cover = ButtonProgressCover(tr("Restarting..."), btn, colors["bg_button"], is_dark=self.is_dark)
         cover.show()
         cover.raise_()
         # Same contract as _run_operation: while the cover is up, refresh_all()
@@ -4200,8 +4202,8 @@ class FontWizardApp(QMainWindow):
             btn.setEnabled(True)
             WinUI3ContentDialog.show_warning(
                 self,
-                "Restart Required",
-                "Font Wizard couldn't restart Windows automatically.\n\nPlease restart your computer manually to finish the setup."
+                tr("Restart Required"),
+                tr("Font Wizard couldn't restart Windows automatically.\n\nPlease restart your computer manually to finish the setup.")
             )
 
     def refresh_all(self):
@@ -4229,7 +4231,7 @@ class FontWizardApp(QMainWindow):
             self.banner.set_icon("\uE930", "#107C41")
             self.banner.set_severity("success", self.is_dark)
 
-        self.banner.set_content(report.headline, report.summary)
+        self.banner.set_content(tr(report.headline), tr(report.summary))
 
         regular_font = self.controller.selection.paths.get("regular")
         can_apply = report.can_apply_changes and regular_font is not None
@@ -4241,8 +4243,8 @@ class FontWizardApp(QMainWindow):
             self._browse_action = "select"
             self._apply_action = "restart"
             self._restore_action = "restart"
-            apply_text = "Restart Windows"
-            restore_text = "Restart Windows"
+            apply_text = tr("Restart Windows")
+            restore_text = tr("Restart Windows")
             apply_visible = True
             restore_visible = False
             apply_available = True
@@ -4252,13 +4254,13 @@ class FontWizardApp(QMainWindow):
             self._restore_action = "restore"
             if has_selected_font and self._selection_dirty:
                 self._apply_action = "apply"
-                apply_text = "Apply Changes"
+                apply_text = tr("Apply Changes")
                 apply_available = can_apply
             else:
                 self._apply_action = "restart"
-                apply_text = "Restart Windows"
+                apply_text = tr("Restart Windows")
                 apply_available = True
-            restore_text = "Restore Defaults"
+            restore_text = tr("Restore Defaults")
             apply_visible = True
             restore_visible = False
             restore_available = False
@@ -4266,9 +4268,9 @@ class FontWizardApp(QMainWindow):
             self._browse_action = "select"
             self._apply_action = "apply"
             self._restore_action = "restore"
-            apply_text = "Apply Changes"
+            apply_text = tr("Apply Changes")
             apply_available = can_apply
-            restore_text = "Restore Defaults"
+            restore_text = tr("Restore Defaults")
             apply_visible = has_selected_font
             restore_visible = (not apply_visible) and (report.install_state in ("managed", "partial"))
             apply_available = apply_visible and can_apply
@@ -4323,21 +4325,21 @@ class FontWizardApp(QMainWindow):
 
         if not can_apply and self._apply_action != "restart":
             if not regular_font:
-                self.apply_btn.setToolTip("Select a font to apply.")
+                self.apply_btn.setToolTip(tr("Select a font to apply."))
             else:
                 self.apply_btn.setToolTip(
-                    "\n".join(report.issues) if report.issues else "Cannot apply changes right now."
+                    "\n".join(tr(issue) for issue in report.issues) if report.issues else tr("Cannot apply changes right now.")
                 )
         else:
             self.apply_btn.setToolTip("")
 
         if not self.restore_btn.isEnabled() and self._restore_action != "restart":
             if not report.is_admin:
-                self.restore_btn.setToolTip("Run Font Wizard as Administrator to restore default fonts.")
+                self.restore_btn.setToolTip(tr("Run Font Wizard as Administrator to restore default fonts."))
             elif any("disk space" in issue.lower() for issue in report.issues):
-                self.restore_btn.setToolTip("Free up disk space on C: to restore default fonts.")
+                self.restore_btn.setToolTip(tr("Free up disk space on C: to restore default fonts."))
             else:
-                self.restore_btn.setToolTip("Default Windows fonts are already active.")
+                self.restore_btn.setToolTip(tr("Default Windows fonts are already active."))
         else:
             self.restore_btn.setToolTip("")
 
@@ -4355,7 +4357,7 @@ class FontWizardApp(QMainWindow):
         self._set_button_role(self.apply_btn, apply_role)
         self._set_button_role(self.restore_btn, restore_role)
 
-        self.cur_font_lbl.setText(Path(regular_font).name if regular_font else "No font selected")
+        self.cur_font_lbl.setText(Path(regular_font).name if regular_font else tr("No font selected"))
 
         cards_sig = (
             tuple(sorted((key, str(value)) for key, value in self.controller.selection.paths.items())),
@@ -4378,14 +4380,15 @@ class FontWizardApp(QMainWindow):
             current_path = self.controller.selection.paths.get(w) or self.controller.selection.paths.get("regular") or "."
             start_dir = str(Path(current_path).parent)
             if w == "variable":
-                display_name = "Variable UI Font"
-                filter_str = "Variable TrueType fonts (*.ttf)"
+                display_name = tr("Variable UI Font")
+                filter_str = tr("Variable TrueType fonts (*.ttf)")
             else:
-                display_name = w.replace("consolas_", "Consolas ").replace("_", " ").title()
-                filter_str = "Static TrueType fonts (*.ttf)"
+                style = tr(w.removeprefix("consolas_").replace("_", " ").title())
+                display_name = tr("Consolas {style}", style=style) if w.startswith("consolas_") else style
+                filter_str = tr("Static TrueType fonts (*.ttf)")
             chosen_file, _ = QFileDialog.getOpenFileName(
                 self,
-                f"Select Font File for {display_name}",
+                tr("Select Font File for {style}", style=display_name),
                 start_dir,
                 filter_str,
             )
@@ -4395,7 +4398,7 @@ class FontWizardApp(QMainWindow):
                     self._selection_dirty = True
                     self.refresh_all()
                 except Exception as exc:
-                    WinUI3ContentDialog.show_warning(self, "Invalid Font", str(exc))
+                    WinUI3ContentDialog.show_warning(self, tr("Invalid Font"), tr(str(exc)))
 
         def _handle_card_reset(w):
             self.controller.reset_card_override(w)
@@ -4430,7 +4433,7 @@ class FontWizardApp(QMainWindow):
             and not getattr(self, "_cloud_open", False)
         )
         has_variants = show_variant_section and cards_added > 0
-        self.variant_count_lbl.setText(f"{cards_added} styles" if has_variants else "No preview")
+        self.variant_count_lbl.setText(tr("{count} styles", count=cards_added) if has_variants else tr("No preview"))
 
         self.variants_header.setVisible(show_variant_section)
         self.empty_variants.setVisible(show_variant_section and not has_variants)

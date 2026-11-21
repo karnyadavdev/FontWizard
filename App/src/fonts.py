@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from localization import tr
 from font_detection import inspect_font
 from settings import REGISTRY_NAMES, get_system_weights, mod_filename
 
@@ -61,7 +62,12 @@ def validate_selection(selection, source_labels=None, weights=None):
     for weight, source in resolved.items():
         source_path = Path(source)
         if not source_path.exists():
-            summary.errors.append(f"Font file not found for {weight.replace('_', ' ')}.")
+            style = weight.removeprefix("consolas_").replace("_", " ").title()
+            if weight.startswith("consolas_"):
+                style = tr("Consolas {style}", style=tr(style))
+            else:
+                style = tr(style)
+            summary.errors.append(tr("Font file not found for {style}.", style=style))
             continue
         cache_key = str(source_path.resolve())
         if cache_key not in metadata_cache:

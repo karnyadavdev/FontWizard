@@ -4,6 +4,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from localization import Message
 
 _HWND_BROADCAST = 0xFFFF
 _WM_FONTCHANGE = 0x001D
@@ -86,7 +87,7 @@ def _remove_cache_path(path, warnings):
         try:
             path.unlink()
         except OSError as exc:
-            warnings.append(f"Could not remove font cache file {path}: {exc}")
+            warnings.append(Message("Could not remove font cache file {file}: {error}", file=path, error=exc))
         return
 
     for child in path.glob("*"):
@@ -94,7 +95,7 @@ def _remove_cache_path(path, warnings):
             if child.is_file():
                 child.unlink()
         except OSError as exc:
-            warnings.append(f"Could not remove font cache file {child}: {exc}")
+            warnings.append(Message("Could not remove font cache file {file}: {error}", file=child, error=exc))
 
 
 def refresh_windows_font_cache():
