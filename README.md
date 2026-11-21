@@ -38,7 +38,8 @@
 
 ---
 
-### If you wish to install via terminal
+### One-command install via Windows Terminal
+
 
 ```powershell
 winget install -e --id karnyadavdev.FontWizard
