@@ -2,11 +2,7 @@
         <img src="https://img.shields.io/badge/Download-exe v6.0-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download Font Wizard">
       </a>
 
-**One-command install via Windows Terminal**
 
-```powershell
-winget install -e --id karnyadavdev.FontWizard
-```
 
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
