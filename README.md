@@ -1,4 +1,4 @@
->Note: v6 has been released with all previous issues fixed
+>Note: v6 has been released with all previous issues <b> fixed </b>
 
 <p align="center">
   <img src="App/src/assets/font-wizard-icon.png" alt="Font Wizard" width="110"/>
