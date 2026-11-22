@@ -11,9 +11,9 @@
 <p align="center">
   <b>Change Windows 11 &amp; 10 system font Everywhere</b>.<br>
   Start, Taskbar, Lockscreen, All New & Old Windows Apps, Chrome, MS Office, Adobe Apps, everywhere.<br>
-  <br><a href="https://github.com/karnyadavdev/FontWizard/releases/download/v6.0/Font_Wizard_6.exe">
-        <img src="https://img.shields.io/badge/Download-exe v6.0-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download Font Wizard">
-      </a> <br> ⭐ Don't forget to put a star if you like the project! 
+  <br><a href="https://github.com/karnyadavdev/FontWizard/releases/tag/v6.0">
+        <img src="https://img.shields.io/badge/Download- v6.0-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download Font Wizard">
+      </a> 
 </p>
 
 ---
