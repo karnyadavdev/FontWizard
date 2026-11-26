@@ -9,11 +9,11 @@
 <h1 align="center"> Font Wizard 6</h1>
 
 <p align="center">
-  <a href="https://github.com/karnyadavdev/FontWizard/releases/tag/v6.0">
-        <img src="https://img.shields.io/badge/Download Here-5k+-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download Font Wizard">
-      </a> <br> <b>Change Windows 11 &amp; 10 system font Everywhere.<br>
+    <b>Change Windows 11 &amp; 10 system font Everywhere.<br>
   Start, Taskbar, Lockscreen, All New & Old Windows Apps, Chrome, MS Office, Adobe Apps, everywhere.<br></b>
-  <br>⭐ Don't forget to put a star if you like the project! <br> Upload Fonts here that you feel are beautiful to recommend to others <a href="https://github.com/karnyadavdev/Fonts"> link </a>
+  <br><a href="https://github.com/karnyadavdev/FontWizard/releases/tag/v6.0">
+        <img src="https://img.shields.io/badge/Download Here-5k+-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download Font Wizard">
+      </a><br>⭐ Don't forget to put a star if you like the project! <br> Upload Fonts here that you feel are beautiful to recommend to others <a href="https://github.com/karnyadavdev/Fonts"> link </a>
 </p>
 
 ---
