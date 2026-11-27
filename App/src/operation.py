@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fontTools.ttLib import TTFont
 
+from localization import Message, tr
 from font_cache import refresh_windows_font_cache
 from font_generation import build_font
 from fonts import validate_selection
@@ -157,8 +158,12 @@ class FontWorkflow:
             if missing_backups:
                 return OperationResult(
                     False,
-                    f"Cannot safely apply fonts: missing verified original backup for core system font(s): {', '.join(missing_backups)}.\n\n"
-                    "Run 'sfc /scannow' in an Administrator terminal to restore your original Windows system fonts, then try applying again.",
+                    Message(
+                        "Cannot safely apply fonts: missing verified original backup for core system font(s): "
+                        "{files}.\n\nRun 'sfc /scannow' in an Administrator terminal to restore your original Windows "
+                        "system fonts, then try applying again.",
+                        files=", ".join(missing_backups),
+                    ),
                     backup_warnings,
                 )
 
@@ -178,11 +183,17 @@ class FontWorkflow:
                     remedies.append("Run 'sfc /scannow' in an Administrator terminal to restore your original Windows system fonts")
                 if cascadia_missing:
                     remedies.append("reinstall/repair Windows Terminal or Visual Studio to recover Cascadia fonts")
-                remedy_text = " and ".join(remedies)
+                remedy_text = tr(remedies[0])
+                if len(remedies) > 1:
+                    remedy_text = tr("{first} and {second}", first=remedy_text, second=tr(remedies[1]))
                 return OperationResult(
                     False,
-                    f"Cannot safely apply fonts: missing verified original backup for font(s): {', '.join(missing_backups[:5])}{'...' if len(missing_backups) > 5 else ''}.\n\n"
-                    f"{remedy_text}, then try applying again.",
+                    Message(
+                        "Cannot safely apply fonts: missing verified original backup for font(s): {files}.\n\n"
+                        "{remedy}, then try applying again.",
+                        files=", ".join(missing_backups[:5]) + ("..." if len(missing_backups) > 5 else ""),
+                        remedy=remedy_text,
+                    ),
                     backup_warnings + build_warnings,
                 )
 
@@ -262,7 +273,10 @@ class FontWorkflow:
                 "details": str(exc),
             }
             self.state_store.save(state)
-            return OperationResult(False, f"Failed to apply font changes: {exc}", [str(exc)], summary.warnings)
+            return OperationResult(False, Message(
+                "Failed to apply font changes: {error}",
+                error=exc,
+            ), [str(exc)], summary.warnings)
         finally:
             shutil.rmtree(stage_dir, ignore_errors=True)
 
@@ -320,10 +334,25 @@ class FontWorkflow:
                     remedies.append("run 'sfc /scannow' in an Administrator terminal")
                 if cascadia_failed:
                     remedies.append("repair Windows Terminal for Cascadia")
-                remedy_text = " (and ".join(remedies) + (")" if len(remedies) > 1 else "")
-                message = f"Partial restore: {scheduled_count} original fonts scheduled for restore, but {failed_count} font(s) could not be restored ({', '.join(failed_targets)}). Please {remedy_text} to recover missing originals, then restart Windows."
+                remedy_text = tr(remedies[0])
+                if len(remedies) > 1:
+                    remedy_text = tr("{first} (and {second})", first=remedy_text, second=tr(remedies[1]))
+                message = Message(
+                    "Partial restore: {scheduled} original fonts scheduled for restore, but {failed} font(s) "
+                    "could not be restored ({files}). Please {remedy} to recover missing originals, then restart"
+                    " Windows.",
+                    scheduled=scheduled_count,
+                    failed=failed_count,
+                    files=", ".join(failed_targets),
+                    remedy=remedy_text,
+                )
             else:
-                message = f"Original Windows fonts ({scheduled_count}/{len(system_files)}) scheduled for restore. Restart Windows now to finish."
+                message = Message(
+                    "Original Windows fonts ({scheduled}/{total}) scheduled for restore. Restart Windows now to "
+                    "finish.",
+                    scheduled=scheduled_count,
+                    total=len(system_files),
+                )
 
             self._emit(progress, 75, "Purging system font caches...")
             cache_warnings = purge_system_font_cache()
@@ -377,7 +406,7 @@ class FontWorkflow:
                 warnings=all_warnings,
             )
         except Exception as exc:
-            return OperationResult(False, f"Font restore failed: {exc}", [str(exc)])
+            return OperationResult(False, Message("Font restore failed: {error}", error=exc), [str(exc)])
 
     def _emit(self, callback, value, message):
         if callback:
@@ -669,7 +698,10 @@ def build_artifacts(workflow, entries, stage_dir, build_warnings=None, *, includ
             donor_path = find_original_font_backup(workflow, reg_file)
             if not donor_path or not donor_path.exists():
                 if build_warnings is not None:
-                    build_warnings.append(f"Regional font {reg_file} skipped: Pristine backup not found in backup store or WinSxS.")
+                    build_warnings.append(Message(
+                        "Regional font {file} skipped: Pristine backup not found in backup store or WinSxS.",
+                        file=reg_file,
+                    ))
                 continue
 
             if isinstance(pref_weight, (list, tuple)):
@@ -712,7 +744,11 @@ def build_artifacts(workflow, entries, stage_dir, build_warnings=None, *, includ
                             }
                         except Exception as exc:
                             if build_warnings is not None:
-                                build_warnings.append(f"Regional font {reg_file} skipped: {exc}")
+                                build_warnings.append(Message(
+                                    "Regional font {file} skipped: {error}",
+                                    file=reg_file,
+                                    error=exc,
+                                ))
                         if progress and hasattr(workflow, "_emit"):
                             workflow._emit(progress, 30 + int(45 * i / len(jobs)), f"Built {reg_file} ({i}/{len(jobs)})")
             else:
@@ -735,7 +771,11 @@ def build_artifacts(workflow, entries, stage_dir, build_warnings=None, *, includ
                         }
                     except Exception as exc:
                         if build_warnings is not None:
-                            build_warnings.append(f"Regional font {reg_file} skipped: {exc}")
+                            build_warnings.append(Message(
+                                "Regional font {file} skipped: {error}",
+                                file=reg_file,
+                                error=exc,
+                            ))
                     if progress and hasattr(workflow, "_emit"):
                         workflow._emit(progress, 30 + int(45 * i / len(jobs)), f"Built {reg_file} ({i}/{len(jobs)})")
 

@@ -45,6 +45,10 @@
 winget install -e --id karnyadavdev.FontWizard
 ```
 
+## Interface language
+
+Font Wizard uses Simplified Chinese (简体中文) or Traditional Chinese (繁體中文) when Chinese is your first preferred app language in Windows. For other languages, it uses English. To choose a language explicitly, set `FONTWIZARD_LANGUAGE` to `en`, `zh-Hans`, or `zh-Hant` before launching the app.
+
 ## Build from Source
 
 ```bat

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fontTools.ttLib import TTFont
 
+from localization import tr
 from settings import FONT_EXTENSIONS, WEIGHT_TARGETS
 
 
@@ -76,12 +77,12 @@ def _inspect_font_cached(font_path_str: str) -> FontMetadata:
     try:
         font = TTFont(font_path)
     except Exception as exc:
-        raise ValueError(f"This font file is corrupted or unreadable: {font_path.name}") from exc
+        raise ValueError(tr("This font file is corrupted or unreadable: {name}", name=font_path.name)) from exc
 
     try:
         for req in ("head", "name", "OS/2", "glyf", "loca"):
             if req not in font:
-                raise ValueError(f"This font file is corrupted or missing standard TrueType '{req}' table: {font_path.name}")
+                raise ValueError(tr("This font file is corrupted or missing standard TrueType '{table}' table: {name}", table=req, name=font_path.name))
 
         try:
             weight_class = font["OS/2"].usWeightClass
@@ -146,7 +147,7 @@ def _inspect_font_cached(font_path_str: str) -> FontMetadata:
     except ValueError:
         raise
     except Exception as exc:
-        raise ValueError(f"This font file is corrupted or unreadable: {font_path.name}") from exc
+        raise ValueError(tr("This font file is corrupted or unreadable: {name}", name=font_path.name)) from exc
     finally:
         font.close()
     return metadata
